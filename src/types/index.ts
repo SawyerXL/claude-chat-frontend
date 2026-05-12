@@ -9,6 +9,8 @@ export interface ChatSession {
   id: string;
   title: string;
   messages: ChatMessage[];
+  model: string;
+  createdAt: number;
   updatedAt: number;
 }
 

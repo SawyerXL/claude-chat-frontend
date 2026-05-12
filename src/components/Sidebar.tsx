@@ -12,12 +12,13 @@ import {
   MoreOutlined,
 } from '@ant-design/icons';
 import { Tooltip } from 'antd';
-import { RECENT_CHATS } from '../constants';
+import type { ChatSession } from '../types';
 import '../styles/sidebar.css';
 
 interface SidebarProps {
   activeChat: string | null;
   onSelectChat: (id: string | null) => void;
+  sessions: ChatSession[];
 }
 
 const NAV_ITEMS = [
@@ -29,7 +30,7 @@ const NAV_ITEMS = [
   { key: 'customize', icon: <SettingOutlined />, label: 'Customize' },
 ];
 
-export default function Sidebar({ activeChat, onSelectChat }: SidebarProps) {
+export default function Sidebar({ activeChat, onSelectChat, sessions }: SidebarProps) {
   const [collapsed, setCollapsed] = useState(false);
 
   return (
@@ -69,13 +70,13 @@ export default function Sidebar({ activeChat, onSelectChat }: SidebarProps) {
         <>
           <div className="sidebar-section">Recents</div>
           <div className="sidebar-recents">
-            {RECENT_CHATS.map((chat) => (
+            {sessions.map((session) => (
               <div
-                key={chat.id}
-                className={`recent-item ${activeChat === chat.id ? 'active' : ''}`}
-                onClick={() => onSelectChat(chat.id)}
+                key={session.id}
+                className={`recent-item ${activeChat === session.id ? 'active' : ''}`}
+                onClick={() => onSelectChat(session.id)}
               >
-                {chat.title}
+                {session.title}
               </div>
             ))}
           </div>
