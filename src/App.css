@@ -7,3 +7,54 @@
   background: var(--bg-primary);
   color: var(--text-primary);
 }
+
+/* Header title edit styles */
+.header-title-edit {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+}
+
+.title-edit-input {
+  flex: 1;
+  max-width: 300px;
+  padding: 6px 10px;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  color: var(--text-primary);
+  font-size: 15px;
+  outline: none;
+}
+
+.title-edit-input:focus {
+  border-color: var(--accent);
+}
+
+.title-edit-btn {
+  padding: 6px 12px;
+  border: none;
+  border-radius: 6px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.title-edit-btn.save {
+  background: var(--accent);
+  color: #fff;
+}
+
+.title-edit-btn.save:hover {
+  background: #c06a49;
+}
+
+.title-edit-btn.cancel {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+}
+
+.title-edit-btn.cancel:hover {
+  background: var(--bg-hover);
+}

@@ -12,6 +12,7 @@ export interface ChatSession {
   model: string;
   createdAt: number;
   updatedAt: number;
+  projectId?: string;
 }
 
 export interface ModelOption {
@@ -19,4 +20,23 @@ export interface ModelOption {
   name: string;
   description: string;
   badge?: string;
+}
+
+export interface Artifact {
+  id: string;
+  type: 'react' | 'html' | 'svg' | 'python' | 'html-react' | '_generative' | 'notebook';
+  title: string;
+  content: string;
+  language?: string;
+  code?: string;
+  createdAt: number;
+}
+
+export interface Project {
+  id: string;
+  name: string;
+  icon: string;
+  color: string;
+  createdAt: number;
+  updatedAt: number;
 }

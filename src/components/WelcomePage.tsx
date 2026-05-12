@@ -8,9 +8,11 @@ import {
   EditOutlined,
   HeartOutlined,
   ThunderboltOutlined,
+  CloseOutlined,
 } from '@ant-design/icons';
 import ModelSelector from './ModelSelector';
 import PlusMenu from './PlusMenu';
+import type { User } from '../services/auth';
 import '../styles/welcome.css';
 
 const { TextArea } = Input;
@@ -24,19 +26,25 @@ const QUICK_ACTIONS = [
 ];
 
 interface WelcomePageProps {
-  onSend: (text: string) => void;
+  onSend: (text: string, images?: string[]) => void;
   model: string;
   onModelChange: (id: string) => void;
+  user?: User | null;
 }
 
-export default function WelcomePage({ onSend, model, onModelChange }: WelcomePageProps) {
+export default function WelcomePage({ onSend, model, onModelChange, user }: WelcomePageProps) {
   const [value, setValue] = useState('');
+  const [images, setImages] = useState<string[]>([]);
+
+  // Get display name - prefer username, fallback to email
+  const displayName = user?.username || user?.email?.split('@')[0] || 'User';
 
   const handleSend = () => {
     const text = value.trim();
-    if (!text) return;
-    onSend(text);
+    if (!text && images.length === 0) return;
+    onSend(text, images);
     setValue('');
+    setImages([]);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -44,6 +52,14 @@ export default function WelcomePage({ onSend, model, onModelChange }: WelcomePag
       e.preventDefault();
       handleSend();
     }
+  };
+
+  const handleImageUpload = (newImages: string[]) => {
+    setImages((prev) => [...prev, ...newImages]);
+  };
+
+  const handleRemoveImage = (index: number) => {
+    setImages((prev) => prev.filter((_, i) => i !== index));
   };
 
   const getGreeting = () => {
@@ -62,10 +78,27 @@ export default function WelcomePage({ onSend, model, onModelChange }: WelcomePag
               <path d="M12 2L14.09 8.26L20 9L15 13.74L16.18 19.76L12 16.77L7.82 19.76L9 13.74L4 9L9.91 8.26L12 2Z" fill="#fff" opacity="0.9" />
             </svg>
           </div>
-          <span>{getGreeting()}, sawyer</span>
+          <span>{getGreeting()}, {displayName}</span>
         </div>
 
         <div className="welcome-input-area">
+          {/* Image preview */}
+          {images.length > 0 && (
+            <div className="image-preview-container">
+              {images.map((img, idx) => (
+                <div key={idx} className="image-preview">
+                  <img src={img} alt={`Upload ${idx + 1}`} />
+                  <button
+                    className="image-remove-btn"
+                    onClick={() => handleRemoveImage(idx)}
+                  >
+                    <CloseOutlined />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+
           <TextArea
             className="welcome-input"
             placeholder="How can I help you today?"
@@ -78,7 +111,7 @@ export default function WelcomePage({ onSend, model, onModelChange }: WelcomePag
 
           <div className="welcome-toolbar">
             <div className="toolbar-left">
-              <PlusMenu />
+              <PlusMenu onImageUpload={handleImageUpload} />
               <ModelSelector value={model} onChange={onModelChange} />
             </div>
             <div className="toolbar-right">
@@ -89,7 +122,7 @@ export default function WelcomePage({ onSend, model, onModelChange }: WelcomePag
                 className="tool-btn send"
                 title="Send"
                 onClick={handleSend}
-                disabled={!value.trim()}
+                disabled={!value.trim() && images.length === 0}
               >
                 <ArrowUpOutlined />
               </button>

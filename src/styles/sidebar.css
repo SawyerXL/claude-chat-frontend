@@ -126,15 +126,16 @@
 }
 
 .recent-item {
-  padding: 7px 12px;
+  padding: 8px 10px;
   border-radius: 8px;
   color: var(--text-secondary);
   font-size: 13px;
   cursor: pointer;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  display: flex;
+  align-items: center;
+  gap: 10px;
   transition: background 0.15s ease;
+  position: relative;
 }
 
 .recent-item:hover {
@@ -145,6 +146,127 @@
 .recent-item.active {
   background: var(--bg-hover);
   color: var(--text-primary);
+}
+
+.recent-item-content {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  flex: 1;
+  min-width: 0;
+}
+
+.recent-icon {
+  width: 20px;
+  height: 20px;
+  border-radius: 4px;
+  background: var(--bg-tertiary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: var(--text-tertiary);
+  font-size: 11px;
+}
+
+.recent-item.active .recent-icon {
+  background: var(--accent);
+  color: #fff;
+}
+
+.recent-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.recent-title {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 13px;
+}
+
+.recent-time {
+  font-size: 11px;
+  color: var(--text-tertiary);
+  margin-top: 2px;
+}
+
+.recent-delete {
+  opacity: 0;
+  width: 24px;
+  height: 24px;
+  border: none;
+  background: transparent;
+  color: var(--text-tertiary);
+  border-radius: 4px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+  flex-shrink: 0;
+}
+
+.recent-item:hover .recent-delete {
+  opacity: 1;
+}
+
+.recent-delete:hover {
+  background: var(--bg-tertiary);
+  color: var(--danger);
+}
+
+/* Sidebar content area */
+.sidebar-content {
+  flex: 1;
+  overflow: hidden;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+
+.projects-overlay {
+  position: absolute;
+  inset: 0;
+  background: var(--bg-secondary);
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+}
+
+.projects-overlay-header {
+  display: flex;
+  align-items: center;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.projects-overlay-header button {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  background: transparent;
+  border: none;
+  color: var(--text-primary);
+  font-size: 13px;
+  cursor: pointer;
+  border-radius: 6px;
+}
+
+.projects-overlay-header button:hover {
+  background: var(--bg-hover);
+}
+
+.sidebar-group {
+  margin-bottom: 8px;
+}
+
+.sidebar-conversations {
+  flex: 1;
+  overflow-y: auto;
+  padding: 4px 12px;
 }
 
 .sidebar-footer {

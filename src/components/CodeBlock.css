@@ -1,0 +1,87 @@
+.code-block {
+  position: relative;
+  background: #1e1e1e;
+  border-radius: 8px;
+  overflow: hidden;
+  margin: 12px 0;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.code-block-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  background: #252526;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.code-block-lang {
+  font-size: 12px;
+  color: #888;
+  text-transform: lowercase;
+  font-family: 'Fira Code', 'Monaco', monospace;
+}
+
+.code-block-actions {
+  display: flex;
+  gap: 4px;
+}
+
+.code-block-btn {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  color: #666;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: all 0.15s;
+  font-size: 12px;
+}
+
+.code-block-btn:hover {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.code-block-btn.active {
+  color: #4ec9b0;
+}
+
+.code-block-btn.copy {
+  font-size: 14px;
+}
+
+.code-block-content {
+  overflow-x: auto;
+}
+
+.code-block-content pre {
+  margin: 0 !important;
+}
+
+.code-block-content code {
+  font-family: 'Fira Code', 'Monaco', 'Consolas', monospace !important;
+}
+
+.inline-code {
+  background: rgba(255, 255, 255, 0.1);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-family: 'Fira Code', 'Monaco', 'Consolas', monospace;
+  font-size: 0.9em;
+}
+
+/* Mobile responsiveness */
+@media (max-width: 768px) {
+  .code-block {
+    border-radius: 0;
+    margin: 8px -16px;
+    border-left: none;
+    border-right: none;
+  }
+}

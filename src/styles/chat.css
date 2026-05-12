@@ -27,7 +27,7 @@
 }
 
 .chat-message.user {
-  justify-content: flex-end;
+  flex-direction: row-reverse;
 }
 
 .chat-message.user .message-body {
@@ -35,6 +35,15 @@
   padding: 12px 16px;
   border-radius: 16px;
   max-width: 75%;
+}
+
+.chat-message.user .message-header {
+  margin-bottom: 4px;
+}
+
+.message-sender {
+  font-size: 12px;
+  color: var(--text-tertiary);
 }
 
 .chat-message.assistant .message-body {
@@ -213,6 +222,33 @@
   color: var(--text-primary);
 }
 
+/* Regenerate bar */
+.regenerate-bar {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  padding: 8px 24px 16px;
+}
+
+.regenerate-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  border-radius: 20px;
+  color: var(--text-primary);
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.regenerate-btn:hover {
+  background: var(--bg-hover);
+  border-color: var(--text-tertiary);
+}
+
 /* Chat input at bottom */
 .chat-input-container {
   padding: 0 24px 20px;
@@ -223,6 +259,34 @@
 .chat-input-inner {
   max-width: 760px;
   width: 100%;
+}
+
+/* Typing indicator (streaming) */
+.typing-indicator {
+  display: inline-flex;
+  gap: 4px;
+  padding: 4px 0;
+}
+
+.typing-indicator span {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--text-tertiary);
+  animation: dot-pulse 1.4s infinite ease-in-out;
+}
+
+.typing-indicator span:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.typing-indicator span:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
+@keyframes dot-pulse {
+  0%, 60%, 100% { opacity: 0.3; transform: scale(0.85); }
+  30% { opacity: 1; transform: scale(1); }
 }
 
 /* Plus menu */
@@ -381,29 +445,123 @@
   margin-top: 4px;
 }
 
-.typing-dots {
-  display: inline-flex;
-  gap: 4px;
-  padding: 4px 0;
+/* Image preview styles */
+.image-preview-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
 }
 
-.typing-dots span {
-  width: 7px;
-  height: 7px;
+.image-preview {
+  position: relative;
+  width: 80px;
+  height: 80px;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid var(--border-color);
+}
+
+.image-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.image-remove-btn {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 20px;
+  height: 20px;
+  border: none;
+  background: rgba(0, 0, 0, 0.7);
+  color: #fff;
   border-radius: 50%;
-  background: var(--text-tertiary);
-  animation: dot-pulse 1.4s infinite ease-in-out;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  opacity: 0;
+  transition: opacity 0.15s ease;
 }
 
-.typing-dots span:nth-child(2) {
-  animation-delay: 0.2s;
+.image-preview:hover .image-remove-btn {
+  opacity: 1;
 }
 
-.typing-dots span:nth-child(3) {
-  animation-delay: 0.4s;
+.image-remove-btn:hover {
+  background: rgba(239, 68, 68, 0.9);
 }
 
-@keyframes dot-pulse {
-  0%, 60%, 100% { opacity: 0.3; transform: scale(0.85); }
-  30% { opacity: 1; transform: scale(1); }
+/* Share link container */
+.share-link-container {
+  margin-top: 16px;
+  padding: 12px;
+  background: var(--bg-tertiary);
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+}
+
+.share-link-input {
+  width: 100%;
+  padding: 8px 12px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  color: var(--text-primary);
+  font-size: 13px;
+  outline: none;
+}
+
+.share-link-input:focus {
+  border-color: var(--accent);
+}
+
+/* Message with artifacts */
+.message-with-artifacts {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.artifact-trigger {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  text-align: left;
+  width: fit-content;
+  max-width: 100%;
+}
+
+.artifact-trigger:hover {
+  background: var(--bg-hover);
+  border-color: var(--accent);
+}
+
+.artifact-icon {
+  font-size: 16px;
+}
+
+.artifact-label {
+  font-size: 13px;
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+/* Inline code override */
+.message-content code.inline-code {
+  background: #1f1e1d;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 13px;
+  font-family: 'SF Mono', Menlo, Monaco, Consolas, monospace;
+  color: #f5c16e;
 }

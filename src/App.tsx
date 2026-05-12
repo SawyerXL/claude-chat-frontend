@@ -9,10 +9,13 @@ import Sidebar from './components/Sidebar';
 import WelcomePage from './components/WelcomePage';
 import ChatView from './components/ChatView';
 import ShareDialog from './components/ShareDialog';
+import LoginModal from './components/LoginModal';
 import type { ChatMessage, ChatSession } from './types';
 import { MODELS } from './constants';
-import { sendChatMessage } from './services/api';
-import { getSessions, saveSession } from './services/session';
+import { sendChatMessageStream } from './services/api';
+import { getSessions, saveSession, deleteSession } from './services/session';
+import { getCurrentUser, isAuthenticated } from './services/auth';
+import type { User } from './services/auth';
 import './App.css';
 
 const MODEL_ID_MAP: Record<string, string> = {
@@ -38,6 +41,11 @@ export default function App() {
   const [model, setModel] = useState(MODELS[1].id);
   const [shareOpen, setShareOpen] = useState(false);
   const [sessions, setSessions] = useState<ChatSession[]>([]);
+  const [editingTitle, setEditingTitle] = useState(false);
+  const [titleInput, setTitleInput] = useState('');
+  const [user, setUser] = useState<User | null>(null);
+  const [loginOpen, setLoginOpen] = useState(false);
+  const [activeProjectId, setActiveProjectId] = useState<string | null>(null);
 
   const refreshSessions = useCallback(async () => {
     try {
@@ -50,7 +58,25 @@ export default function App() {
 
   useEffect(() => {
     refreshSessions();
+    // Check if user is authenticated
+    if (isAuthenticated()) {
+      const currentUser = getCurrentUser();
+      if (currentUser) {
+        setUser(currentUser);
+      }
+    } else {
+      // Show login modal if not authenticated
+      setLoginOpen(true);
+    }
   }, [refreshSessions]);
+
+  const handleLoginSuccess = () => {
+    const currentUser = getCurrentUser();
+    if (currentUser) {
+      setUser(currentUser);
+    }
+    setLoginOpen(false);
+  };
 
   const persistSession = useCallback(
     async (sessionId: string, nextMessages: ChatMessage[], sessionModel: string) => {
@@ -89,30 +115,57 @@ export default function App() {
     setMessages(nextMessages);
     setLoading(true);
 
+    // Create placeholder for streaming response
+    const assistantMsg: ChatMessage = {
+      id: `a-${Date.now()}`,
+      role: 'assistant',
+      content: '',
+      timestamp: Date.now(),
+    };
+    setMessages((prev) => [...prev, assistantMsg]);
+
     try {
       const apiModel = MODEL_ID_MAP[model] || 'claude-sonnet-4-6';
-      const reply = await sendChatMessage(nextMessages, apiModel);
-      const assistantMsg: ChatMessage = {
-        id: `a-${Date.now()}`,
-        role: 'assistant',
-        content: reply || '(空响应)',
-        timestamp: Date.now(),
-      };
-      const finalMessages = [...nextMessages, assistantMsg];
-      setMessages(finalMessages);
-      await persistSession(sessionId, finalMessages, model);
+      let fullResponse = '';
+
+      // Stream the response
+      for await (const chunk of sendChatMessageStream(nextMessages, apiModel)) {
+        fullResponse += chunk;
+        setMessages((prev) => {
+          const updated = [...prev];
+          const lastIndex = updated.length - 1;
+          if (lastIndex >= 0 && updated[lastIndex].role === 'assistant') {
+            updated[lastIndex] = { ...updated[lastIndex], content: fullResponse };
+          }
+          return updated;
+        });
+      }
+
+      if (!fullResponse) {
+        setMessages((prev) => {
+          const updated = [...prev];
+          const lastIndex = updated.length - 1;
+          if (lastIndex >= 0 && updated[lastIndex].role === 'assistant') {
+            updated[lastIndex] = { ...updated[lastIndex], content: '(空响应)' };
+          }
+          return updated;
+        });
+      }
+
+      await persistSession(sessionId, [...nextMessages, { ...assistantMsg, content: fullResponse }], model);
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       antMessage.error(`请求失败: ${msg}`);
-      const errorMsg: ChatMessage = {
-        id: `a-${Date.now()}`,
-        role: 'assistant',
-        content: `请求失败: ${msg}`,
-        timestamp: Date.now(),
-      };
-      const finalMessages = [...nextMessages, errorMsg];
-      setMessages(finalMessages);
-      await persistSession(sessionId, finalMessages, model);
+      setMessages((prev) => {
+        const updated = [...prev];
+        const lastIndex = updated.length - 1;
+        if (lastIndex >= 0 && updated[lastIndex].role === 'assistant') {
+          updated[lastIndex] = { ...updated[lastIndex], content: `请求失败: ${msg}` };
+        }
+        return updated;
+      });
+      const finalMessages = messages;
+      await persistSession(sessionId, [...finalMessages, { ...assistantMsg, content: `请求失败: ${msg}` }], model);
     } finally {
       setLoading(false);
     }
@@ -137,6 +190,51 @@ export default function App() {
     }
   };
 
+  const handleDeleteChat = async (id: string) => {
+    try {
+      await deleteSession(id);
+      await refreshSessions();
+      if (activeChat === id) {
+        setActiveChat(null);
+        setMessages([]);
+        setModel(MODELS[1].id);
+      }
+    } catch (err) {
+      console.error('Failed to delete session:', err);
+    }
+  };
+
+  const handleEditTitle = () => {
+    setTitleInput(deriveTitle(messages));
+    setEditingTitle(true);
+  };
+
+  const handleSaveTitle = async () => {
+    if (activeChat && titleInput.trim()) {
+      const newTitle = titleInput.trim();
+      const session = sessions.find((s) => s.id === activeChat);
+      if (session) {
+        const updatedSession: ChatSession = {
+          ...session,
+          title: newTitle,
+          updatedAt: Date.now(),
+        };
+        try {
+          await saveSession(updatedSession);
+          await refreshSessions();
+        } catch (err) {
+          console.error('Failed to update title:', err);
+        }
+      }
+    }
+    setEditingTitle(false);
+  };
+
+  const handleCancelEditTitle = () => {
+    setEditingTitle(false);
+    setTitleInput('');
+  };
+
   const hasConversation = messages.length > 0;
   const currentTitle = hasConversation
     ? deriveTitle(messages)
@@ -149,15 +247,37 @@ export default function App() {
       <Sidebar
         activeChat={activeChat}
         onSelectChat={handleSelectChat}
+        onDeleteChat={handleDeleteChat}
         sessions={sessions}
+        user={user}
+        activeProjectId={activeProjectId}
+        onSelectProject={setActiveProjectId}
       />
 
       <main className="main-content">
         <header className="main-header">
-          <div className="header-title">
-            <span>{currentTitle}</span>
-            <DownOutlined style={{ fontSize: 10, color: 'var(--text-tertiary)' }} />
-          </div>
+          {editingTitle ? (
+            <div className="header-title-edit">
+              <input
+                type="text"
+                className="title-edit-input"
+                value={titleInput}
+                onChange={(e) => setTitleInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') handleSaveTitle();
+                  if (e.key === 'Escape') handleCancelEditTitle();
+                }}
+                autoFocus
+              />
+              <button className="title-edit-btn save" onClick={handleSaveTitle}>Save</button>
+              <button className="title-edit-btn cancel" onClick={handleCancelEditTitle}>Cancel</button>
+            </div>
+          ) : (
+            <div className="header-title" onClick={hasConversation ? handleEditTitle : undefined}>
+              <span>{currentTitle}</span>
+              {hasConversation && <DownOutlined style={{ fontSize: 10, color: 'var(--text-tertiary)' }} />}
+            </div>
+          )}
           <div className="header-actions">
             <Tooltip title="Star">
               <button className="header-btn" style={{ padding: 7, width: 34 }}>
@@ -187,11 +307,13 @@ export default function App() {
             onSend={handleSend}
             model={model}
             onModelChange={setModel}
+            user={user}
           />
         )}
       </main>
 
-      <ShareDialog open={shareOpen} onClose={() => setShareOpen(false)} />
+      <ShareDialog open={shareOpen} onClose={() => setShareOpen(false)} conversationId={activeChat ?? undefined} />
+      <LoginModal open={loginOpen} onLoginSuccess={handleLoginSuccess} onCancel={() => setLoginOpen(false)} />
     </div>
   );
 }
