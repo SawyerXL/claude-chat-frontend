@@ -12,6 +12,7 @@ data
 
 # Config with sensitive keys
 config.json
+CLAUDE.md
 
 node_modules
 dist

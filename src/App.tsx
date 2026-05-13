@@ -12,7 +12,7 @@ import ShareDialog from './components/ShareDialog';
 import LoginModal from './components/LoginModal';
 import type { ChatMessage, ChatSession } from './types';
 import { MODELS } from './constants';
-import { sendChatMessageStream } from './services/api';
+import { sendChatMessage } from './services/api';
 import { getSessions, saveSession, deleteSession } from './services/session';
 import { getCurrentUser, isAuthenticated } from './services/auth';
 import type { User } from './services/auth';
@@ -126,33 +126,19 @@ export default function App() {
 
     try {
       const apiModel = MODEL_ID_MAP[model] || 'claude-sonnet-4-6';
-      let fullResponse = '';
+      const fullResponse = await sendChatMessage(nextMessages, apiModel);
+      const displayText = fullResponse || '(空响应)';
 
-      // Stream the response
-      for await (const chunk of sendChatMessageStream(nextMessages, apiModel)) {
-        fullResponse += chunk;
-        setMessages((prev) => {
-          const updated = [...prev];
-          const lastIndex = updated.length - 1;
-          if (lastIndex >= 0 && updated[lastIndex].role === 'assistant') {
-            updated[lastIndex] = { ...updated[lastIndex], content: fullResponse };
-          }
-          return updated;
-        });
-      }
+      setMessages((prev) => {
+        const updated = [...prev];
+        const lastIndex = updated.length - 1;
+        if (lastIndex >= 0 && updated[lastIndex].role === 'assistant') {
+          updated[lastIndex] = { ...updated[lastIndex], content: displayText };
+        }
+        return updated;
+      });
 
-      if (!fullResponse) {
-        setMessages((prev) => {
-          const updated = [...prev];
-          const lastIndex = updated.length - 1;
-          if (lastIndex >= 0 && updated[lastIndex].role === 'assistant') {
-            updated[lastIndex] = { ...updated[lastIndex], content: '(空响应)' };
-          }
-          return updated;
-        });
-      }
-
-      await persistSession(sessionId, [...nextMessages, { ...assistantMsg, content: fullResponse }], model);
+      await persistSession(sessionId, [...nextMessages, { ...assistantMsg, content: displayText }], model);
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       antMessage.error(`请求失败: ${msg}`);
