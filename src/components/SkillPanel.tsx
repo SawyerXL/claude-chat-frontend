@@ -38,9 +38,6 @@ export default function SkillPanel({ open, onClose }: SkillPanelProps) {
 
   const handleSubmit = () => {
     if (!skillInput.trim()) return;
-
-    // Skills are invoked via special syntax in messages
-    // The skill panel helps users construct the right command
     message.success(`${selectedSkill?.toUpperCase()} skill invoked!`);
     onClose();
     setSelectedSkill(null);
@@ -55,7 +52,6 @@ export default function SkillPanel({ open, onClose }: SkillPanelProps) {
       title="Skills"
       width={500}
       centered
-      className="skill-panel-modal"
     >
       <div className="skill-panel">
         {SKILLS.map((skill) => (

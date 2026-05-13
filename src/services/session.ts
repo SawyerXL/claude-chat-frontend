@@ -1,32 +1,40 @@
 import type { ChatSession } from '../types';
 
-export async function getSessions(): Promise<ChatSession[]> {
-  const response = await fetch('/api/sessions');
-  if (!response.ok) {
-    throw new Error(`Failed to load sessions: ${response.status}`);
+const SESSIONS_KEY = 'claude_sessions';
+
+function getSessionsFromStorage(): ChatSession[] {
+  try {
+    const data = localStorage.getItem(SESSIONS_KEY);
+    if (!data) return [];
+    return JSON.parse(data) as ChatSession[];
+  } catch {
+    return [];
   }
-  const data = (await response.json()) as { sessions: ChatSession[] };
-  return data.sessions;
+}
+
+function saveSessionsToStorage(sessions: ChatSession[]): void {
+  localStorage.setItem(SESSIONS_KEY, JSON.stringify(sessions));
+}
+
+export async function getSessions(): Promise<ChatSession[]> {
+  return getSessionsFromStorage();
 }
 
 export async function saveSession(session: ChatSession): Promise<void> {
-  const response = await fetch('/api/sessions', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({ session }),
-  });
-  if (!response.ok) {
-    throw new Error(`Failed to save session: ${response.status}`);
+  const sessions = getSessionsFromStorage();
+  const existingIndex = sessions.findIndex(s => s.id === session.id);
+  
+  if (existingIndex >= 0) {
+    sessions[existingIndex] = session;
+  } else {
+    sessions.unshift(session);
   }
+  
+  saveSessionsToStorage(sessions);
 }
 
 export async function deleteSession(sessionId: string): Promise<void> {
-  const response = await fetch(`/api/sessions?id=${encodeURIComponent(sessionId)}`, {
-    method: 'DELETE',
-  });
-  if (!response.ok) {
-    throw new Error(`Failed to delete session: ${response.status}`);
-  }
+  const sessions = getSessionsFromStorage();
+  const filtered = sessions.filter(s => s.id !== sessionId);
+  saveSessionsToStorage(filtered);
 }
