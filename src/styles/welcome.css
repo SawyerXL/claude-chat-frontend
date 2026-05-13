@@ -67,6 +67,12 @@
   background: var(--text-secondary);
 }
 
+.header-btn-icon {
+  padding: 6px 10px !important;
+  min-width: 36px;
+  justify-content: center;
+}
+
 /* Welcome page */
 .welcome-container {
   flex: 1;

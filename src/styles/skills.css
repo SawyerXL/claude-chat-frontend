@@ -50,6 +50,39 @@
   line-height: 1.4;
 }
 
+/* Modal overrides for dark theme */
+.ant-modal-root .ant-modal-mask,
+.ant-modal-mask {
+  background-color: rgba(0, 0, 0, 0.7) !important;
+}
+
+.ant-modal-content,
+.ant-modal .ant-modal-content {
+  background-color: var(--bg-secondary) !important;
+  border: 1px solid var(--border-color);
+}
+
+.ant-modal-header {
+  background-color: var(--bg-secondary) !important;
+  border-bottom: 1px solid var(--border-color) !important;
+}
+
+.ant-modal-title {
+  color: var(--text-primary) !important;
+}
+
+.ant-modal-close {
+  color: var(--text-secondary) !important;
+}
+
+.ant-modal-close:hover {
+  color: var(--text-primary) !important;
+}
+
+.ant-modal-body {
+  background-color: var(--bg-secondary) !important;
+}
+
 .skill-input-section {
   margin-top: 8px;
   padding: 16px;

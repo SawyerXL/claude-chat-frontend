@@ -124,11 +124,14 @@ export default function App() {
         createdAt: existing?.createdAt ?? now,
         updatedAt: now,
       };
+      console.log('[persistSession] Saving session:', session.title, 'messages:', nextMessages.length);
       try {
         await saveSession(session);
+        console.log('[persistSession] Session saved successfully');
         await refreshSessions();
+        console.log('[persistSession] Sessions refreshed');
       } catch (err) {
-        console.error('Failed to save session:', err);
+        console.error('[persistSession] Failed to save session:', err);
       }
     },
     [sessions, refreshSessions],
@@ -196,7 +199,7 @@ export default function App() {
         });
       }
 
-      await persistSession(sessionId, [...nextMessages, { ...assistantMsg, content: fullResponse }], model);
+      await persistSession(sessionId, [...nextMessages, { ...assistantMsg, content: fullResponse, thinking: fullThinking || undefined }], model);
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       antMessage.error(`请求失败: ${msg}`);
@@ -351,16 +354,12 @@ export default function App() {
             </div>
           )}
           <div className="header-actions">
-            <Tooltip title="Skills">
-              <button className="header-btn" onClick={() => setSkillPanelOpen(true)}>
-                ⚡
-              </button>
-            </Tooltip>
-            <Tooltip title={theme === 'dark' ? 'Light mode' : 'Dark mode'}>
-              <button className="header-btn" onClick={handleToggleTheme}>
-                {theme === 'dark' ? '☀️' : '🌙'}
-              </button>
-            </Tooltip>
+            <button className="header-btn header-btn-icon" onClick={() => setSkillPanelOpen(true)} title="Skills (⚡)">
+              <span style={{ fontSize: 16 }}>⚡</span>
+            </button>
+            <button className="header-btn header-btn-icon" onClick={handleToggleTheme} title={theme === 'dark' ? 'Light mode' : 'Dark mode'}>
+              {theme === 'dark' ? '☀️' : '🌙'}
+            </button>
             <Tooltip title="Star">
               <button className="header-btn" style={{ padding: 7, width: 34 }}>
                 <StarOutlined />
