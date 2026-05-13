@@ -14,6 +14,7 @@ import {
   EditOutlined,
   FileOutlined,
 } from '@ant-design/icons';
+import mammoth from 'mammoth';
 import ModelSelector from './ModelSelector';
 import PlusMenu from './PlusMenu';
 import CodeBlock from './CodeBlock';
@@ -88,10 +89,30 @@ export default function ChatView({
 
   const handleFileUpload = async (files: File[]) => {
     const newAttachments: Attachment[] = [];
-    
+
     for (const file of files) {
       try {
-        const content = await file.text();
+        let content: string;
+
+        if (file.name.endsWith('.docx')) {
+          // Parse .docx files with mammoth
+          const arrayBuffer = await file.arrayBuffer();
+          const result = await mammoth.extractRawText({ arrayBuffer });
+          content = result.value;
+          if (result.messages.length > 0) {
+            console.log(`Mammoth warnings for ${file.name}:`, result.messages);
+          }
+        } else if (file.type === 'text/plain' || file.name.endsWith('.md') || file.name.endsWith('.txt') || file.name.endsWith('.csv') || file.name.endsWith('.json') || file.name.endsWith('.xml')) {
+          // Text files
+          content = await file.text();
+        } else if (file.name.endsWith('.pdf')) {
+          // PDF - just pass as-is for now (could add pdf.js later)
+          content = `[PDF file: ${file.name}]\n(This PDF content cannot be extracted directly)`;
+        } else {
+          // Try as text
+          content = await file.text();
+        }
+
         newAttachments.push({
           name: file.name,
           type: file.type,

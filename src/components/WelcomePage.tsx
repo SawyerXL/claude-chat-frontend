@@ -11,6 +11,7 @@ import {
   CloseOutlined,
   FileOutlined,
 } from '@ant-design/icons';
+import mammoth from 'mammoth';
 import ModelSelector from './ModelSelector';
 import PlusMenu from './PlusMenu';
 import type { User } from '../services/auth';
@@ -71,7 +72,20 @@ export default function WelcomePage({ onSend, model, onModelChange, user }: Welc
     
     for (const file of files) {
       try {
-        const content = await file.text();
+        let content: string;
+
+        if (file.name.endsWith('.docx')) {
+          const arrayBuffer = await file.arrayBuffer();
+          const result = await mammoth.extractRawText({ arrayBuffer });
+          content = result.value;
+        } else if (file.type === 'text/plain' || file.name.endsWith('.md') || file.name.endsWith('.txt') || file.name.endsWith('.csv') || file.name.endsWith('.json') || file.name.endsWith('.xml')) {
+          content = await file.text();
+        } else if (file.name.endsWith('.pdf')) {
+          content = `[PDF file: ${file.name}]\n(This PDF content cannot be extracted directly)`;
+        } else {
+          content = await file.text();
+        }
+
         newAttachments.push({
           name: file.name,
           type: file.type,
