@@ -10,14 +10,15 @@ import Sidebar from './components/Sidebar';
 import WelcomePage from './components/WelcomePage';
 import ChatView from './components/ChatView';
 import ShareDialog from './components/ShareDialog';
-import LoginPage from './components/LoginPage';
+// TODO: Enable login before production
+// import LoginPage from './components/LoginPage';
 import Settings from './components/Settings';
 import SkillPanel from './components/SkillPanel';
 import type { ChatMessage, ChatSession } from './types';
 import { MODELS } from './constants';
 import { sendChatMessageStream } from './services/api';
 import { getSessions, saveSession, deleteSession } from './services/session';
-import { getCurrentUser, isAuthenticated } from './services/auth';
+import { isAuthenticated } from './services/auth';
 import { initTheme, toggleTheme as toggleThemeService } from './services/theme';
 import type { User } from './services/auth';
 import './App.css';
@@ -48,7 +49,8 @@ export default function App() {
   const [editingTitle, setEditingTitle] = useState(false);
   const [titleInput, setTitleInput] = useState('');
   const [user, setUser] = useState<User | null>(null);
-  const [needsAuth, setNeedsAuth] = useState(false);
+  // TODO: Enable auth before production
+  // const [needsAuth, setNeedsAuth] = useState(false);
   const [activeProjectId, setActiveProjectId] = useState<string | null>(null);
   const [theme, setTheme] = useState<'dark' | 'light'>('dark');
   const [isReady, setIsReady] = useState(false);
@@ -62,16 +64,19 @@ export default function App() {
     setTheme(savedTheme);
 
     // Check auth status
-    if (isAuthenticated()) {
-      const currentUser = getCurrentUser();
-      if (currentUser) {
-        setUser(currentUser);
-      }
-      setIsReady(true);
-    } else {
-      setNeedsAuth(true);
-      setIsReady(true);
-    }
+    // TODO: Enable auth before production
+    // if (isAuthenticated()) {
+    //   const currentUser = getCurrentUser();
+    //   if (currentUser) {
+    //     setUser(currentUser);
+    //   }
+    //   setIsReady(true);
+    // } else {
+    //   setNeedsAuth(true);
+    //   setIsReady(true);
+    // }
+    setIsReady(true);
+    setUser({ id: 1, email: 'demo@local', username: 'Demo User', role: 'user', balance: 100, concurrency: 5, status: 'active' });
   }, []);
 
   // Add demo sessions if none exist (for testing)
@@ -83,10 +88,10 @@ export default function App() {
         const demoSessions: ChatSession[] = [
           {
             id: 'demo-1',
-            title: '测试对话 1',
+            title: 'Test Chat 1',
             messages: [
-              { id: 'd1-1', role: 'user', content: '你好', timestamp: now - 3600000 },
-              { id: 'd1-2', role: 'assistant', content: '你好！有什么可以帮助你的吗？', timestamp: now - 3500000 },
+              { id: 'd1-1', role: 'user', content: 'Hello, how are you?', timestamp: now - 3600000 },
+              { id: 'd1-2', role: 'assistant', content: 'Hello! I\'m doing well, thank you. How can I help you today?', timestamp: now - 3500000 },
             ],
             model: 'sonnet-4-6',
             createdAt: now - 3600000,
@@ -94,10 +99,10 @@ export default function App() {
           },
           {
             id: 'demo-2',
-            title: '测试对话 2',
+            title: 'Test Chat 2',
             messages: [
-              { id: 'd2-1', role: 'user', content: '写一个 Hello World', timestamp: now - 7200000 },
-              { id: 'd2-2', role: 'assistant', content: 'console.log("Hello World!")', timestamp: now - 7100000 },
+              { id: 'd2-1', role: 'user', content: 'Write a Hello World program in Python', timestamp: now - 7200000 },
+              { id: 'd2-2', role: 'assistant', content: '```python\nprint("Hello, World!")\n```', timestamp: now - 7100000 },
             ],
             model: 'sonnet-4-6',
             createdAt: now - 7200000,
@@ -372,9 +377,10 @@ export default function App() {
   }
 
   // Show login page if not authenticated
-  if (needsAuth) {
-    return <LoginPage />;
-  }
+  // TODO: Enable auth before production
+  // if (needsAuth) {
+  //   return <LoginPage />;
+  // }
 
   return (
     <div className="app-layout">
