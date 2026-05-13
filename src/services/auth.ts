@@ -7,13 +7,20 @@ export interface User {
   balance: number;
   concurrency: number;
   status: string;
+  allowed_groups?: string[] | null;
+  last_active_at?: string;
+  created_at?: string;
+  updated_at?: string;
+  balance_notify_enabled?: boolean;
+  total_recharged?: number;
+  rpm_limit?: number;
 }
 
 const AUTH_TOKEN_KEY = 'claude_auth_token';
 const USER_KEY = 'claude_user';
 
 export async function login(email: string, password: string): Promise<{ access_token: string; user: User }> {
-  const response = await fetch('/v1/auth/login', {
+  const response = await fetch('/api/v1/auth/login', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -26,20 +33,19 @@ export async function login(email: string, password: string): Promise<{ access_t
     throw new Error(error.error || `HTTP ${response.status}`);
   }
 
-  const data = (await response.json()) as { token?: string; access_token?: string; user?: User };
+  const result = (await response.json()) as { code: number; data?: { access_token: string; user: User } };
   
-  const token = data.token || data.access_token;
-  const user = data.user || { id: 0, email, username: email.split('@')[0], role: 'user', balance: 0, concurrency: 1, status: 'active' };
-
-  if (!token) {
-    throw new Error('No token in response');
+  if (result.code !== 0 || !result.data) {
+    throw new Error('Login failed');
   }
 
+  const { access_token, user } = result.data;
+
   // Save to localStorage
-  localStorage.setItem(AUTH_TOKEN_KEY, token);
+  localStorage.setItem(AUTH_TOKEN_KEY, access_token);
   localStorage.setItem(USER_KEY, JSON.stringify(user));
 
-  return { access_token: token, user };
+  return { access_token, user };
 }
 
 export function logout(): void {
