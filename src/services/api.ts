@@ -1,5 +1,13 @@
 import type { ChatMessage } from '../types';
 
+export interface ThinkingBlock {
+  thinking: string;
+}
+
+export type StreamChunk = 
+  | { type: 'text'; content: string }
+  | { type: 'thinking'; thinking: string };
+
 export interface ApiMessage {
   role: 'user' | 'assistant';
   content: string;
@@ -18,6 +26,7 @@ export interface ChatResponse {
   content: Array<{
     type: string;
     text?: string;
+    thinking?: string;
   }>;
   model: string;
   stop_reason: string;
@@ -63,12 +72,14 @@ export async function sendChatMessage(
 
 /**
  * Send chat message with streaming SSE
- * Returns an async generator that yields text chunks
+ * Returns an async generator that yields text or thinking chunks
+ * Supports abort via AbortController
  */
 export async function* sendChatMessageStream(
   messages: ChatMessage[],
   model: string,
-): AsyncGenerator<string, void, unknown> {
+  signal?: AbortSignal,
+): AsyncGenerator<StreamChunk, void, unknown> {
   const apiMessages: ApiMessage[] = messages.map((m) => ({
     role: m.role,
     content: m.content,
@@ -85,6 +96,7 @@ export async function* sendChatMessageStream(
       max_tokens: 4096,
       stream: true,
     } as ChatRequest & { stream?: boolean }),
+    signal, // Pass abort signal
   });
 
   if (!response.ok) {
@@ -102,16 +114,20 @@ export async function* sendChatMessageStream(
 
   try {
     while (true) {
+      // Check if aborted
+      if (signal?.aborted) {
+        reader.cancel();
+        break;
+      }
+
       const { done, value } = await reader.read();
       if (done) break;
 
       buffer += decoder.decode(value, { stream: true });
 
       // Parse SSE events
-      // Each event is formatted as: "event: type\ndata: {...}\n\n"
       while (buffer.includes('\nevent:') || buffer.includes('\ndata:')) {
         const eventMatch = buffer.match(/^event: ([^\n]+)\ndata: (.+?)\n\n/s);
-        const dataMatch = buffer.match(/^data: (.+?)\n\n/s);
 
         if (eventMatch) {
           const eventType = eventMatch[1];
@@ -122,31 +138,24 @@ export async function* sendChatMessageStream(
             try {
               const json = JSON.parse(jsonStr);
               if (json.delta?.type === 'text_delta') {
-                yield json.delta.text;
+                yield { type: 'text', content: json.delta.text };
+              } else if (json.delta?.type === 'thinking_delta') {
+                yield { type: 'thinking', thinking: json.delta.thinking };
               }
             } catch {
               // Skip malformed JSON
             }
           }
-        } else if (dataMatch && !buffer.startsWith('event:')) {
-          // Handle data without event (rare)
-          const jsonStr = dataMatch[1];
-          buffer = buffer.slice(dataMatch[0].length);
-          try {
-            const json = JSON.parse(jsonStr);
-            if (json.delta?.type === 'text_delta') {
-              yield json.delta.text;
-            }
-          } catch {
-            // Skip
-          }
         } else {
-          // No more complete events
           break;
         }
       }
     }
   } finally {
-    reader.releaseLock();
+    try {
+      reader.releaseLock();
+    } catch {
+      // Already released
+    }
   }
 }

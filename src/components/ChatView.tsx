@@ -11,6 +11,7 @@ import {
   DislikeOutlined,
   StopOutlined,
   CloseOutlined,
+  EditOutlined,
 } from '@ant-design/icons';
 import ModelSelector from './ModelSelector';
 import PlusMenu from './PlusMenu';
@@ -26,6 +27,7 @@ const { TextArea } = Input;
 interface ChatViewProps {
   messages: ChatMessage[];
   onSend: (text: string, images?: string[]) => void;
+  onEditMessage: (messageId: string, newContent: string) => void;
   loading: boolean;
   model: string;
   onModelChange: (id: string) => void;
@@ -35,6 +37,7 @@ interface ChatViewProps {
 export default function ChatView({
   messages,
   onSend,
+  onEditMessage,
   loading,
   model,
   onModelChange,
@@ -43,6 +46,8 @@ export default function ChatView({
   const [value, setValue] = useState('');
   const [images, setImages] = useState<string[]>([]);
   const [activeArtifact, setActiveArtifact] = useState<Artifact | null>(null);
+  const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
+  const [editValue, setEditValue] = useState('');
   const endRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -74,6 +79,24 @@ export default function ChatView({
 
   const handleRemoveImage = (index: number) => {
     setImages((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const startEditMessage = (msgId: string, content: string) => {
+    setEditingMessageId(msgId);
+    setEditValue(content);
+  };
+
+  const cancelEditMessage = () => {
+    setEditingMessageId(null);
+    setEditValue('');
+  };
+
+  const saveEditMessage = () => {
+    if (editingMessageId && editValue.trim()) {
+      onEditMessage(editingMessageId, editValue.trim());
+      setEditingMessageId(null);
+      setEditValue('');
+    }
   };
 
   // Get the last user message for regenerate
@@ -165,12 +188,62 @@ export default function ChatView({
                   </div>
                 )}
                 <div className="message-content markdown-body">
-                  {m.role === 'assistant' ? (
-                    renderMessageContent(m.content)
+                  {/* Editing mode */}
+                  {editingMessageId === m.id ? (
+                    <div className="message-edit-container">
+                      <TextArea
+                        className="message-edit-input"
+                        value={editValue}
+                        onChange={(e) => setEditValue(e.target.value)}
+                        autoSize={{ minRows: 1, maxRows: 10 }}
+                        autoFocus
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' && !e.shiftKey) {
+                            e.preventDefault();
+                            saveEditMessage();
+                          }
+                          if (e.key === 'Escape') {
+                            cancelEditMessage();
+                          }
+                        }}
+                      />
+                      <div className="message-edit-actions">
+                        <button className="message-edit-cancel" onClick={cancelEditMessage}>
+                          Cancel
+                        </button>
+                        <button className="message-edit-save" onClick={saveEditMessage}>
+                          Save
+                        </button>
+                      </div>
+                    </div>
+                  ) : m.role === 'assistant' ? (
+                    <>
+                      {m.thinking && (
+                        <div className="thinking-block">
+                          <div className="thinking-header">
+                            <span className="thinking-icon">🤔</span>
+                            <span>Thinking</span>
+                          </div>
+                          <div className="thinking-content">{m.thinking}</div>
+                        </div>
+                      )}
+                      {renderMessageContent(m.content)}
+                    </>
                   ) : (
                     <div style={{ whiteSpace: 'pre-wrap' }}>{m.content}</div>
                   )}
                 </div>
+                {m.role === 'user' && !editingMessageId && (
+                  <div className="message-actions">
+                    <button
+                      className="message-action-btn"
+                      title="Edit"
+                      onClick={() => startEditMessage(m.id, m.content)}
+                    >
+                      <EditOutlined />
+                    </button>
+                  </div>
+                )}
                 {m.role === 'assistant' && m.content && (
                   <div className="message-actions">
                     <button
