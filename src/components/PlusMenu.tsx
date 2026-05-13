@@ -14,9 +14,10 @@ import type { MenuProps } from 'antd';
 
 interface PlusMenuProps {
   onImageUpload?: (images: string[]) => void;
+  onFileUpload?: (files: File[]) => void;
 }
 
-export default function PlusMenu({ onImageUpload }: PlusMenuProps) {
+export default function PlusMenu({ onImageUpload, onFileUpload }: PlusMenuProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -24,23 +25,29 @@ export default function PlusMenu({ onImageUpload }: PlusMenuProps) {
     if (!files || files.length === 0) return;
 
     const imageUrls: string[] = [];
-    for (const file of files) {
-      if (!file.type.startsWith('image/')) {
-        antMessage.warning(`${file.name} is not an image file`);
-        continue;
-      }
+    const docFiles: File[] = [];
 
-      try {
-        const base64 = await fileToBase64(file);
-        imageUrls.push(base64);
-      } catch (err) {
-        console.error('Failed to read file:', err);
-        antMessage.error(`Failed to read ${file.name}`);
+    for (const file of Array.from(files)) {
+      if (file.type.startsWith('image/')) {
+        try {
+          const base64 = await fileToBase64(file);
+          imageUrls.push(base64);
+        } catch (err) {
+          console.error('Failed to read image:', err);
+          antMessage.error(`Failed to read ${file.name}`);
+        }
+      } else {
+        // Non-image files (Word, PDF, etc.)
+        docFiles.push(file);
       }
     }
 
     if (imageUrls.length > 0 && onImageUpload) {
       onImageUpload(imageUrls);
+    }
+
+    if (docFiles.length > 0 && onFileUpload) {
+      onFileUpload(docFiles);
     }
 
     // Reset input
@@ -51,13 +58,11 @@ export default function PlusMenu({ onImageUpload }: PlusMenuProps) {
 
   const handleScreenshot = async () => {
     try {
-      // Request screen capture
       const stream = await navigator.mediaDevices.getDisplayMedia({
         video: { cursor: 'always' } as MediaTrackConstraints,
         audio: false,
       });
 
-      // Create video element to capture stream
       const video = document.createElement('video');
       video.srcObject = stream;
       video.autoplay = true;
@@ -65,11 +70,8 @@ export default function PlusMenu({ onImageUpload }: PlusMenuProps) {
       video.onloadedmetadata = async () => {
         video.width = video.videoWidth;
         video.height = video.videoHeight;
-
-        // Wait a bit for the video to be ready
         await new Promise(resolve => setTimeout(resolve, 100));
 
-        // Capture frame
         const canvas = document.createElement('canvas');
         canvas.width = video.videoWidth;
         canvas.height = video.videoHeight;
@@ -108,7 +110,7 @@ export default function PlusMenu({ onImageUpload }: PlusMenuProps) {
     {
       key: 'files',
       icon: <PictureOutlined />,
-      label: 'Add files or photos',
+      label: 'Add files (images, Word, PDF)',
       onClick: handleUploadClick,
     },
     {
@@ -155,7 +157,7 @@ export default function PlusMenu({ onImageUpload }: PlusMenuProps) {
       <input
         ref={fileInputRef}
         type="file"
-        accept="image/*"
+        accept="image/*,.pdf,.doc,.docx,.txt,.md,.csv,.json,.xml,.xls,.xlsx,.ppt,.pptx"
         multiple
         style={{ display: 'none' }}
         onChange={handleFileSelect}
@@ -173,7 +175,6 @@ export default function PlusMenu({ onImageUpload }: PlusMenuProps) {
   );
 }
 
-// Helper function to convert File to base64
 function fileToBase64(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -189,7 +190,6 @@ function fileToBase64(file: File): Promise<string> {
   });
 }
 
-// Helper function to convert Blob to base64
 function blobToBase64(blob: Blob): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();

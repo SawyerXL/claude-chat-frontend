@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Input } from 'antd';
+import { Input, message as antMessage } from 'antd';
 import {
   AudioOutlined,
   ArrowUpOutlined,
@@ -9,6 +9,7 @@ import {
   HeartOutlined,
   ThunderboltOutlined,
   CloseOutlined,
+  FileOutlined,
 } from '@ant-design/icons';
 import ModelSelector from './ModelSelector';
 import PlusMenu from './PlusMenu';
@@ -32,19 +33,26 @@ interface WelcomePageProps {
   user?: User | null;
 }
 
+interface Attachment {
+  name: string;
+  type: string;
+  content: string;
+}
+
 export default function WelcomePage({ onSend, model, onModelChange, user }: WelcomePageProps) {
   const [value, setValue] = useState('');
   const [images, setImages] = useState<string[]>([]);
+  const [attachments, setAttachments] = useState<Attachment[]>([]);
 
-  // Get display name - prefer username, fallback to email
   const displayName = user?.username || user?.email?.split('@')[0] || 'User';
 
   const handleSend = () => {
     const text = value.trim();
-    if (!text && images.length === 0) return;
+    if (!text && images.length === 0 && attachments.length === 0) return;
     onSend(text, images);
     setValue('');
     setImages([]);
+    setAttachments([]);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -58,8 +66,35 @@ export default function WelcomePage({ onSend, model, onModelChange, user }: Welc
     setImages((prev) => [...prev, ...newImages]);
   };
 
+  const handleFileUpload = async (files: File[]) => {
+    const newAttachments: Attachment[] = [];
+    
+    for (const file of files) {
+      try {
+        const content = await file.text();
+        newAttachments.push({
+          name: file.name,
+          type: file.type,
+          content: content,
+        });
+      } catch (err) {
+        console.error('Failed to read file:', err);
+        antMessage.error(`Failed to read ${file.name}`);
+      }
+    }
+
+    if (newAttachments.length > 0) {
+      setAttachments((prev) => [...prev, ...newAttachments]);
+      antMessage.success(`Added ${newAttachments.length} file(s)`);
+    }
+  };
+
   const handleRemoveImage = (index: number) => {
     setImages((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const handleRemoveAttachment = (index: number) => {
+    setAttachments((prev) => prev.filter((_, i) => i !== index));
   };
 
   const getGreeting = () => {
@@ -82,7 +117,6 @@ export default function WelcomePage({ onSend, model, onModelChange, user }: Welc
         </div>
 
         <div className="welcome-input-area">
-          {/* Image preview */}
           {images.length > 0 && (
             <div className="image-preview-container">
               {images.map((img, idx) => (
@@ -91,6 +125,23 @@ export default function WelcomePage({ onSend, model, onModelChange, user }: Welc
                   <button
                     className="image-remove-btn"
                     onClick={() => handleRemoveImage(idx)}
+                  >
+                    <CloseOutlined />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {attachments.length > 0 && (
+            <div className="attachment-preview-container">
+              {attachments.map((att, idx) => (
+                <div key={idx} className="attachment-preview">
+                  <FileOutlined />
+                  <span className="attachment-name">{att.name}</span>
+                  <button
+                    className="attachment-remove-btn"
+                    onClick={() => handleRemoveAttachment(idx)}
                   >
                     <CloseOutlined />
                   </button>
@@ -111,7 +162,7 @@ export default function WelcomePage({ onSend, model, onModelChange, user }: Welc
 
           <div className="welcome-toolbar">
             <div className="toolbar-left">
-              <PlusMenu onImageUpload={handleImageUpload} />
+              <PlusMenu onImageUpload={handleImageUpload} onFileUpload={handleFileUpload} />
               <ModelSelector value={model} onChange={onModelChange} />
             </div>
             <div className="toolbar-right">
@@ -122,7 +173,7 @@ export default function WelcomePage({ onSend, model, onModelChange, user }: Welc
                 className="tool-btn send"
                 title="Send"
                 onClick={handleSend}
-                disabled={!value.trim() && images.length === 0}
+                disabled={!value.trim() && images.length === 0 && attachments.length === 0}
               >
                 <ArrowUpOutlined />
               </button>

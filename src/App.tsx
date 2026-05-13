@@ -74,6 +74,47 @@ export default function App() {
     }
   }, []);
 
+  // Add demo sessions if none exist (for testing)
+  useEffect(() => {
+    const addDemoSessions = async () => {
+      const existing = await getSessions();
+      if (existing.length === 0) {
+        const now = Date.now();
+        const demoSessions: ChatSession[] = [
+          {
+            id: 'demo-1',
+            title: '测试对话 1',
+            messages: [
+              { id: 'd1-1', role: 'user', content: '你好', timestamp: now - 3600000 },
+              { id: 'd1-2', role: 'assistant', content: '你好！有什么可以帮助你的吗？', timestamp: now - 3500000 },
+            ],
+            model: 'sonnet-4-6',
+            createdAt: now - 3600000,
+            updatedAt: now - 3500000,
+          },
+          {
+            id: 'demo-2',
+            title: '测试对话 2',
+            messages: [
+              { id: 'd2-1', role: 'user', content: '写一个 Hello World', timestamp: now - 7200000 },
+              { id: 'd2-2', role: 'assistant', content: 'console.log("Hello World!")', timestamp: now - 7100000 },
+            ],
+            model: 'sonnet-4-6',
+            createdAt: now - 7200000,
+            updatedAt: now - 7100000,
+          },
+        ];
+        for (const s of demoSessions) {
+          await saveSession(s);
+        }
+        await refreshSessions();
+      }
+    };
+    if (isReady && isAuthenticated()) {
+      addDemoSessions();
+    }
+  }, [isReady]);
+
   const refreshSessions = useCallback(async () => {
     try {
       const list = await getSessions();
