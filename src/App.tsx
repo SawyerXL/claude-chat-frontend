@@ -48,12 +48,25 @@ export default function App() {
   const [loginOpen, setLoginOpen] = useState(false);
   const [activeProjectId, setActiveProjectId] = useState<string | null>(null);
   const [theme, setTheme] = useState<'dark' | 'light'>('dark');
+  const [isReady, setIsReady] = useState(false);
   const abortControllerRef = useRef<AbortController | null>(null);
 
-  // Initialize theme
+  // Initialize theme and check auth
   useEffect(() => {
     const savedTheme = initTheme();
     setTheme(savedTheme);
+
+    // Check auth status
+    if (isAuthenticated()) {
+      const currentUser = getCurrentUser();
+      if (currentUser) {
+        setUser(currentUser);
+      }
+      setIsReady(true);
+    } else {
+      setLoginOpen(true);
+      setIsReady(true);
+    }
   }, []);
 
   const refreshSessions = useCallback(async () => {
@@ -66,18 +79,9 @@ export default function App() {
   }, []);
 
   useEffect(() => {
+    if (!isReady) return;
     refreshSessions();
-    // Check if user is authenticated
-    if (isAuthenticated()) {
-      const currentUser = getCurrentUser();
-      if (currentUser) {
-        setUser(currentUser);
-      }
-    } else {
-      // Show login modal if not authenticated
-      setLoginOpen(true);
-    }
-  }, [refreshSessions]);
+  }, [isReady, refreshSessions]);
 
   const handleLoginSuccess = () => {
     const currentUser = getCurrentUser();
@@ -275,6 +279,15 @@ export default function App() {
     : activeChat
       ? '仿照claude官网实现项目'
       : 'New chat';
+
+  // Show loading until auth check is complete
+  if (!isReady) {
+    return (
+      <div className="app-loading">
+        <div className="loading-spinner" />
+      </div>
+    );
+  }
 
   return (
     <div className="app-layout">
