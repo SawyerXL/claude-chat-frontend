@@ -1,24 +1,22 @@
 import { useState } from 'react';
-import { Form, Input, Button, message as antMessage } from 'antd';
+import { message } from 'antd';
 import { login } from '../services/auth';
-import { initTheme } from '../services/theme';
 
 export default function LoginPage() {
   const [loading, setLoading] = useState(false);
+  const [email, setEmail] = useState('admin@sub2api.local');
+  const [password, setPassword] = useState('Mdgk@2024!');
 
-  useState(() => {
-    initTheme();
-  });
-
-  const handleSubmit = async (values: { email: string; password: string }) => {
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
     setLoading(true);
     try {
-      await login(values.email, values.password);
-      antMessage.success('登录成功');
+      await login(email, password);
+      message.success('登录成功');
       window.location.reload();
     } catch (err) {
       const msg = err instanceof Error ? err.message : '登录失败';
-      antMessage.error(msg);
+      message.error(msg);
     } finally {
       setLoading(false);
     }
@@ -33,40 +31,33 @@ export default function LoginPage() {
           <p className="login-subtitle">登录以继续对话</p>
         </div>
 
-        <Form
-          layout="vertical"
-          onFinish={handleSubmit}
-          className="login-form"
-        >
-          <Form.Item
-            name="email"
-            rules={[
-              { required: true, message: '请输入邮箱' },
-              { type: 'email', message: '请输入有效的邮箱' },
-            ]}
-          >
-            <Input placeholder="邮箱" className="login-input" />
-          </Form.Item>
+        <form className="login-form" onSubmit={handleSubmit}>
+          <div className="login-field">
+            <label>邮箱</label>
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="admin@sub2api.local"
+              required
+            />
+          </div>
 
-          <Form.Item
-            name="password"
-            rules={[{ required: true, message: '请输入密码' }]}
-          >
-            <Input.Password placeholder="密码" className="login-input" />
-          </Form.Item>
+          <div className="login-field">
+            <label>密码</label>
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="密码"
+              required
+            />
+          </div>
 
-          <Form.Item style={{ marginBottom: 0 }}>
-            <Button
-              type="primary"
-              htmlType="submit"
-              loading={loading}
-              block
-              className="login-btn"
-            >
-              登录
-            </Button>
-          </Form.Item>
-        </Form>
+          <button type="submit" className="login-btn" disabled={loading}>
+            {loading ? '登录中...' : '登录'}
+          </button>
+        </form>
       </div>
 
       <style>{`
@@ -121,63 +112,61 @@ export default function LoginPage() {
           border: 1px solid #3a3836;
           border-radius: 12px;
           padding: 20px;
+          display: flex;
+          flex-direction: column;
+          gap: 16px;
         }
 
-        .login-input {
-          background: #30302e !important;
-          border-color: #3a3836 !important;
-          color: #f5f4ee !important;
-          border-radius: 8px !important;
-          height: 42px !important;
-          padding: 8px 12px !important;
-          font-size: 14px !important;
+        .login-field {
+          display: flex;
+          flex-direction: column;
+          gap: 6px;
         }
 
-        .login-input .ant-input {
-          background: transparent !important;
-          color: #f5f4ee !important;
-          height: 26px !important;
-          font-size: 14px !important;
+        .login-field label {
+          font-size: 13px;
+          color: #b8b6b0;
         }
 
-        .login-input .ant-input::placeholder {
-          color: #8a8780 !important;
+        .login-field input {
+          background: #30302e;
+          border: 1px solid #3a3836;
+          color: #f5f4ee;
+          border-radius: 8px;
+          height: 42px;
+          padding: 0 12px;
+          font-size: 14px;
+          outline: none;
+          transition: border-color 0.15s;
         }
 
-        .login-input .ant-input:focus {
-          box-shadow: none !important;
+        .login-field input:focus {
+          border-color: #d97757;
         }
 
-        .login-input:focus,
-        .login-input.ant-input-affix-wrapper-focused {
-          border-color: #d97757 !important;
-          box-shadow: 0 0 0 2px rgba(217, 119, 87, 0.15) !important;
-        }
-
-        .login-input .ant-input-password-icon {
-          color: #8a8780 !important;
-        }
-
-        .login-input .ant-input-password-icon:hover {
-          color: #f5f4ee !important;
+        .login-field input::placeholder {
+          color: #8a8780;
         }
 
         .login-btn {
-          height: 42px !important;
-          font-size: 14px !important;
-          font-weight: 500 !important;
-          border-radius: 8px !important;
-          background: #d97757 !important;
-          border: none !important;
+          height: 42px;
+          background: #d97757;
+          color: #fff;
+          border: none;
+          border-radius: 8px;
+          font-size: 14px;
+          font-weight: 500;
+          cursor: pointer;
+          transition: background 0.15s;
         }
 
-        .login-btn:hover {
-          background: #c96a4a !important;
+        .login-btn:hover:not(:disabled) {
+          background: #c96a4a;
         }
 
-        .login-form .ant-form-item-label > label {
-          color: #b8b6b0 !important;
-          font-size: 13px !important;
+        .login-btn:disabled {
+          opacity: 0.7;
+          cursor: not-allowed;
         }
       `}</style>
     </div>
