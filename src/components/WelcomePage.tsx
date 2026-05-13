@@ -27,7 +27,7 @@ const QUICK_ACTIONS = [
 ];
 
 interface WelcomePageProps {
-  onSend: (text: string, images?: string[]) => void;
+  onSend: (text: string, images?: string[], attachments?: Attachment[]) => void;
   model: string;
   onModelChange: (id: string) => void;
   user?: User | null;
@@ -49,7 +49,7 @@ export default function WelcomePage({ onSend, model, onModelChange, user }: Welc
   const handleSend = () => {
     const text = value.trim();
     if (!text && images.length === 0 && attachments.length === 0) return;
-    onSend(text, images);
+    onSend(text, images, attachments);
     setValue('');
     setImages([]);
     setAttachments([]);

@@ -178,15 +178,33 @@ export default function App() {
     [sessions, refreshSessions],
   );
 
-  const handleSend = async (text: string) => {
+  const handleSend = async (text: string, images?: string[], attachments?: Array<{ name: string; type: string; content: string }>) => {
     const sessionId = activeChat ?? generateSessionId();
     if (!activeChat) setActiveChat(sessionId);
+
+    // Build attachments from images and uploaded files
+    const allAttachments: Array<{ name: string; type: string; content: string }> = [];
+
+    if (images && images.length > 0) {
+      for (let i = 0; i < images.length; i++) {
+        allAttachments.push({
+          name: `image_${i + 1}.png`,
+          type: 'image/png',
+          content: images[i],
+        });
+      }
+    }
+
+    if (attachments && attachments.length > 0) {
+      allAttachments.push(...attachments);
+    }
 
     const userMsg: ChatMessage = {
       id: `u-${Date.now()}`,
       role: 'user',
       content: text,
       timestamp: Date.now(),
+      attachments: allAttachments.length > 0 ? allAttachments : undefined,
     };
     const nextMessages = [...messages, userMsg];
     setMessages(nextMessages);

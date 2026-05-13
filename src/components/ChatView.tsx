@@ -27,7 +27,7 @@ const { TextArea } = Input;
 
 interface ChatViewProps {
   messages: ChatMessage[];
-  onSend: (text: string, images?: string[]) => void;
+  onSend: (text: string, images?: string[], attachments?: Attachment[]) => void;
   onEditMessage: (messageId: string, newContent: string) => void;
   loading: boolean;
   model: string;
@@ -65,7 +65,7 @@ export default function ChatView({
   const handleSend = () => {
     const text = value.trim();
     if (!text && images.length === 0 && attachments.length === 0) return;
-    onSend(text, images);
+    onSend(text, images, attachments);
     setValue('');
     setImages([]);
     setAttachments([]);
