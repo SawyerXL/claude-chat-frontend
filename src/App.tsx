@@ -4,12 +4,15 @@ import {
   ShareAltOutlined,
   StarOutlined,
   DownOutlined,
+  EditOutlined,
 } from '@ant-design/icons';
 import Sidebar from './components/Sidebar';
 import WelcomePage from './components/WelcomePage';
 import ChatView from './components/ChatView';
 import ShareDialog from './components/ShareDialog';
 import LoginPage from './components/LoginPage';
+import Settings from './components/Settings';
+import SkillPanel from './components/SkillPanel';
 import type { ChatMessage, ChatSession } from './types';
 import { MODELS } from './constants';
 import { sendChatMessageStream } from './services/api';
@@ -49,6 +52,8 @@ export default function App() {
   const [activeProjectId, setActiveProjectId] = useState<string | null>(null);
   const [theme, setTheme] = useState<'dark' | 'light'>('dark');
   const [isReady, setIsReady] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [skillPanelOpen, setSkillPanelOpen] = useState(false);
   const abortControllerRef = useRef<AbortController | null>(null);
 
   // Initialize theme and check auth
@@ -82,6 +87,29 @@ export default function App() {
     if (!isReady) return;
     refreshSessions();
   }, [isReady, refreshSessions]);
+
+  // Keyboard shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Ctrl/Cmd + N: New chat
+      if ((e.ctrlKey || e.metaKey) && e.key === 'n') {
+        e.preventDefault();
+        handleSelectChat(null);
+      }
+      // Ctrl/Cmd + B: Toggle sidebar
+      if ((e.ctrlKey || e.metaKey) && e.key === 'b') {
+        e.preventDefault();
+        // Toggle sidebar via event or state
+      }
+      // Ctrl/Cmd + K: Search (placeholder)
+      if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+        e.preventDefault();
+        antMessage.info('Search coming soon');
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   const persistSession = useCallback(
     async (sessionId: string, nextMessages: ChatMessage[], sessionModel: string) => {
@@ -323,6 +351,11 @@ export default function App() {
             </div>
           )}
           <div className="header-actions">
+            <Tooltip title="Skills">
+              <button className="header-btn" onClick={() => setSkillPanelOpen(true)}>
+                ⚡
+              </button>
+            </Tooltip>
             <Tooltip title={theme === 'dark' ? 'Light mode' : 'Dark mode'}>
               <button className="header-btn" onClick={handleToggleTheme}>
                 {theme === 'dark' ? '☀️' : '🌙'}
@@ -331,6 +364,11 @@ export default function App() {
             <Tooltip title="Star">
               <button className="header-btn" style={{ padding: 7, width: 34 }}>
                 <StarOutlined />
+              </button>
+            </Tooltip>
+            <Tooltip title="Settings">
+              <button className="header-btn" onClick={() => setSettingsOpen(true)}>
+                <EditOutlined />
               </button>
             </Tooltip>
             <button
@@ -370,6 +408,8 @@ export default function App() {
       </main>
 
       <ShareDialog open={shareOpen} onClose={() => setShareOpen(false)} conversationId={activeChat ?? undefined} />
+      <Settings open={settingsOpen} onClose={() => setSettingsOpen(false)} />
+      <SkillPanel open={skillPanelOpen} onClose={() => setSkillPanelOpen(false)} />
     </div>
   );
 }
