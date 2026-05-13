@@ -9,7 +9,7 @@ import Sidebar from './components/Sidebar';
 import WelcomePage from './components/WelcomePage';
 import ChatView from './components/ChatView';
 import ShareDialog from './components/ShareDialog';
-import LoginModal from './components/LoginModal';
+import LoginPage from './components/LoginPage';
 import type { ChatMessage, ChatSession } from './types';
 import { MODELS } from './constants';
 import { sendChatMessageStream } from './services/api';
@@ -45,7 +45,7 @@ export default function App() {
   const [editingTitle, setEditingTitle] = useState(false);
   const [titleInput, setTitleInput] = useState('');
   const [user, setUser] = useState<User | null>(null);
-  const [loginOpen, setLoginOpen] = useState(false);
+  const [needsAuth, setNeedsAuth] = useState(false);
   const [activeProjectId, setActiveProjectId] = useState<string | null>(null);
   const [theme, setTheme] = useState<'dark' | 'light'>('dark');
   const [isReady, setIsReady] = useState(false);
@@ -64,7 +64,7 @@ export default function App() {
       }
       setIsReady(true);
     } else {
-      setLoginOpen(true);
+      setNeedsAuth(true);
       setIsReady(true);
     }
   }, []);
@@ -82,14 +82,6 @@ export default function App() {
     if (!isReady) return;
     refreshSessions();
   }, [isReady, refreshSessions]);
-
-  const handleLoginSuccess = () => {
-    const currentUser = getCurrentUser();
-    if (currentUser) {
-      setUser(currentUser);
-    }
-    setLoginOpen(false);
-  };
 
   const persistSession = useCallback(
     async (sessionId: string, nextMessages: ChatMessage[], sessionModel: string) => {
@@ -289,6 +281,11 @@ export default function App() {
     );
   }
 
+  // Show login page if not authenticated
+  if (needsAuth) {
+    return <LoginPage />;
+  }
+
   return (
     <div className="app-layout">
       <Sidebar
@@ -373,7 +370,6 @@ export default function App() {
       </main>
 
       <ShareDialog open={shareOpen} onClose={() => setShareOpen(false)} conversationId={activeChat ?? undefined} />
-      <LoginModal open={loginOpen} onLoginSuccess={handleLoginSuccess} onCancel={() => setLoginOpen(false)} />
     </div>
   );
 }
