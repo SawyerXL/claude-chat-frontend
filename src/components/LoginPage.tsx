@@ -45,14 +45,14 @@ export default function LoginPage() {
               { type: 'email', message: '请输入有效的邮箱' },
             ]}
           >
-            <Input placeholder="邮箱" size="large" />
+            <Input placeholder="邮箱" className="login-input" />
           </Form.Item>
 
           <Form.Item
             name="password"
             rules={[{ required: true, message: '请输入密码' }]}
           >
-            <Input.Password placeholder="密码" size="large" />
+            <Input.Password placeholder="密码" className="login-input" />
           </Form.Item>
 
           <Form.Item style={{ marginBottom: 0 }}>
@@ -61,7 +61,7 @@ export default function LoginPage() {
               htmlType="submit"
               loading={loading}
               block
-              size="large"
+              className="login-btn"
             >
               登录
             </Button>
@@ -80,38 +80,38 @@ export default function LoginPage() {
 
         .login-container {
           width: 100%;
-          max-width: 360px;
-          padding: 32px;
+          max-width: 320px;
+          padding: 32px 24px;
         }
 
         .login-logo {
           text-align: center;
-          margin-bottom: 32px;
+          margin-bottom: 28px;
         }
 
         .logo-icon {
-          width: 56px;
-          height: 56px;
+          width: 48px;
+          height: 48px;
           background: linear-gradient(135deg, #d97757, #a84d2e);
-          border-radius: 16px;
+          border-radius: 14px;
           display: flex;
           align-items: center;
           justify-content: center;
-          margin: 0 auto 16px;
-          font-size: 28px;
+          margin: 0 auto 14px;
+          font-size: 24px;
           font-weight: 600;
           color: #fff;
         }
 
         .login-title {
-          font-size: 24px;
+          font-size: 22px;
           font-weight: 600;
           color: #f5f4ee;
-          margin: 0 0 8px;
+          margin: 0 0 6px;
         }
 
         .login-subtitle {
-          font-size: 14px;
+          font-size: 13px;
           color: #8a8780;
           margin: 0;
         }
@@ -120,40 +120,64 @@ export default function LoginPage() {
           background: #2d2c2a;
           border: 1px solid #3a3836;
           border-radius: 12px;
-          padding: 24px;
+          padding: 20px;
         }
 
-        .login-form .ant-input,
-        .login-form .ant-input-affix-wrapper {
+        .login-input {
           background: #30302e !important;
           border-color: #3a3836 !important;
           color: #f5f4ee !important;
-          border-radius: 8px;
-          height: 44px;
+          border-radius: 8px !important;
+          height: 42px !important;
+          padding: 8px 12px !important;
+          font-size: 14px !important;
         }
 
-        .login-form .ant-input::placeholder {
-          color: #8a8780;
+        .login-input .ant-input {
+          background: transparent !important;
+          color: #f5f4ee !important;
+          height: 26px !important;
+          font-size: 14px !important;
         }
 
-        .login-form .ant-input:focus,
-        .login-form .ant-input-affix-wrapper:focus,
-        .login-form .ant-input-affix-wrapper-focused {
+        .login-input .ant-input::placeholder {
+          color: #8a8780 !important;
+        }
+
+        .login-input .ant-input:focus {
+          box-shadow: none !important;
+        }
+
+        .login-input:focus,
+        .login-input.ant-input-affix-wrapper-focused {
           border-color: #d97757 !important;
-          box-shadow: 0 0 0 2px rgba(217, 119, 87, 0.2) !important;
+          box-shadow: 0 0 0 2px rgba(217, 119, 87, 0.15) !important;
         }
 
-        .login-form .ant-btn-primary {
-          background: #d97757;
-          border: none;
-          height: 44px;
-          font-size: 15px;
-          font-weight: 500;
-          border-radius: 8px;
+        .login-input .ant-input-password-icon {
+          color: #8a8780 !important;
         }
 
-        .login-form .ant-btn-primary:hover {
-          background: #c96a4a;
+        .login-input .ant-input-password-icon:hover {
+          color: #f5f4ee !important;
+        }
+
+        .login-btn {
+          height: 42px !important;
+          font-size: 14px !important;
+          font-weight: 500 !important;
+          border-radius: 8px !important;
+          background: #d97757 !important;
+          border: none !important;
+        }
+
+        .login-btn:hover {
+          background: #c96a4a !important;
+        }
+
+        .login-form .ant-form-item-label > label {
+          color: #b8b6b0 !important;
+          font-size: 13px !important;
         }
       `}</style>
     </div>
