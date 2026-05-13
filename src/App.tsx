@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Tooltip, message as antMessage } from 'antd';
 import {
   ShareAltOutlined,
@@ -12,9 +12,10 @@ import ShareDialog from './components/ShareDialog';
 import LoginModal from './components/LoginModal';
 import type { ChatMessage, ChatSession } from './types';
 import { MODELS } from './constants';
-import { sendChatMessage } from './services/api';
+import { sendChatMessageStream } from './services/api';
 import { getSessions, saveSession, deleteSession } from './services/session';
 import { getCurrentUser, isAuthenticated } from './services/auth';
+import { initTheme, toggleTheme as toggleThemeService } from './services/theme';
 import type { User } from './services/auth';
 import './App.css';
 
@@ -46,6 +47,14 @@ export default function App() {
   const [user, setUser] = useState<User | null>(null);
   const [loginOpen, setLoginOpen] = useState(false);
   const [activeProjectId, setActiveProjectId] = useState<string | null>(null);
+  const [theme, setTheme] = useState<'dark' | 'light'>('dark');
+  const abortControllerRef = useRef<AbortController | null>(null);
+
+  // Initialize theme
+  useEffect(() => {
+    const savedTheme = initTheme();
+    setTheme(savedTheme);
+  }, []);
 
   const refreshSessions = useCallback(async () => {
     try {
@@ -123,22 +132,36 @@ export default function App() {
       timestamp: Date.now(),
     };
     setMessages((prev) => [...prev, assistantMsg]);
+    // Create abort controller for this request
+    abortControllerRef.current = new AbortController();
 
     try {
       const apiModel = MODEL_ID_MAP[model] || 'claude-sonnet-4-6';
-      const fullResponse = await sendChatMessage(nextMessages, apiModel);
-      const displayText = fullResponse || '(空响应)';
+      let fullResponse = '';
+      let fullThinking = '';
 
-      setMessages((prev) => {
-        const updated = [...prev];
-        const lastIndex = updated.length - 1;
-        if (lastIndex >= 0 && updated[lastIndex].role === 'assistant') {
-          updated[lastIndex] = { ...updated[lastIndex], content: displayText };
+      // Stream the response with abort signal
+      for await (const chunk of sendChatMessageStream(nextMessages, apiModel, abortControllerRef.current.signal)) {
+        if (chunk.type === 'text') {
+          fullResponse += chunk.content;
+        } else if (chunk.type === 'thinking') {
+          fullThinking += chunk.thinking;
         }
-        return updated;
-      });
+        setMessages((prev) => {
+          const updated = [...prev];
+          const lastIndex = updated.length - 1;
+          if (lastIndex >= 0 && updated[lastIndex].role === 'assistant') {
+            updated[lastIndex] = {
+              ...updated[lastIndex],
+              content: fullResponse,
+              thinking: fullThinking || undefined
+            };
+          }
+          return updated;
+        });
+      }
 
-      await persistSession(sessionId, [...nextMessages, { ...assistantMsg, content: displayText }], model);
+      await persistSession(sessionId, [...nextMessages, { ...assistantMsg, content: fullResponse, thinking: fullThinking || undefined }], model);
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       antMessage.error(`请求失败: ${msg}`);
@@ -154,7 +177,21 @@ export default function App() {
       await persistSession(sessionId, [...finalMessages, { ...assistantMsg, content: `请求失败: ${msg}` }], model);
     } finally {
       setLoading(false);
+      abortControllerRef.current = null;
     }
+  };
+
+  const handleStop = () => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+      abortControllerRef.current = null;
+      setLoading(false);
+    }
+  };
+
+  const handleToggleTheme = () => {
+    const nextTheme = toggleThemeService();
+    setTheme(nextTheme);
   };
 
   const handleSelectChat = async (id: string | null) => {
@@ -265,6 +302,11 @@ export default function App() {
             </div>
           )}
           <div className="header-actions">
+            <Tooltip title={theme === 'dark' ? 'Light mode' : 'Dark mode'}>
+              <button className="header-btn" onClick={handleToggleTheme}>
+                {theme === 'dark' ? '☀️' : '🌙'}
+              </button>
+            </Tooltip>
             <Tooltip title="Star">
               <button className="header-btn" style={{ padding: 7, width: 34 }}>
                 <StarOutlined />
@@ -284,9 +326,17 @@ export default function App() {
           <ChatView
             messages={messages}
             onSend={handleSend}
+            onEditMessage={(messageId, newContent) => {
+              setMessages((prev) =>
+                prev.map((m) =>
+                  m.id === messageId ? { ...m, content: newContent } : m
+                )
+              );
+            }}
             loading={loading}
             model={model}
             onModelChange={setModel}
+            onStop={handleStop}
           />
         ) : (
           <WelcomePage
