@@ -11,8 +11,11 @@ import {
   CodeOutlined,
   FileWordOutlined,
   FilePdfOutlined,
+  FileExcelOutlined,
+  FilePptOutlined,
   DownOutlined,
 } from '@ant-design/icons';
+import PptxGenJS from 'pptxgenjs';
 import type { Artifact } from '../types';
 import './ArtifactViewer.css';
 
@@ -88,6 +91,52 @@ export default function ArtifactViewer({ artifact, onClose }: ArtifactViewerProp
     URL.revokeObjectURL(url);
   };
 
+  const handleDownloadXlsx = async () => {
+    try {
+      const pptx = new PptxGenJS();
+      pptx.title = artifact.title;
+      
+      // Try to parse as CSV/table data, otherwise show as text
+      const lines = artifact.content.split('\n').filter(line => line.trim());
+      const slide = pptx.addSlide();
+      
+      // Check if content looks like tabular data
+      const hasTabularData = lines.some(line => line.includes('\t') || line.includes(','));
+      
+      if (hasTabularData) {
+        // Export as table
+        const rows = lines.map(line => {
+          const delimiter = line.includes('\t') ? '\t' : ',';
+          return line.split(delimiter).map(cell => ({ text: cell.trim() }));
+        });
+        
+        slide.addTable(rows as any, {
+          x: 0.5,
+          y: 0.5,
+          w: 9,
+          fontFace: 'Arial',
+          fontSize: 10,
+        });
+      } else {
+        // Show as text
+        slide.addText(artifact.title, { x: 0.5, y: 0.5, w: 9, fontSize: 20, bold: true });
+        slide.addText(artifact.content, {
+          x: 0.5,
+          y: 1.2,
+          w: 9,
+          h: 5,
+          fontSize: 11,
+          fontFace: 'Consolas',
+          valign: 'top',
+        });
+      }
+      
+      await pptx.writeFile({ fileName: `${artifact.title.replace(/\s+/g, '_')}.xlsx` });
+    } catch (err) {
+      console.error('Failed to export XLSX:', err);
+    }
+  };
+
   const handleDownloadPdf = () => {
     // Open print dialog for PDF
     const printWindow = window.open('', '_blank');
@@ -114,9 +163,66 @@ export default function ArtifactViewer({ artifact, onClose }: ArtifactViewerProp
     }
   };
 
+  const handleDownloadPptx = async () => {
+    try {
+      const pptx = new PptxGenJS();
+      pptx.title = artifact.title;
+      
+      // Split content into slides (by lines or sections)
+      const lines = artifact.content.split('\n');
+      const slides: string[] = [];
+      let currentSlide = '';
+      const linesPerSlide = 30;
+      
+      for (let i = 0; i < lines.length; i++) {
+        currentSlide += lines[i] + '\n';
+        if ((i + 1) % linesPerSlide === 0 || i === lines.length - 1) {
+          slides.push(currentSlide);
+          currentSlide = '';
+        }
+      }
+      
+      // Create slides
+      for (let i = 0; i < Math.min(slides.length, 20); i++) {
+        const slide = pptx.addSlide();
+        slide.addText(artifact.title, { x: 0.5, y: 0.3, w: 9, fontSize: 18, bold: true });
+        slide.addText(slides[i], {
+          x: 0.5,
+          y: 0.8,
+          w: 9,
+          h: 5,
+          fontSize: 10,
+          fontFace: 'Consolas',
+          valign: 'top',
+        });
+      }
+      
+      // If content is simple text, add as single slide
+      if (slides.length === 1) {
+        const slide = pptx.addSlide();
+        slide.addText(artifact.title, { x: 0.5, y: 0.5, w: 9, fontSize: 24, bold: true });
+        slide.addText(artifact.content, {
+          x: 0.5,
+          y: 1.2,
+          w: 9,
+          h: 5,
+          fontSize: 12,
+          fontFace: 'Consolas',
+          valign: 'top',
+        });
+      }
+      
+      await pptx.writeFile({ fileName: `${artifact.title.replace(/\s+/g, '_')}.pptx` });
+    } catch (err) {
+      console.error('Failed to export PPTX:', err);
+    }
+  };
+
   const downloadOptions = [
     { key: 'code', icon: <CodeOutlined />, label: 'Download Code', onClick: handleDownload },
-    { key: 'docx', icon: <FileWordOutlined />, label: 'Export as DOC/DOCX', onClick: handleDownloadDocx },
+    { key: 'docx', icon: <FileWordOutlined />, label: 'Export as DOCX', onClick: handleDownloadDocx },
+    { key: 'xlsx', icon: <FileExcelOutlined />, label: 'Export as XLSX', onClick: handleDownloadXlsx },
+    { key: 'pptx', icon: <FilePptOutlined />, label: 'Export as PPTX', onClick: handleDownloadPptx },
     { key: 'pdf', icon: <FilePdfOutlined />, label: 'Export as PDF', onClick: handleDownloadPdf },
   ];
 
