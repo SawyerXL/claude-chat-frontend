@@ -395,14 +395,14 @@ export default function ChatView({
                       title="Copy"
                       onClick={() => handleCopy(m.content)}
                     >
-                      <CopyOutlined />
+                      <CopyOutlined /> 复制
                     </button>
                     <button
-                      className="message-action-btn"
+                      className="message-action-btn export-btn"
                       title="Export"
                       onClick={() => handleExportMessage(m.content)}
                     >
-                      <ExportOutlined />
+                      <ExportOutlined /> 导出
                     </button>
                     <button className="message-action-btn" title="Retry">
                       <ReloadOutlined />
