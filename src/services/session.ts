@@ -39,7 +39,6 @@ export async function saveSession(session: ChatSession): Promise<void> {
   } else {
     sessions.unshift(session);
     console.log('[session] Added new session');
- main
   }
   
   saveSessionsToStorage(sessions);
@@ -52,4 +51,3 @@ export async function deleteSession(sessionId: string): Promise<void> {
   const filtered = sessions.filter(s => s.id !== sessionId);
   saveSessionsToStorage(filtered);
 }
-main
