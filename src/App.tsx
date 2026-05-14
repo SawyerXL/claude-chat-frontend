@@ -16,7 +16,7 @@ import Settings from './components/Settings';
 import SkillPanel from './components/SkillPanel';
 import type { ChatMessage, ChatSession } from './types';
 import { MODELS } from './constants';
-import { sendChatMessageStream } from './services/api';
+import { sendChatMessage } from './services/api';
 import { getSessions, saveSession, deleteSession } from './services/session';
 import { isAuthenticated } from './services/auth';
 import { initTheme, toggleTheme as toggleThemeService } from './services/theme';
@@ -228,6 +228,7 @@ export default function App() {
 
     try {
       const apiModel = MODEL_ID_MAP[model] || 'claude-sonnet-4-6';
+
       let fullResponse = '';
       let fullThinking = '';
 
@@ -264,6 +265,7 @@ export default function App() {
       }
 
       await persistSession(sessionId, [...nextMessages, { ...assistantMsg, content: fullResponse, thinking: fullThinking || undefined }], model);
+main
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       antMessage.error(`请求失败: ${msg}`);

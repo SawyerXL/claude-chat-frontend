@@ -1,5 +1,6 @@
 import type { ChatSession } from '../types';
 
+
 const SESSIONS_KEY = 'claude_sessions';
 
 function getSessionsFromStorage(): ChatSession[] {
@@ -38,14 +39,17 @@ export async function saveSession(session: ChatSession): Promise<void> {
   } else {
     sessions.unshift(session);
     console.log('[session] Added new session');
+ main
   }
   
   saveSessionsToStorage(sessions);
 }
 
 export async function deleteSession(sessionId: string): Promise<void> {
+
   console.log('[session] deleteSession called:', sessionId);
   const sessions = getSessionsFromStorage();
   const filtered = sessions.filter(s => s.id !== sessionId);
   saveSessionsToStorage(filtered);
 }
+main
