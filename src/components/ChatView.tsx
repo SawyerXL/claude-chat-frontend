@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Input } from 'antd';
+import { Input, message as antMessage } from 'antd';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import {
@@ -11,7 +11,10 @@ import {
   DislikeOutlined,
   StopOutlined,
   CloseOutlined,
+  EditOutlined,
+  FileOutlined,
 } from '@ant-design/icons';
+import mammoth from 'mammoth';
 import ModelSelector from './ModelSelector';
 import PlusMenu from './PlusMenu';
 import CodeBlock from './CodeBlock';
@@ -25,16 +28,24 @@ const { TextArea } = Input;
 
 interface ChatViewProps {
   messages: ChatMessage[];
-  onSend: (text: string, images?: string[]) => void;
+  onSend: (text: string, images?: string[], attachments?: Attachment[]) => void;
+  onEditMessage: (messageId: string, newContent: string) => void;
   loading: boolean;
   model: string;
   onModelChange: (id: string) => void;
   onStop?: () => void;
 }
 
+interface Attachment {
+  name: string;
+  type: string;
+  content: string;
+}
+
 export default function ChatView({
   messages,
   onSend,
+  onEditMessage,
   loading,
   model,
   onModelChange,
@@ -42,7 +53,10 @@ export default function ChatView({
 }: ChatViewProps) {
   const [value, setValue] = useState('');
   const [images, setImages] = useState<string[]>([]);
+  const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [activeArtifact, setActiveArtifact] = useState<Artifact | null>(null);
+  const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
+  const [editValue, setEditValue] = useState('');
   const endRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -51,10 +65,11 @@ export default function ChatView({
 
   const handleSend = () => {
     const text = value.trim();
-    if (!text && images.length === 0) return;
-    onSend(text, images);
+    if (!text && images.length === 0 && attachments.length === 0) return;
+    onSend(text, images, attachments);
     setValue('');
     setImages([]);
+    setAttachments([]);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -72,14 +87,77 @@ export default function ChatView({
     setImages((prev) => [...prev, ...newImages]);
   };
 
+  const handleFileUpload = async (files: File[]) => {
+    const newAttachments: Attachment[] = [];
+
+    for (const file of files) {
+      try {
+        let content: string;
+
+        if (file.name.endsWith('.docx')) {
+          // Parse .docx files with mammoth
+          const arrayBuffer = await file.arrayBuffer();
+          const result = await mammoth.extractRawText({ arrayBuffer });
+          content = result.value;
+          if (result.messages.length > 0) {
+            console.log(`Mammoth warnings for ${file.name}:`, result.messages);
+          }
+        } else if (file.type === 'text/plain' || file.name.endsWith('.md') || file.name.endsWith('.txt') || file.name.endsWith('.csv') || file.name.endsWith('.json') || file.name.endsWith('.xml')) {
+          // Text files
+          content = await file.text();
+        } else if (file.name.endsWith('.pdf')) {
+          // PDF - just pass as-is for now (could add pdf.js later)
+          content = `[PDF file: ${file.name}]\n(This PDF content cannot be extracted directly)`;
+        } else {
+          // Try as text
+          content = await file.text();
+        }
+
+        newAttachments.push({
+          name: file.name,
+          type: file.type,
+          content: content,
+        });
+      } catch (err) {
+        console.error('Failed to read file:', err);
+        antMessage.error(`Failed to read ${file.name}`);
+      }
+    }
+
+    if (newAttachments.length > 0) {
+      setAttachments((prev) => [...prev, ...newAttachments]);
+      antMessage.success(`Added ${newAttachments.length} file(s)`);
+    }
+  };
+
   const handleRemoveImage = (index: number) => {
     setImages((prev) => prev.filter((_, i) => i !== index));
   };
 
-  // Get the last user message for regenerate
+  const handleRemoveAttachment = (index: number) => {
+    setAttachments((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const startEditMessage = (msgId: string, content: string) => {
+    setEditingMessageId(msgId);
+    setEditValue(content);
+  };
+
+  const cancelEditMessage = () => {
+    setEditingMessageId(null);
+    setEditValue('');
+  };
+
+  const saveEditMessage = () => {
+    if (editingMessageId && editValue.trim()) {
+      onEditMessage(editingMessageId, editValue.trim());
+      setEditingMessageId(null);
+      setEditValue('');
+    }
+  };
+
   const lastUserMessage = messages.filter(m => m.role === 'user').pop();
 
-  // Custom renderer for markdown components
   const renderers = {
     code: ({ className, children, ...props }: { className?: string; children?: React.ReactNode }) => {
       const match = /language-(\w+)/.exec(className || '');
@@ -99,7 +177,6 @@ export default function ChatView({
     },
   };
 
-  // Render message content with artifacts support
   const renderMessageContent = (content: string) => {
     if (!content) {
       return (
@@ -111,10 +188,9 @@ export default function ChatView({
       );
     }
 
-    // Check if content has artifacts
     if (hasArtifacts(content)) {
       const parsed = parseArtifacts(content);
-      
+
       return (
         <div className="message-with-artifacts">
           <ReactMarkdown
@@ -123,8 +199,7 @@ export default function ChatView({
           >
             {content}
           </ReactMarkdown>
-          
-          {/* Render artifact viewers */}
+
           {parsed.map((item) => (
             <button
               key={item.artifact.id}
@@ -165,12 +240,61 @@ export default function ChatView({
                   </div>
                 )}
                 <div className="message-content markdown-body">
-                  {m.role === 'assistant' ? (
-                    renderMessageContent(m.content)
+                  {editingMessageId === m.id ? (
+                    <div className="message-edit-container">
+                      <TextArea
+                        className="message-edit-input"
+                        value={editValue}
+                        onChange={(e) => setEditValue(e.target.value)}
+                        autoSize={{ minRows: 1, maxRows: 10 }}
+                        autoFocus
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' && !e.shiftKey) {
+                            e.preventDefault();
+                            saveEditMessage();
+                          }
+                          if (e.key === 'Escape') {
+                            cancelEditMessage();
+                          }
+                        }}
+                      />
+                      <div className="message-edit-actions">
+                        <button className="message-edit-cancel" onClick={cancelEditMessage}>
+                          Cancel
+                        </button>
+                        <button className="message-edit-save" onClick={saveEditMessage}>
+                          Save
+                        </button>
+                      </div>
+                    </div>
+                  ) : m.role === 'assistant' ? (
+                    <>
+                      {m.thinking && (
+                        <div className="thinking-block">
+                          <div className="thinking-header">
+                            <span className="thinking-icon">🤔</span>
+                            <span>Thinking</span>
+                          </div>
+                          <div className="thinking-content">{m.thinking}</div>
+                        </div>
+                      )}
+                      {renderMessageContent(m.content)}
+                    </>
                   ) : (
                     <div style={{ whiteSpace: 'pre-wrap' }}>{m.content}</div>
                   )}
                 </div>
+                {m.role === 'user' && !editingMessageId && (
+                  <div className="message-actions">
+                    <button
+                      className="message-action-btn"
+                      title="Edit"
+                      onClick={() => startEditMessage(m.id, m.content)}
+                    >
+                      <EditOutlined />
+                    </button>
+                  </div>
+                )}
                 {m.role === 'assistant' && m.content && (
                   <div className="message-actions">
                     <button
@@ -198,7 +322,6 @@ export default function ChatView({
         </div>
       </div>
 
-      {/* Regenerate bar */}
       {!loading && lastUserMessage && (
         <div className="regenerate-bar">
           <button className="regenerate-btn" onClick={() => onSend(lastUserMessage.content)}>
@@ -227,6 +350,24 @@ export default function ChatView({
               </div>
             )}
 
+            {/* Attachment preview */}
+            {attachments.length > 0 && (
+              <div className="attachment-preview-container">
+                {attachments.map((att, idx) => (
+                  <div key={idx} className="attachment-preview">
+                    <FileOutlined />
+                    <span className="attachment-name">{att.name}</span>
+                    <button
+                      className="attachment-remove-btn"
+                      onClick={() => handleRemoveAttachment(idx)}
+                    >
+                      <CloseOutlined />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+
             <TextArea
               className="welcome-input"
               placeholder="Reply to Claude..."
@@ -238,7 +379,7 @@ export default function ChatView({
             />
             <div className="welcome-toolbar">
               <div className="toolbar-left">
-                <PlusMenu onImageUpload={handleImageUpload} />
+                <PlusMenu onImageUpload={handleImageUpload} onFileUpload={handleFileUpload} />
                 <ModelSelector value={model} onChange={onModelChange} />
               </div>
               <div className="toolbar-right">
@@ -254,7 +395,7 @@ export default function ChatView({
                     className="tool-btn send"
                     title="Send"
                     onClick={handleSend}
-                    disabled={!value.trim() && images.length === 0}
+                    disabled={!value.trim() && images.length === 0 && attachments.length === 0}
                   >
                     <ArrowUpOutlined />
                   </button>
@@ -265,7 +406,6 @@ export default function ChatView({
         </div>
       </div>
 
-      {/* Artifact Viewer */}
       {activeArtifact && (
         <ArtifactViewer
           artifact={activeArtifact}

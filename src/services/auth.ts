@@ -2,24 +2,24 @@ export interface User {
   id: number;
   email: string;
   username: string;
+  name?: string;
   role: string;
   balance: number;
   concurrency: number;
   status: string;
-}
-
-export interface LoginResponse {
-  access_token: string;
-  refresh_token: string;
-  expires_in: number;
-  token_type: string;
-  user: User;
+  allowed_groups?: string[] | null;
+  last_active_at?: string;
+  created_at?: string;
+  updated_at?: string;
+  balance_notify_enabled?: boolean;
+  total_recharged?: number;
+  rpm_limit?: number;
 }
 
 const AUTH_TOKEN_KEY = 'claude_auth_token';
 const USER_KEY = 'claude_user';
 
-export async function login(email: string, password: string): Promise<LoginResponse> {
+export async function login(email: string, password: string): Promise<{ access_token: string; user: User }> {
   const response = await fetch('/api/v1/auth/login', {
     method: 'POST',
     headers: {
@@ -29,18 +29,23 @@ export async function login(email: string, password: string): Promise<LoginRespo
   });
 
   if (!response.ok) {
-    const error = await response.json().catch(() => ({ message: 'Login failed' }));
-    throw new Error(error.message || `HTTP ${response.status}`);
+    const error = await response.json().catch(() => ({ error: 'Login failed' }));
+    throw new Error(error.error || `HTTP ${response.status}`);
   }
 
-  const data = (await response.json()) as { data: LoginResponse };
-  const loginData = data.data;
+  const result = (await response.json()) as { code: number; data?: { access_token: string; user: User } };
+  
+  if (result.code !== 0 || !result.data) {
+    throw new Error('Login failed');
+  }
+
+  const { access_token, user } = result.data;
 
   // Save to localStorage
-  localStorage.setItem(AUTH_TOKEN_KEY, loginData.access_token);
-  localStorage.setItem(USER_KEY, JSON.stringify(loginData.user));
+  localStorage.setItem(AUTH_TOKEN_KEY, access_token);
+  localStorage.setItem(USER_KEY, JSON.stringify(user));
 
-  return loginData;
+  return { access_token, user };
 }
 
 export function logout(): void {
@@ -66,12 +71,7 @@ export function isAuthenticated(): boolean {
   return !!getAuthToken();
 }
 
-export async function refreshUserInfo(): Promise<User | null> {
-  // Re-login to refresh user info
-  const user = getCurrentUser();
-  if (!user) return null;
-
-  // For now, just return the cached user
-  // In production, you might want a dedicated /api/v1/user endpoint
-  return user;
+export interface LoginResponse {
+  access_token: string;
+  user: User;
 }

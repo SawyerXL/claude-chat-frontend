@@ -1,8 +1,26 @@
 import type { ChatMessage } from '../types';
 
+export interface ThinkingBlock {
+  thinking: string;
+}
+
+export type StreamChunk =
+  | { type: 'text'; content: string }
+  | { type: 'thinking'; thinking: string };
+
+export type ApiContent = string | Array<{
+  type: 'text' | 'image';
+  text?: string;
+  source?: {
+    type: 'base64';
+    media_type: string;
+    data: string;
+  };
+}>;
+
 export interface ApiMessage {
   role: 'user' | 'assistant';
-  content: string;
+  content: ApiContent;
 }
 
 export interface ChatRequest {
@@ -18,6 +36,7 @@ export interface ChatResponse {
   content: Array<{
     type: string;
     text?: string;
+    thinking?: string;
   }>;
   model: string;
   stop_reason: string;
@@ -28,51 +47,51 @@ export interface ChatResponse {
 }
 
 /**
- * Send chat message (non-streaming)
+ * Convert ChatMessage to API format with images/attachments
  */
-export async function sendChatMessage(
-  messages: ChatMessage[],
-  model: string,
-): Promise<string> {
-  const apiMessages: ApiMessage[] = messages.map((m) => ({
-    role: m.role,
-    content: m.content,
-  }));
-
-  const response = await fetch('/api/chat', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      model,
-      messages: apiMessages,
-      max_tokens: 4096,
-    } as ChatRequest),
-  });
-
-  if (!response.ok) {
-    const error = await response.json().catch(() => ({ error: 'Unknown error' }));
-    throw new Error(error.error || `HTTP ${response.status}`);
+function toApiMessage(m: ChatMessage): ApiMessage {
+  if (!m.attachments || m.attachments.length === 0) {
+    return { role: m.role, content: m.content };
   }
 
-  const data = (await response.json()) as ChatResponse;
-  const textContent = data.content.find((c) => c.type === 'text');
-  return textContent?.text || '';
+  const content: ApiContent = [];
+
+  if (m.content.trim()) {
+    content.push({ type: 'text', text: m.content });
+  }
+
+  for (const att of m.attachments) {
+    if (att.type.startsWith('image/')) {
+      const base64Data = att.content.split(',')[1] || att.content;
+      content.push({
+        type: 'image',
+        source: {
+          type: 'base64',
+          media_type: att.type,
+          data: base64Data,
+        },
+      });
+    } else {
+      // For non-image files, include as text block with content
+      content.push({
+        type: 'text',
+        text: `[File: ${att.name}]\n\`\`\`\n${att.content}\n\`\`\``,
+      });
+    }
+  }
+
+  return { role: m.role, content };
 }
 
 /**
  * Send chat message with streaming SSE
- * Returns an async generator that yields text chunks
  */
 export async function* sendChatMessageStream(
   messages: ChatMessage[],
   model: string,
-): AsyncGenerator<string, void, unknown> {
-  const apiMessages: ApiMessage[] = messages.map((m) => ({
-    role: m.role,
-    content: m.content,
-  }));
+  signal?: AbortSignal,
+): AsyncGenerator<StreamChunk, void, unknown> {
+  const apiMessages: ApiMessage[] = messages.map(toApiMessage);
 
   const response = await fetch('/api/chat', {
     method: 'POST',
@@ -85,6 +104,7 @@ export async function* sendChatMessageStream(
       max_tokens: 4096,
       stream: true,
     } as ChatRequest & { stream?: boolean }),
+    signal,
   });
 
   if (!response.ok) {
@@ -102,16 +122,18 @@ export async function* sendChatMessageStream(
 
   try {
     while (true) {
+      if (signal?.aborted) {
+        reader.cancel();
+        break;
+      }
+
       const { done, value } = await reader.read();
       if (done) break;
 
       buffer += decoder.decode(value, { stream: true });
 
-      // Parse SSE events
-      // Each event is formatted as: "event: type\ndata: {...}\n\n"
       while (buffer.includes('\nevent:') || buffer.includes('\ndata:')) {
         const eventMatch = buffer.match(/^event: ([^\n]+)\ndata: (.+?)\n\n/s);
-        const dataMatch = buffer.match(/^data: (.+?)\n\n/s);
 
         if (eventMatch) {
           const eventType = eventMatch[1];
@@ -122,31 +144,24 @@ export async function* sendChatMessageStream(
             try {
               const json = JSON.parse(jsonStr);
               if (json.delta?.type === 'text_delta') {
-                yield json.delta.text;
+                yield { type: 'text', content: json.delta.text };
+              } else if (json.delta?.type === 'thinking_delta') {
+                yield { type: 'thinking', thinking: json.delta.thinking };
               }
             } catch {
               // Skip malformed JSON
             }
           }
-        } else if (dataMatch && !buffer.startsWith('event:')) {
-          // Handle data without event (rare)
-          const jsonStr = dataMatch[1];
-          buffer = buffer.slice(dataMatch[0].length);
-          try {
-            const json = JSON.parse(jsonStr);
-            if (json.delta?.type === 'text_delta') {
-              yield json.delta.text;
-            }
-          } catch {
-            // Skip
-          }
         } else {
-          // No more complete events
           break;
         }
       }
     }
   } finally {
-    reader.releaseLock();
+    try {
+      reader.releaseLock();
+    } catch {
+      // Already released
+    }
   }
 }

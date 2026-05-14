@@ -1,0 +1,162 @@
+/* Skill panel */
+.skill-panel {
+  padding: 16px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.skill-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  padding: 16px;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.skill-card:hover {
+  border-color: var(--accent);
+  background: var(--bg-hover);
+}
+
+.skill-card.selected {
+  border-color: var(--accent);
+  background: rgba(217, 119, 87, 0.1);
+}
+
+.skill-icon {
+  font-size: 24px;
+  flex-shrink: 0;
+}
+
+.skill-info {
+  flex: 1;
+}
+
+.skill-name {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 4px;
+}
+
+.skill-desc {
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.4;
+}
+
+/* Modal overrides for dark theme */
+.ant-modal-root .ant-modal-mask,
+.ant-modal-mask {
+  background-color: rgba(0, 0, 0, 0.7) !important;
+}
+
+.ant-modal-content,
+.ant-modal .ant-modal-content {
+  background-color: var(--bg-secondary) !important;
+  border: 1px solid var(--border-color);
+}
+
+.ant-modal-header {
+  background-color: var(--bg-secondary) !important;
+  border-bottom: 1px solid var(--border-color) !important;
+}
+
+.ant-modal-title {
+  color: var(--text-primary) !important;
+}
+
+.ant-modal-close {
+  color: var(--text-secondary) !important;
+}
+
+.ant-modal-close:hover {
+  color: var(--text-primary) !important;
+}
+
+.ant-modal-body {
+  background-color: var(--bg-secondary) !important;
+}
+
+.skill-input-section {
+  margin-top: 8px;
+  padding: 16px;
+  background: var(--bg-secondary);
+  border-radius: 10px;
+}
+
+.skill-prompt-label {
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin-bottom: 8px;
+}
+
+.skill-input-section textarea {
+  background: var(--bg-tertiary) !important;
+  border-color: var(--border-color) !important;
+  color: var(--text-primary) !important;
+  border-radius: 8px !important;
+}
+
+.skill-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.skill-cancel,
+.skill-submit {
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.15s;
+  border: none;
+}
+
+.skill-cancel {
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
+}
+
+.skill-cancel:hover {
+  background: var(--bg-hover);
+}
+
+.skill-submit {
+  background: var(--accent);
+  color: #fff;
+}
+
+.skill-submit:hover {
+  opacity: 0.9;
+}
+
+.skill-tip {
+  padding: 12px 16px;
+  background: var(--bg-tertiary);
+  border-radius: 8px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  text-align: center;
+}
+
+/* Skill panel modal overrides */
+.skill-panel-modal .ant-modal-content {
+  background: var(--bg-secondary) !important;
+}
+
+.skill-panel-modal .ant-modal-header {
+  background: var(--bg-secondary) !important;
+  border-bottom: 1px solid var(--border-color) !important;
+}
+
+.skill-panel-modal .ant-modal-title {
+  color: var(--text-primary) !important;
+}
