@@ -675,3 +675,52 @@
   font-family: 'SF Mono', Menlo, Monaco, Consolas, monospace;
   color: #f5c16e;
 }
+
+/* Export menu */
+.export-menu-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.5);
+}
+
+.export-menu {
+  background: var(--bg-secondary, #1c1c1e);
+  border: 1px solid var(--border-color, #333);
+  border-radius: 12px;
+  padding: 8px 0;
+  min-width: 200px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+}
+
+.export-menu-title {
+  padding: 10px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  border-bottom: 1px solid var(--border-color);
+  margin-bottom: 4px;
+}
+
+.export-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  cursor: pointer;
+  color: var(--text-primary);
+  font-size: 14px;
+  transition: background 0.15s;
+}
+
+.export-menu-item:hover {
+  background: var(--bg-hover, #262629);
+}
+
+.export-menu-item .anticon {
+  color: var(--accent, #d97757);
+  font-size: 16px;
+}

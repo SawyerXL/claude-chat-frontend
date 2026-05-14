@@ -13,7 +13,13 @@ import {
   CloseOutlined,
   EditOutlined,
   FileOutlined,
+  ExportOutlined,
+  FileWordOutlined,
+  FilePdfOutlined,
+  FileExcelOutlined,
+  FilePptOutlined,
 } from '@ant-design/icons';
+import PptxGenJS from 'pptxgenjs';
 import mammoth from 'mammoth';
 import ModelSelector from './ModelSelector';
 import PlusMenu from './PlusMenu';
@@ -57,6 +63,8 @@ export default function ChatView({
   const [activeArtifact, setActiveArtifact] = useState<Artifact | null>(null);
   const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
   const [editValue, setEditValue] = useState('');
+  const [exportMenuOpen, setExportMenuOpen] = useState(false);
+  const [exportingContent, setExportingContent] = useState('');
   const endRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -136,6 +144,80 @@ export default function ChatView({
 
   const handleRemoveAttachment = (index: number) => {
     setAttachments((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const handleExportMessage = (content: string) => {
+    setExportingContent(content);
+    setExportMenuOpen(true);
+  };
+
+  const doExport = async (format: 'docx' | 'pdf' | 'xlsx' | 'pptx') => {
+    setExportMenuOpen(false);
+
+    // Clean markdown content
+    let cleanContent = exportingContent.replace(/```[\s\S]*?```/g, '\n[代码]\n');
+    cleanContent = cleanContent.replace(/\*\*/g, '').replace(/\*/g, '');
+    cleanContent = cleanContent.replace(/#+\s*/g, '').replace(/`/g, '');
+    cleanContent = cleanContent.trim();
+
+    const filename = `export_${Date.now()}`;
+
+    if (format === 'docx') {
+      const htmlContent = `
+        <html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word'>
+        <head><meta charset="utf-8"></head>
+        <body style="font-family: 'SimSun', serif; font-size: 12pt; line-height: 1.6;">
+          ${cleanContent.split('\n').map(line => `<p>${line || '&nbsp;'}</p>`).join('')}
+        </body>
+        </html>
+      `;
+      const blob = new Blob([htmlContent], { type: 'application/msword' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${filename}.doc`;
+      a.click();
+      URL.revokeObjectURL(url);
+      antMessage.success('DOC 导出成功!');
+    } else if (format === 'pdf') {
+      const printWindow = window.open('', '_blank');
+      if (printWindow) {
+        printWindow.document.write(`
+          <!DOCTYPE html>
+          <html>
+          <head><title>Export</title>
+          <style>body { font-family: 'SimSun', serif; padding: 40px; font-size: 12pt; line-height: 1.8; } p { margin: 8px 0; }</style>
+          </head>
+          <body>${cleanContent.split('\n').map(line => `<p>${line || '&nbsp;'}</p>`).join('')}
+          <script>window.print(); window.close();</script>
+          </body>
+          </html>
+        `);
+        printWindow.document.close();
+      }
+      antMessage.success('PDF 打印窗口已打开');
+    } else if (format === 'xlsx') {
+      try {
+        const pptx = new PptxGenJS();
+        const slide = pptx.addSlide();
+        slide.addText(cleanContent, { x: 0.5, y: 0.5, w: 9, h: 6, fontSize: 11, fontFace: 'SimSun', valign: 'top' });
+        await pptx.writeFile({ fileName: `${filename}.xlsx` });
+        antMessage.success('XLSX 导出成功!');
+      } catch { antMessage.error('导出失败'); }
+    } else if (format === 'pptx') {
+      try {
+        const pptx = new PptxGenJS();
+        const lines = cleanContent.split('\n');
+        for (let i = 0; i < Math.min(lines.length, 20); i += 15) {
+          const slide = pptx.addSlide();
+          slide.addText(lines.slice(i, i + 15).join('\n'), {
+            x: 0.5, y: 0.5, w: 9, h: 5.5, fontSize: 12, fontFace: 'SimSun', valign: 'top'
+          });
+        }
+        await pptx.writeFile({ fileName: `${filename}.pptx` });
+        antMessage.success('PPTX 导出成功!');
+      } catch { antMessage.error('导出失败'); }
+    }
   };
 
   const startEditMessage = (msgId: string, content: string) => {
@@ -315,6 +397,13 @@ export default function ChatView({
                     >
                       <CopyOutlined />
                     </button>
+                    <button
+                      className="message-action-btn"
+                      title="Export"
+                      onClick={() => handleExportMessage(m.content)}
+                    >
+                      <ExportOutlined />
+                    </button>
                     <button className="message-action-btn" title="Retry">
                       <ReloadOutlined />
                     </button>
@@ -422,6 +511,27 @@ export default function ChatView({
           artifact={activeArtifact}
           onClose={() => setActiveArtifact(null)}
         />
+      )}
+
+      {/* Export menu dropdown */}
+      {exportMenuOpen && (
+        <div className="export-menu-overlay" onClick={() => setExportMenuOpen(false)}>
+          <div className="export-menu" onClick={e => e.stopPropagation()}>
+            <div className="export-menu-title">选择导出格式</div>
+            <div className="export-menu-item" onClick={() => doExport('docx')}>
+              <FileWordOutlined /> 导出为 DOC
+            </div>
+            <div className="export-menu-item" onClick={() => doExport('pdf')}>
+              <FilePdfOutlined /> 导出为 PDF
+            </div>
+            <div className="export-menu-item" onClick={() => doExport('xlsx')}>
+              <FileExcelOutlined /> 导出为 XLSX
+            </div>
+            <div className="export-menu-item" onClick={() => doExport('pptx')}>
+              <FilePptOutlined /> 导出为 PPTX
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
