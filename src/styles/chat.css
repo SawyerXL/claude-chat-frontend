@@ -203,6 +203,30 @@
   opacity: 1;
 }
 
+/* Attachment badges */
+.message-attachments {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.attachment-badge {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.attachment-badge .anticon {
+  color: var(--accent);
+}
+
 .message-action-btn {
   width: 28px;
   height: 28px;

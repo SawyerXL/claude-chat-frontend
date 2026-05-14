@@ -283,6 +283,17 @@ export default function ChatView({
                   ) : (
                     <div style={{ whiteSpace: 'pre-wrap' }}>{m.content}</div>
                   )}
+                  {/* Display attachments for user messages */}
+                  {m.role === 'user' && m.attachments && m.attachments.length > 0 && (
+                    <div className="message-attachments">
+                      {m.attachments.map((att, idx) => (
+                        <div key={idx} className="attachment-badge">
+                          <FileOutlined />
+                          <span>{att.name}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
                 {m.role === 'user' && !editingMessageId && (
                   <div className="message-actions">

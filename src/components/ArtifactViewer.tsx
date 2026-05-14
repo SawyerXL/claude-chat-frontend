@@ -9,6 +9,9 @@ import {
   CompressOutlined,
   DownloadOutlined,
   CodeOutlined,
+  FileWordOutlined,
+  FilePdfOutlined,
+  DownOutlined,
 } from '@ant-design/icons';
 import type { Artifact } from '../types';
 import './ArtifactViewer.css';
@@ -63,6 +66,61 @@ export default function ArtifactViewer({ artifact, onClose }: ArtifactViewerProp
     a.click();
     URL.revokeObjectURL(url);
   };
+
+  const handleDownloadDocx = () => {
+    // Simple DOCX export using html-docx-js style approach
+    const content = artifact.content;
+    const htmlContent = `
+      <html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word'>
+      <head><meta charset="utf-8"></head>
+      <body>
+        <h1>${artifact.title}</h1>
+        <pre>${content.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</pre>
+      </body>
+      </html>
+    `;
+    const blob = new Blob([htmlContent], { type: 'application/msword' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${artifact.title.replace(/\s+/g, '_')}.doc`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const handleDownloadPdf = () => {
+    // Open print dialog for PDF
+    const printWindow = window.open('', '_blank');
+    if (printWindow) {
+      printWindow.document.write(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <title>${artifact.title}</title>
+          <style>
+            body { font-family: 'Consolas', monospace; padding: 40px; }
+            pre { white-space: pre-wrap; word-wrap: break-word; }
+            h1 { margin-bottom: 20px; }
+          </style>
+        </head>
+        <body>
+          <h1>${artifact.title}</h1>
+          <pre>${artifact.content.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</pre>
+          <script>window.print(); window.close();</script>
+        </body>
+        </html>
+      `);
+      printWindow.document.close();
+    }
+  };
+
+  const downloadOptions = [
+    { key: 'code', icon: <CodeOutlined />, label: 'Download Code', onClick: handleDownload },
+    { key: 'docx', icon: <FileWordOutlined />, label: 'Export as DOC/DOCX', onClick: handleDownloadDocx },
+    { key: 'pdf', icon: <FilePdfOutlined />, label: 'Export as PDF', onClick: handleDownloadPdf },
+  ];
+
+  const [showDownloadMenu, setShowDownloadMenu] = useState(false);
 
   const getPreviewHtml = () => {
     if (isReact) {
@@ -159,9 +217,33 @@ export default function ArtifactViewer({ artifact, onClose }: ArtifactViewerProp
           <button className="artifact-action-btn" onClick={handleCopy} title="Copy code">
             {copied ? <CheckOutlined /> : <CopyOutlined />}
           </button>
-          <button className="artifact-action-btn" onClick={handleDownload} title="Download">
-            <DownloadOutlined />
-          </button>
+          <div className="download-dropdown" style={{ position: 'relative' }}>
+            <button
+              className="artifact-action-btn"
+              onClick={() => setShowDownloadMenu(!showDownloadMenu)}
+              title="Download / Export"
+            >
+              <DownloadOutlined />
+              <DownOutlined style={{ fontSize: 10, marginLeft: 2 }} />
+            </button>
+            {showDownloadMenu && (
+              <div className="download-menu">
+                {downloadOptions.map(opt => (
+                  <div
+                    key={opt.key}
+                    className="download-menu-item"
+                    onClick={() => {
+                      opt.onClick();
+                      setShowDownloadMenu(false);
+                    }}
+                  >
+                    {opt.icon}
+                    <span>{opt.label}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
           <button
             className="artifact-action-btn"
             onClick={() => setFullscreen(!fullscreen)}
