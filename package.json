@@ -12,15 +12,21 @@
   "dependencies": {
     "@ant-design/icons": "^6.2.2",
     "antd": "^6.3.7",
+    "cors": "^2.8.6",
+    "ddg": "^0.0.3",
+    "docx": "^9.6.1",
+    "express": "^5.2.1",
     "html-docx-js": "^0.3.1",
     "jspdf": "^4.2.1",
     "mammoth": "^1.12.0",
+    "pg": "^8.20.0",
     "pptxgenjs": "^4.0.1",
     "react": "^19.2.6",
     "react-dom": "^19.2.6",
     "react-markdown": "^10.1.0",
     "react-syntax-highlighter": "^16.1.1",
-    "remark-gfm": "^4.0.1"
+    "remark-gfm": "^4.0.1",
+    "xlsx": "^0.18.5"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

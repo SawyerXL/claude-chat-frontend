@@ -237,6 +237,7 @@
   transition: all 0.15s ease;
   font-size: 12px;
   gap: 4px;
+  white-space: nowrap;
 }
 
 .message-action-btn:hover {
@@ -688,6 +689,23 @@
   color: #f5c16e;
 }
 
+/* Mobile artifact trigger */
+@media (max-width: 768px) {
+  .artifact-trigger {
+    padding: 8px 12px;
+    width: 100%;
+    max-width: 100%;
+  }
+  
+  .artifact-label {
+    font-size: 12px;
+  }
+  
+  .artifact-icon {
+    font-size: 14px;
+  }
+}
+
 /* Export menu */
 .export-menu-overlay {
   position: fixed;
@@ -735,4 +753,124 @@
 .export-menu-item .anticon {
   color: var(--accent, #d97757);
   font-size: 16px;
+}
+
+.export-menu-divider {
+  height: 1px;
+  background: var(--border-color, #333);
+  margin: 6px 0;
+}
+
+.export-menu-item.primary {
+  background: var(--accent, #d97757);
+  color: #fff;
+  border-radius: 8px;
+  margin: 4px 8px;
+  padding: 10px 12px;
+  width: calc(100% - 16px);
+}
+
+.export-menu-item.primary .anticon {
+  color: #fff;
+}
+
+.export-menu-item.primary:hover {
+  background: #c4654a;
+}
+
+/* Quoted message styles */
+.quoted-message {
+  background: var(--bg-tertiary);
+  border-left: 3px solid var(--accent);
+  border-radius: 6px;
+  margin-bottom: 12px;
+  overflow: hidden;
+}
+
+.quoted-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  font-size: 12px;
+  color: var(--text-tertiary);
+  background: var(--bg-secondary);
+}
+
+.quoted-close {
+  background: none;
+  border: none;
+  color: var(--text-tertiary);
+  cursor: pointer;
+  padding: 2px;
+}
+
+.quoted-close:hover {
+  color: var(--text-primary);
+}
+
+.quoted-content {
+  padding: 8px 12px;
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+/* Inline search bar */
+.inline-search-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border-color);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.inline-search-bar .ant-input-affix-wrapper {
+  max-width: 400px;
+}
+
+.search-count {
+  font-size: 12px;
+  color: var(--text-tertiary);
+  min-width: 40px;
+  text-align: center;
+}
+
+/* Mobile share dialog */
+@media (max-width: 768px) {
+  .share-options {
+    gap: 6px;
+  }
+  
+  .share-option {
+    padding: 10px 12px;
+    gap: 10px;
+  }
+  
+  .share-option-title {
+    font-size: 13px;
+  }
+  
+  .share-option-desc {
+    font-size: 11px;
+  }
+  
+  .share-link-input {
+    font-size: 12px;
+    padding: 8px 10px;
+  }
+  
+  .export-menu {
+    width: 160px;
+    right: 8px;
+  }
+  
+  .export-menu-item {
+    padding: 8px 12px;
+    font-size: 12px;
+  }
 }

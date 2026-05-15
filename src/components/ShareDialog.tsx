@@ -1,61 +1,41 @@
 import { useState } from 'react';
-import { Modal, Button, message as antMessage } from 'antd';
-import {
-  LockOutlined,
-  TeamOutlined,
-  LinkOutlined,
-  CheckOutlined,
-} from '@ant-design/icons';
+import { Modal, Button, message, Tabs, Input, Space } from 'antd';
+import { LockOutlined, TeamOutlined, LinkOutlined, CheckOutlined, CopyOutlined, DownloadOutlined, QrcodeOutlined, ShareAltOutlined } from '@ant-design/icons';
+import type { ChatSession } from '../types';
 
 interface ShareDialogProps {
   open: boolean;
   onClose: () => void;
   conversationId?: string;
+  session?: ChatSession;
 }
 
-const OPTIONS = [
-  {
-    key: 'private',
-    icon: <LockOutlined />,
-    title: 'Keep private',
-    desc: 'Only you can see this conversation',
-  },
-  {
-    key: 'team',
-    icon: <TeamOutlined />,
-    title: 'Share with your team',
-    desc: 'Members of your organization can view this chat',
-  },
-  {
-    key: 'public',
-    icon: <LinkOutlined />,
-    title: 'Create public link',
-    desc: 'Anyone with the link can view this conversation',
-  },
-];
+type ShareOption = 'private' | 'team' | 'public';
 
-export default function ShareDialog({ open, onClose, conversationId }: ShareDialogProps) {
-  const [selected, setSelected] = useState('private');
+export default function ShareDialog({ open, onClose, conversationId: _conversationId, session }: ShareDialogProps) {
+  const [selected, setSelected] = useState<ShareOption>('private');
   const [publicLink, setPublicLink] = useState('');
+  const [exportFormat, setExportFormat] = useState<string>('json');
+
+  const generateShareId = () => {
+    return `share_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
+  };
 
   const generatePublicLink = () => {
-    // Generate a UUID for the conversation
-    const uuid = `conv_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
-    const link = `${window.location.origin}/shared/${uuid}`;
+    const shareId = generateShareId();
+    const link = `${window.location.origin}/shared/${shareId}`;
 
-    // Store the shared conversation in localStorage (simplified version)
-    // In production, this would be sent to a backend
-    try {
-      const sharedConversations = JSON.parse(localStorage.getItem('shared_conversations') || '{}');
-      if (conversationId) {
-        sharedConversations[uuid] = conversationId;
-        localStorage.setItem('shared_conversations', JSON.stringify(sharedConversations));
-      }
-      setPublicLink(link);
-    } catch {
-      console.error('Failed to save shared conversation');
+    // Save to localStorage
+    if (session) {
+      const shared = JSON.parse(localStorage.getItem('claude_shared_sessions') || '{}');
+      shared[shareId] = {
+        session,
+        createdAt: Date.now(),
+      };
+      localStorage.setItem('claude_shared_sessions', JSON.stringify(shared));
     }
 
+    setPublicLink(link);
     return link;
   };
 
@@ -63,17 +43,95 @@ export default function ShareDialog({ open, onClose, conversationId }: ShareDial
     const link = publicLink || generatePublicLink();
     try {
       await navigator.clipboard.writeText(link);
-      antMessage.success('Link copied to clipboard');
+      message.success('链接已复制到剪贴板');
     } catch {
-      antMessage.error('Failed to copy link');
+      message.error('复制失败');
     }
   };
 
-  const handleDone = () => {
-    if (selected === 'public') {
+  const handleCopyMarkdown = async () => {
+    if (!session) return;
+    const md = generateMarkdown();
+    try {
+      await navigator.clipboard.writeText(md);
+      message.success('Markdown 已复制');
+    } catch {
+      message.error('复制失败');
+    }
+  };
+
+  const handleDownload = () => {
+    if (!session) return;
+
+    let content: string;
+    let filename: string;
+    let mimeType: string;
+
+    if (exportFormat === 'json') {
+      content = JSON.stringify(session, null, 2);
+      filename = `${session.title}.json`;
+      mimeType = 'application/json';
+    } else if (exportFormat === 'markdown') {
+      content = generateMarkdown();
+      filename = `${session.title}.md`;
+      mimeType = 'text/markdown';
+    } else {
+      content = generatePlainText();
+      filename = `${session.title}.txt`;
+      mimeType = 'text/plain';
+    }
+
+    const blob = new Blob([content], { type: mimeType });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(url);
+    message.success('下载成功');
+  };
+
+  const generateMarkdown = (): string => {
+    if (!session) return '';
+    let md = `# ${session.title}\n\n`;
+    md += `**Model:** ${session.model}\n`;
+    md += `**Created:** ${new Date(session.createdAt).toLocaleString()}\n\n---\n\n`;
+
+    for (const msg of session.messages) {
+      const role = msg.role === 'user' ? '**User**' : '**Assistant**';
+      md += `## ${role}\n\n${msg.content}\n\n---\n\n`;
+    }
+
+    return md;
+  };
+
+  const generatePlainText = (): string => {
+    if (!session) return '';
+    let text = `${session.title}\n${'='.repeat(40)}\n\n`;
+    for (const msg of session.messages) {
+      text += `[${msg.role.toUpperCase()}]\n${msg.content}\n\n`;
+    }
+    return text;
+  };
+
+  const handleShareNative = async () => {
+    if (!session) return;
+
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: session.title,
+          text: session.messages[0]?.content.slice(0, 100) || '',
+          url: window.location.href,
+        });
+      } catch (e) {
+        if ((e as Error).name !== 'AbortError') {
+          message.error('分享失败');
+        }
+      }
+    } else {
       handleCopyLink();
     }
-    onClose();
   };
 
   const handleClose = () => {
@@ -82,58 +140,133 @@ export default function ShareDialog({ open, onClose, conversationId }: ShareDial
     onClose();
   };
 
+  const shareOptions = [
+    { key: 'private', icon: <LockOutlined />, title: '保持私密', desc: '只有你可以查看此对话' },
+    { key: 'team', icon: <TeamOutlined />, title: '团队分享', desc: '团队成员可以查看' },
+    { key: 'public', icon: <LinkOutlined />, title: '公开链接', desc: '生成可分享的链接' },
+  ];
+
   return (
     <Modal
       open={open}
       onCancel={handleClose}
       footer={null}
-      title="Share chat"
-      className="share-dialog"
-      width={480}
+      title={<span><ShareAltOutlined style={{ marginRight: 8 }} />分享对话</span>}
+      width={520}
       centered
     >
-      <div className="share-options">
-        {OPTIONS.map((opt) => (
-          <div
-            key={opt.key}
-            className={`share-option ${selected === opt.key ? 'selected' : ''}`}
-            onClick={() => {
-              setSelected(opt.key);
-              if (opt.key !== 'public') {
-                setPublicLink('');
-              }
-            }}
-          >
-            <div className="share-option-icon">{opt.icon}</div>
-            <div className="share-option-body">
-              <div className="share-option-title">{opt.title}</div>
-              <div className="share-option-desc">{opt.desc}</div>
-            </div>
-            {selected === opt.key && (
-              <CheckOutlined style={{ color: 'var(--accent)', marginTop: 8 }} />
-            )}
-          </div>
-        ))}
-      </div>
+      <Tabs
+        defaultActiveKey="share"
+        items={[
+          {
+            key: 'share',
+            label: '分享',
+            children: (
+              <div>
+                <div style={{ marginBottom: 16 }}>
+                  {shareOptions.map(opt => (
+                    <div
+                      key={opt.key}
+                      onClick={() => { setSelected(opt.key as ShareOption); if (opt.key !== 'public') setPublicLink(''); }}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        padding: 12,
+                        border: '1px solid var(--border-color)',
+                        borderRadius: 8,
+                        marginBottom: 8,
+                        cursor: 'pointer',
+                        background: selected === opt.key ? 'var(--bg-hover)' : 'transparent',
+                      }}
+                    >
+                      <div style={{ fontSize: 18, marginRight: 12, color: selected === opt.key ? 'var(--accent)' : undefined }}>
+                        {opt.icon}
+                      </div>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontWeight: 500 }}>{opt.title}</div>
+                        <div style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>{opt.desc}</div>
+                      </div>
+                      {selected === opt.key && <CheckOutlined style={{ color: 'var(--accent)' }} />}
+                    </div>
+                  ))}
+                </div>
 
-      {/* Show generated link */}
-      {selected === 'public' && publicLink && (
-        <div className="share-link-container">
-          <input
-            type="text"
-            className="share-link-input"
-            value={publicLink}
-            readOnly
-            onClick={(e) => (e.target as HTMLInputElement).select()}
-          />
-        </div>
-      )}
+                {selected === 'public' && (
+                  <div style={{ background: 'var(--bg-secondary)', padding: 16, borderRadius: 8, marginBottom: 16 }}>
+                    {publicLink ? (
+                      <>
+                        <Input.Search
+                          value={publicLink}
+                          readOnly
+                          onSearch={handleCopyLink}
+                          enterButton={<CopyOutlined />}
+                        />
+                        <div style={{ marginTop: 12, display: 'flex', gap: 8 }}>
+                          <Button icon={<QrcodeOutlined />} onClick={() => message.info('二维码功能开发中')}>生成二维码</Button>
+                          <Button icon={<ShareAltOutlined />} onClick={handleShareNative}>分享</Button>
+                        </div>
+                      </>
+                    ) : (
+                      <Button type="primary" block onClick={generatePublicLink}>
+                        生成公开链接
+                      </Button>
+                    )}
+                  </div>
+                )}
 
-      <div style={{ display: 'flex', gap: 8, marginTop: 24, justifyContent: 'flex-end' }}>
-        <Button onClick={handleClose}>Cancel</Button>
-        <Button type="primary" onClick={handleDone}>
-          {selected === 'public' ? (publicLink ? 'Copy link' : 'Generate link') : 'Done'}
-        </Button>
+                {selected !== 'public' && (
+                  <Button type="primary" block onClick={handleShareNative} icon={<ShareAltOutlined />}>
+                    分享
+                  </Button>
+                )}
+              </div>
+            ),
+          },
+          {
+            key: 'export',
+            label: '导出',
+            children: (
+              <div>
+                <div style={{ marginBottom: 16 }}>
+                  <label style={{ display: 'block', marginBottom: 8, fontWeight: 500 }}>导出格式</label>
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    {[
+                      { key: 'json', label: 'JSON' },
+                      { key: 'markdown', label: 'Markdown' },
+                      { key: 'text', label: '纯文本' },
+                    ].map(f => (
+                      <Button
+                        key={f.key}
+                        type={exportFormat === f.key ? 'primary' : 'default'}
+                        onClick={() => setExportFormat(f.key)}
+                      >
+                        {f.label}
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+
+                {session && (
+                  <div style={{ background: 'var(--bg-secondary)', padding: 12, borderRadius: 8, marginBottom: 16 }}>
+                    <div style={{ fontWeight: 500, marginBottom: 4 }}>{session.title}</div>
+                    <div style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>
+                      {session.messages.length} 条消息 • {session.model}
+                    </div>
+                  </div>
+                )}
+
+                <Space>
+                  <Button icon={<CopyOutlined />} onClick={handleCopyMarkdown}>复制 Markdown</Button>
+                  <Button type="primary" icon={<DownloadOutlined />} onClick={handleDownload}>下载文件</Button>
+                </Space>
+              </div>
+            ),
+          },
+        ]}
+      />
+
+      <div style={{ marginTop: 16, textAlign: 'right' }}>
+        <Button onClick={handleClose}>关闭</Button>
       </div>
     </Modal>
   );

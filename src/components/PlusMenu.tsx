@@ -9,15 +9,31 @@ import {
   ApiOutlined,
   GlobalOutlined,
   BgColorsOutlined,
+  FileTextOutlined,
 } from '@ant-design/icons';
 import type { MenuProps } from 'antd';
+
+const TEMPLATES = [
+  { key: 'meeting', title: '📋 会议纪要', template: '请帮我整理以下会议纪要：\n\n**会议主题：**\n**时间：**\n**参会人员：**\n**讨论要点：**\n1. \n2. \n3. \n\n**待办事项：**\n- [ ] \n\n**下一步计划：**' },
+  { key: 'email', title: '✉️ 邮件撰写', template: '请帮我撰写一封邮件：\n\n**收件人：**\n**主题：**\n**邮件目的：**\n\n**语气风格：**（正式/友好/简洁）\n**主要内容包括：**' },
+  { key: 'resume', title: '📄 简历优化', template: '请帮我优化简历：\n\n**当前简历内容：**\n```\n\n```\n\n**目标岗位：**\n**期望强调的优势：**' },
+  { key: 'code-review', title: '🔍 代码审查', template: '请帮我审查以下代码：\n\n```\n\n```\n\n**重点关注：**\n- 代码逻辑\n- 性能优化\n- 安全漏洞\n- 代码风格' },
+  { key: 'summarize', title: '📝 内容总结', template: '请帮我总结以下内容的核心要点：\n\n```\n\n```\n\n**总结维度：**\n- 核心观点\n- 关键数据\n- 行动建议' },
+  { key: 'translate', title: '🌐 翻译润色', template: '请帮我翻译并润色以下内容：\n\n**源语言：**\n**目标语言：**\n\n**待翻译内容：**' },
+];
 
 interface PlusMenuProps {
   onImageUpload?: (images: string[]) => void;
   onFileUpload?: (files: File[]) => void;
+  onTemplateSelect?: (template: string) => void;
+  onWebSearch?: (query: string) => void;
+  onOpenSkills?: () => void;
+  onOpenProjects?: () => void;
+  onOpenStyle?: () => void;
+  onOpenConnectors?: () => void;
 }
 
-export default function PlusMenu({ onImageUpload, onFileUpload }: PlusMenuProps) {
+export default function PlusMenu({ onImageUpload, onFileUpload, onTemplateSelect, onWebSearch, onOpenSkills, onOpenProjects, onOpenStyle, onOpenConnectors }: PlusMenuProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -121,34 +137,55 @@ export default function PlusMenu({ onImageUpload, onFileUpload }: PlusMenuProps)
     },
     { type: 'divider' },
     {
+      key: 'templates',
+      icon: <FileTextOutlined />,
+      label: 'Quick Templates',
+      children: TEMPLATES.map(t => ({
+        key: `template-${t.key}`,
+        label: t.title,
+        onClick: () => {
+          if (onTemplateSelect) {
+            onTemplateSelect(t.template);
+            antMessage.success('Template loaded');
+          }
+        },
+      })),
+    },
+    { type: 'divider' },
+    {
+      key: 'websearch',
+      icon: <GlobalOutlined />,
+      label: 'Web search',
+      onClick: async () => {
+        const query = prompt('Enter search query:');
+        if (query && onWebSearch) {
+          onWebSearch(query);
+        }
+      },
+    },
+    {
       key: 'project',
       icon: <FolderAddOutlined />,
       label: 'Add to project',
-      disabled: true,
+      onClick: () => onOpenProjects?.(),
     },
     {
       key: 'skills',
       icon: <ThunderboltOutlined />,
       label: 'Skills',
-      disabled: true,
+      onClick: () => onOpenSkills?.(),
     },
     {
       key: 'connectors',
       icon: <ApiOutlined />,
       label: 'Add connectors',
-      disabled: true,
-    },
-    {
-      key: 'websearch',
-      icon: <GlobalOutlined />,
-      label: 'Web search',
-      disabled: true,
+      onClick: () => onOpenConnectors?.(),
     },
     {
       key: 'style',
       icon: <BgColorsOutlined />,
       label: 'Use style',
-      disabled: true,
+      onClick: () => onOpenStyle?.(),
     },
   ];
 

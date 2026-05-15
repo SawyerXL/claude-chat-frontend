@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Input, message as antMessage } from 'antd';
 import {
   AudioOutlined,
@@ -10,6 +10,7 @@ import {
   ThunderboltOutlined,
   CloseOutlined,
   FileOutlined,
+  LoadingOutlined,
 } from '@ant-design/icons';
 import mammoth from 'mammoth';
 import ModelSelector from './ModelSelector';
@@ -32,6 +33,10 @@ interface WelcomePageProps {
   model: string;
   onModelChange: (id: string) => void;
   user?: User | null;
+  onOpenSkills?: () => void;
+  onOpenProjects?: () => void;
+  onOpenStyle?: () => void;
+  onOpenConnectors?: () => void;
 }
 
 interface Attachment {
@@ -40,10 +45,52 @@ interface Attachment {
   content: string;
 }
 
-export default function WelcomePage({ onSend, model, onModelChange, user }: WelcomePageProps) {
+export default function WelcomePage({ onSend, model, onModelChange, user, onOpenSkills, onOpenProjects, onOpenStyle, onOpenConnectors }: WelcomePageProps) {
   const [value, setValue] = useState('');
   const [images, setImages] = useState<string[]>([]);
   const [attachments, setAttachments] = useState<Attachment[]>([]);
+  const [isListening, setIsListening] = useState(false);
+  const recognitionRef = useRef<any>(null);
+
+  // Speech Recognition
+  useEffect(() => {
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SpeechRecognition) return;
+
+    const recognition = new SpeechRecognition();
+    recognition.continuous = true;
+    recognition.interimResults = true;
+    recognition.lang = 'zh-CN';
+
+    recognition.onresult = (event: any) => {
+      let interim = '';
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        interim += event.results[i][0].transcript;
+      }
+      setValue(prev => {
+        const parts = prev.split(/\[.*?\] /);
+        return parts[0] ? `${parts[0].trim()} ${interim}` : interim;
+      });
+    };
+
+    recognition.onend = () => setIsListening(false);
+    recognition.onerror = (e: any) => console.error('Speech error:', e.error);
+    recognitionRef.current = recognition;
+    return () => recognition.abort();
+  }, []);
+
+  const toggleVoice = () => {
+    if (!recognitionRef.current) return;
+    if (isListening) {
+      recognitionRef.current.stop();
+      setIsListening(false);
+    } else {
+      try {
+        recognitionRef.current.start();
+        setIsListening(true);
+      } catch (e) {}
+    }
+  };
 
   const displayName = user?.username || user?.email?.split('@')[0] || 'User';
 
@@ -123,8 +170,10 @@ export default function WelcomePage({ onSend, model, onModelChange, user }: Welc
       <div className="welcome-inner">
         <div className="welcome-greeting">
           <div className="greeting-icon">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-              <path d="M12 2L14.09 8.26L20 9L15 13.74L16.18 19.76L12 16.77L7.82 19.76L9 13.74L4 9L9.91 8.26L12 2Z" fill="#fff" opacity="0.9" />
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <rect width="24" height="24" rx="6" fill="#1a1a1a"/>
+              <circle cx="12" cy="12" r="3" fill="#d4a574"/>
+              <path d="M12 8v1M12 15v1M8 12h1M15 12h1" stroke="#d4a574" strokeWidth="1.5" strokeLinecap="round"/>
             </svg>
           </div>
           <span>{getGreeting()}, {displayName}</span>
@@ -176,12 +225,16 @@ export default function WelcomePage({ onSend, model, onModelChange, user }: Welc
 
           <div className="welcome-toolbar">
             <div className="toolbar-left">
-              <PlusMenu onImageUpload={handleImageUpload} onFileUpload={handleFileUpload} />
+              <PlusMenu onImageUpload={handleImageUpload} onFileUpload={handleFileUpload} onOpenSkills={onOpenSkills} onOpenProjects={onOpenProjects} onOpenStyle={onOpenStyle} onOpenConnectors={onOpenConnectors} />
               <ModelSelector value={model} onChange={onModelChange} />
             </div>
             <div className="toolbar-right">
-              <button className="tool-btn" title="Voice mode">
-                <AudioOutlined />
+              <button
+                className={`tool-btn voice-btn ${isListening ? 'listening' : ''}`}
+                title={isListening ? '点击停止语音' : '点击开始语音输入'}
+                onClick={toggleVoice}
+              >
+                {isListening ? <LoadingOutlined /> : <AudioOutlined />}
               </button>
               <button
                 className="tool-btn send"

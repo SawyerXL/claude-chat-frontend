@@ -1,4 +1,4 @@
-import type { ChatMessage } from '../types';
+import type { ChatMessage, ModelSettings } from '../types';
 
 export interface ThinkingBlock {
   thinking: string;
@@ -27,6 +27,9 @@ export interface ChatRequest {
   model: string;
   messages: ApiMessage[];
   max_tokens?: number;
+  temperature?: number;
+  top_p?: number;
+  top_k?: number;
 }
 
 export interface ChatResponse {
@@ -83,6 +86,16 @@ function toApiMessage(m: ChatMessage): ApiMessage {
   return { role: m.role, content };
 }
 
+const CUSTOM_INSTRUCTIONS_KEY = 'claude_custom_instructions';
+
+function loadCustomInstructions(): { background: string; preferences: string } {
+  try {
+    const stored = localStorage.getItem(CUSTOM_INSTRUCTIONS_KEY);
+    if (stored) return JSON.parse(stored);
+  } catch {}
+  return { background: '', preferences: '' };
+}
+
 /**
  * Send chat message with streaming SSE
  */
@@ -90,20 +103,69 @@ export async function* sendChatMessageStream(
   messages: ChatMessage[],
   model: string,
   signal?: AbortSignal,
+  settings?: Partial<ModelSettings>,
 ): AsyncGenerator<StreamChunk, void, unknown> {
-  const apiMessages: ApiMessage[] = messages.map(toApiMessage);
+  // Load custom instructions
+  const customInstructions = loadCustomInstructions();
+  let apiMessages: ApiMessage[] = messages.map(toApiMessage);
+
+  // Prepend custom instructions to first user message
+  if (customInstructions.background || customInstructions.preferences) {
+    const instructionParts = [];
+    if (customInstructions.background) {
+      instructionParts.push(`Background:\n${customInstructions.background}`);
+    }
+    if (customInstructions.preferences) {
+      instructionParts.push(`Preferences:\n${customInstructions.preferences}`);
+    }
+    const instructionText = instructionParts.join('\n\n');
+
+    // Find first user message and prepend instructions
+    const firstUserIndex = apiMessages.findIndex(m => m.role === 'user');
+    if (firstUserIndex >= 0) {
+      const firstUser = apiMessages[firstUserIndex];
+      const originalContent = typeof firstUser.content === 'string' ? firstUser.content : '';
+      apiMessages[firstUserIndex] = {
+        ...firstUser,
+        content: `[System Instructions]\n${instructionText}\n\n[User Request]\n${originalContent}`,
+      };
+    }
+  }
+
+  // Load settings from localStorage if not provided
+  const modelSettings: ModelSettings = settings || JSON.parse(localStorage.getItem('claude_model_settings') || '{"temperature":0.7,"topP":0.9,"topK":40,"maxTokens":4096}');
+
+  // Newer Claude 4 models (opus-4-6, opus-4-7, sonnet-4-6) don't support temperature parameter
+  const newModelsNoTemp = ['claude-opus-4-7', 'claude-opus-4-6', 'claude-sonnet-4-6'];
+  const useTempParams = !newModelsNoTemp.includes(model);
+
+  // Build request body - only include temperature/top_p for older models
+  const requestBody: ChatRequest & { stream?: boolean } = {
+    model,
+    messages: apiMessages,
+    max_tokens: modelSettings.maxTokens || 4096,
+    stream: true,
+  };
+
+  if (useTempParams) {
+    // Only add temperature if not 0.7 (default) to minimize params
+    if (modelSettings.temperature !== undefined && modelSettings.temperature !== 0.7) {
+      requestBody.temperature = modelSettings.temperature;
+    }
+    if (modelSettings.topP !== undefined && modelSettings.topP !== 0.9) {
+      requestBody.top_p = modelSettings.topP;
+    }
+    if (modelSettings.topK !== undefined && modelSettings.topK !== 40) {
+      requestBody.top_k = modelSettings.topK;
+    }
+  }
 
   const response = await fetch('/api/chat', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({
-      model,
-      messages: apiMessages,
-      max_tokens: 4096,
-      stream: true,
-    } as ChatRequest & { stream?: boolean }),
+    body: JSON.stringify(requestBody),
     signal,
   });
 
@@ -122,12 +184,13 @@ export async function* sendChatMessageStream(
 
   try {
     while (true) {
+      const { done, value } = await reader.read();
+
       if (signal?.aborted) {
         reader.cancel();
-        break;
+        throw new DOMException('Aborted', 'AbortError');
       }
 
-      const { done, value } = await reader.read();
       if (done) break;
 
       buffer += decoder.decode(value, { stream: true });

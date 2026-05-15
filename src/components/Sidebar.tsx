@@ -14,6 +14,7 @@ import {
   UserOutlined,
   LogoutOutlined,
   LeftOutlined,
+  HolderOutlined,
 } from '@ant-design/icons';
 import { Tooltip, Dropdown, type MenuProps } from 'antd';
 import type { ChatSession } from '../types';
@@ -26,10 +27,18 @@ interface SidebarProps {
   activeChat: string | null;
   onSelectChat: (id: string | null) => void;
   onDeleteChat: (id: string) => void;
+  onRenameChat: (id: string, newTitle: string) => void;
+  onBranchChat?: (id: string) => void;
   sessions: ChatSession[];
   user?: User | null;
   activeProjectId: string | null;
   onSelectProject: (projectId: string | null) => void;
+  activeTab?: string;
+  onTabChange?: (tab: string) => void;
+  onOpenSearch?: () => void;
+  onOpenArtifacts?: () => void;
+  onOpenCode?: () => void;
+  onOpenCustomize?: () => void;
 }
 
 const NAV_ITEMS = [
@@ -87,10 +96,18 @@ export default function Sidebar({
   activeChat,
   onSelectChat,
   onDeleteChat,
+  onRenameChat,
+  onBranchChat,
   sessions,
   user,
   activeProjectId,
   onSelectProject,
+  activeTab = 'chats',
+  onTabChange,
+  onOpenSearch,
+  onOpenArtifacts,
+  onOpenCode,
+  onOpenCustomize,
 }: SidebarProps) {
   const [collapsed, setCollapsed] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
@@ -132,6 +149,24 @@ export default function Sidebar({
   const renderConvItem = (session: ChatSession) => {
     const isActive = activeChat === session.id;
     const menuItems: MenuProps['items'] = [
+      {
+        key: 'rename',
+        icon: <EditOutlined />,
+        label: 'Rename',
+        onClick: () => {
+          const newTitle = prompt('Enter new title:', session.title);
+          if (newTitle && newTitle.trim()) {
+            onRenameChat(session.id, newTitle.trim());
+          }
+        },
+      },
+      {
+        key: 'branch',
+        icon: <HolderOutlined />,
+        label: 'Branch conversation',
+        onClick: () => onBranchChat?.(session.id),
+      },
+      { type: 'divider' },
       {
         key: 'delete',
         icon: <DeleteOutlined />,
@@ -192,7 +227,13 @@ export default function Sidebar({
       <div className="sidebar-header">
         {!collapsed && (
           <div className="sidebar-logo">
-            <div className="sidebar-logo-icon">C</div>
+            <div className="sidebar-logo-icon">
+              <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <rect width="24" height="24" rx="6" fill="#1a1a1a"/>
+                <circle cx="12" cy="12" r="3" fill="#d4a574"/>
+                <path d="M12 8v1M12 15v1M8 12h1M15 12h1" stroke="#d4a574" strokeWidth="1.5" strokeLinecap="round"/>
+              </svg>
+            </div>
             <span>Claude</span>
           </div>
         )}
@@ -213,23 +254,27 @@ export default function Sidebar({
 
       <div className="sidebar-menu">
         {NAV_ITEMS.map((item) => {
-          // Projects button toggles projects panel
-          if (item.key === 'projects') {
-            return (
-              <div
-                key={item.key}
-                className={`sidebar-menu-item ${showProjects ? 'active' : ''}`}
-                onClick={() => {
-                  setShowProjects(!showProjects);
-                }}
-              >
-                {item.icon}
-                {!collapsed && <span>{item.label}</span>}
-              </div>
-            );
-          }
+          const isActive = activeTab === item.key;
           return (
-            <div key={item.key} className="sidebar-menu-item">
+            <div
+              key={item.key}
+              className={`sidebar-menu-item ${isActive ? 'active' : ''}`}
+              onClick={() => {
+                if (item.key === 'projects') {
+                  setShowProjects(!showProjects);
+                } else if (item.key === 'search') {
+                  onOpenSearch?.();
+                } else if (item.key === 'artifacts') {
+                  onOpenArtifacts?.();
+                } else if (item.key === 'code') {
+                  onOpenCode?.();
+                } else if (item.key === 'customize') {
+                  onOpenCustomize?.();
+                } else {
+                  onTabChange?.(item.key);
+                }
+              }}
+            >
               {item.icon}
               {!collapsed && <span>{item.label}</span>}
             </div>

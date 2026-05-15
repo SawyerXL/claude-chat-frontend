@@ -11,6 +11,15 @@
   --accent: #d97757;
   --accent-hover: #c96a4a;
   --sidebar-width: 260px;
+  --header-height: 52px;
+  --mobile-header-height: 50px;
+}
+
+@media (max-width: 768px) {
+  :root {
+    --sidebar-width: 100%;
+    --header-height: 48px;
+  }
 }
 
 * {

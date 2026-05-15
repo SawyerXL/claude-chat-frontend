@@ -10,6 +10,11 @@ import Sidebar from './components/Sidebar';
 import WelcomePage from './components/WelcomePage';
 import ChatView from './components/ChatView';
 import ShareDialog from './components/ShareDialog';
+import ArtifactsPanel from './components/ArtifactsPanel';
+import CodePanel from './components/CodePanel';
+import SearchPanel from './components/SearchPanel';
+import StylePanel from './components/StylePanel';
+import ConnectorsPanel from './components/ConnectorsPanel';
 // TODO: Enable login before production
 // import LoginPage from './components/LoginPage';
 import Settings from './components/Settings';
@@ -21,12 +26,17 @@ import { getSessions, saveSession, deleteSession } from './services/session';
 import { isAuthenticated } from './services/auth';
 import { initTheme, toggleTheme as toggleThemeService } from './services/theme';
 import type { User } from './services/auth';
+import { useKeyboardShortcuts, DEFAULT_SHORTCUTS } from './hooks/useKeyboardShortcuts';
 import './App.css';
 
 const MODEL_ID_MAP: Record<string, string> = {
   'opus-4-7': 'claude-opus-4-7',
   'sonnet-4-6': 'claude-sonnet-4-6',
   'haiku-4-5': 'claude-haiku-4-5-20251001',
+  'claude-3-5-haiku-20241022': 'claude-3-5-haiku-20241022',
+  'claude-3-5-sonnet-20241022': 'claude-3-5-sonnet-20241022',
+  'claude-3-5-sonnet-20240620': 'claude-3-5-sonnet-20240620',
+  'claude-3-7-sonnet-20250219': 'claude-3-7-sonnet-20250219',
 };
 
 function generateSessionId(): string {
@@ -56,6 +66,12 @@ export default function App() {
   const [isReady, setIsReady] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [skillPanelOpen, setSkillPanelOpen] = useState(false);
+  const [sidebarTab, setSidebarTab] = useState<string>('chats');
+  const [artifactsOpen, setArtifactsOpen] = useState(false);
+  const [codeOpen, setCodeOpen] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [styleOpen, setStyleOpen] = useState(false);
+  const [connectorsOpen, setConnectorsOpen] = useState(false);
   const abortControllerRef = useRef<AbortController | null>(null);
 
   // Initialize theme and check auth
@@ -76,8 +92,36 @@ export default function App() {
     //   setIsReady(true);
     // }
     setIsReady(true);
+    // Set demo user and auth token for testing
+    localStorage.setItem('claude_auth_token', 'demo_token');
+    localStorage.setItem('claude_user', JSON.stringify({ id: 1, email: 'demo@local', username: 'Demo User', role: 'user', balance: 100, concurrency: 5, status: 'active' }));
     setUser({ id: 1, email: 'demo@local', username: 'Demo User', role: 'user', balance: 100, concurrency: 5, status: 'active' });
   }, []);
+
+  // Keyboard shortcuts
+  const shortcuts = [
+    DEFAULT_SHORTCUTS.newChat(() => {
+      setActiveChat(null);
+      setMessages([]);
+      setModel(MODELS[1].id);
+    }),
+    DEFAULT_SHORTCUTS.clearChat(() => {
+      if (messages.length > 0 && confirm('Clear current conversation?')) {
+        setMessages([]);
+        setActiveChat(null);
+      }
+    }),
+    DEFAULT_SHORTCUTS.toggleSidebar(() => {
+      // Toggle is handled by sidebar component
+    }),
+    DEFAULT_SHORTCUTS.stopGeneration(() => {
+      if (loading) {
+        abortControllerRef.current?.abort();
+      }
+    }),
+  ];
+
+  useKeyboardShortcuts(shortcuts, isReady);
 
   // Add demo sessions if none exist (for testing)
   useEffect(() => {
@@ -330,6 +374,42 @@ export default function App() {
     }
   };
 
+  const handleRenameChat = async (id: string, newTitle: string) => {
+    try {
+      const session = sessions.find((s) => s.id === id);
+      if (session) {
+        const updatedSession: ChatSession = { ...session, title: newTitle, updatedAt: Date.now() };
+        await saveSession(updatedSession);
+        await refreshSessions();
+      }
+    } catch (err) {
+      console.error('Failed to rename session:', err);
+    }
+  };
+
+  const handleBranchChat = async (id: string) => {
+    try {
+      const session = sessions.find((s) => s.id === id);
+      if (session) {
+        // Create a new session with same messages (branch)
+        const newId = `s-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+        const branchSession: ChatSession = {
+          ...session,
+          id: newId,
+          title: session.title + ' (branch)',
+          createdAt: Date.now(),
+          updatedAt: Date.now(),
+        };
+        await saveSession(branchSession);
+        await refreshSessions();
+        setActiveChat(newId);
+        setMessages(branchSession.messages);
+      }
+    } catch (err) {
+      console.error('Failed to branch session:', err);
+    }
+  };
+
   const handleEditTitle = () => {
     setTitleInput(deriveTitle(messages));
     setEditingTitle(true);
@@ -389,10 +469,18 @@ export default function App() {
         activeChat={activeChat}
         onSelectChat={handleSelectChat}
         onDeleteChat={handleDeleteChat}
+        onRenameChat={handleRenameChat}
+        onBranchChat={handleBranchChat}
         sessions={sessions}
         user={user}
         activeProjectId={activeProjectId}
         onSelectProject={setActiveProjectId}
+        activeTab={sidebarTab}
+        onTabChange={setSidebarTab}
+        onOpenArtifacts={() => setArtifactsOpen(true)}
+        onOpenCode={() => setCodeOpen(true)}
+        onOpenCustomize={() => setSettingsOpen(true)}
+        onOpenSearch={() => setSearchOpen(true)}
       />
 
       <main className="main-content">
@@ -461,6 +549,29 @@ export default function App() {
             model={model}
             onModelChange={setModel}
             onStop={handleStop}
+            onRetry={(messageId) => {
+              console.log('[App] onRetry called with messageId:', messageId);
+              console.log('[App] current messages:', messages.map((m, i) => ({i, role: m.role, content: m.content.substring(0, 30)})));
+              // Find the failed message index and get user message
+              const idx = messages.findIndex(m => m.id === messageId);
+              console.log('[App] found message at index:', idx);
+              if (idx > 0 && messages[idx - 1].role === 'user') {
+                const userMsg = messages[idx - 1];
+                const userContent = userMsg.content;
+                const userAttachments = userMsg.attachments;
+                console.log('[App] Retrying user message:', userContent.substring(0, 50));
+                // Remove all messages from idx-1 onwards (including failed assistant)
+                const truncatedMessages = messages.slice(0, idx - 1);
+                console.log('[App] Truncating messages, new count:', truncatedMessages.length);
+                setMessages(truncatedMessages);
+                // Now send the user message again
+                handleSend(userContent, [], userAttachments as any);
+              }
+            }}
+            onOpenSkills={() => setSkillPanelOpen(true)}
+            onOpenProjects={() => setSidebarTab('projects')}
+            onOpenStyle={() => setStyleOpen(true)}
+            onOpenConnectors={() => setConnectorsOpen(true)}
           />
         ) : (
           <WelcomePage
@@ -468,13 +579,27 @@ export default function App() {
             model={model}
             onModelChange={setModel}
             user={user}
+            onOpenSkills={() => setSkillPanelOpen(true)}
+            onOpenProjects={() => setSidebarTab('projects')}
+            onOpenStyle={() => setStyleOpen(true)}
+            onOpenConnectors={() => setConnectorsOpen(true)}
           />
         )}
       </main>
 
-      <ShareDialog open={shareOpen} onClose={() => setShareOpen(false)} conversationId={activeChat ?? undefined} />
-      <Settings open={settingsOpen} onClose={() => setSettingsOpen(false)} />
+      <ShareDialog
+        open={shareOpen}
+        onClose={() => setShareOpen(false)}
+        conversationId={activeChat ?? undefined}
+        session={sessions.find(s => s.id === activeChat)}
+      />
+      <Settings open={settingsOpen} onClose={() => setSettingsOpen(false)} onThemeChange={(theme) => { setTheme(theme); document.documentElement.setAttribute('data-theme', theme); }} />
       <SkillPanel open={skillPanelOpen} onClose={() => setSkillPanelOpen(false)} />
+      <ArtifactsPanel open={artifactsOpen} onClose={() => setArtifactsOpen(false)} />
+      <CodePanel open={codeOpen} onClose={() => setCodeOpen(false)} />
+      <SearchPanel open={searchOpen} onClose={() => setSearchOpen(false)} onSelectChat={handleSelectChat} />
+      <StylePanel open={styleOpen} onClose={() => setStyleOpen(false)} />
+      <ConnectorsPanel open={connectorsOpen} onClose={() => setConnectorsOpen(false)} />
     </div>
   );
 }

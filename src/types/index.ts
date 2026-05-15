@@ -30,6 +30,20 @@ export interface ModelOption {
   badge?: string;
 }
 
+export interface ModelSettings {
+  temperature: number;  // 0.0 - 1.0
+  topP: number;        // 0.0 - 1.0
+  topK: number;        // 1 - 100
+  maxTokens: number;   // 1 - 8192
+}
+
+export const DEFAULT_MODEL_SETTINGS: ModelSettings = {
+  temperature: 0.7,
+  topP: 0.9,
+  topK: 40,
+  maxTokens: 4096,
+};
+
 export interface Artifact {
   id: string;
   type: 'react' | 'html' | 'svg' | 'python' | 'html-react' | '_generative' | 'notebook';

@@ -140,15 +140,18 @@
 .about-logo {
   width: 56px;
   height: 56px;
-  background: linear-gradient(135deg, #d97757, #a84d2e);
+  background: #1a1a1a;
   border-radius: 14px;
   display: flex;
   align-items: center;
   justify-content: center;
   margin: 0 auto 16px;
-  font-size: 28px;
-  font-weight: 700;
-  color: #fff;
+  overflow: hidden;
+}
+
+.about-logo svg {
+  width: 36px;
+  height: 36px;
 }
 
 .settings-about h3 {

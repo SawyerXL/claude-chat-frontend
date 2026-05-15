@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { message as antMessage } from 'antd';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { vscDarkPlus, oneLight } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import {
@@ -7,16 +8,19 @@ import {
   CheckOutlined,
   FullscreenOutlined,
   CompressOutlined,
-  DownloadOutlined,
   CodeOutlined,
   FileWordOutlined,
   FilePdfOutlined,
   FileExcelOutlined,
   FilePptOutlined,
   DownOutlined,
+  LoadingOutlined,
+  PlayCircleOutlined,
+  BgColorsOutlined,
+  ClearOutlined,
 } from '@ant-design/icons';
-import PptxGenJS from 'pptxgenjs';
 import type { Artifact } from '../types';
+import { executeSandbox } from '../services/session';
 import './ArtifactViewer.css';
 
 interface ArtifactViewerProps {
@@ -34,12 +38,106 @@ const LANGUAGE_MAP: Record<string, string> = {
   'notebook': 'python',
 };
 
+interface GenerationOption {
+  format: 'docx' | 'xlsx' | 'pptx' | 'pdf';
+  label: string;
+  icon: React.ReactNode;
+  description: string;
+  generateCode: (content: string) => string;
+}
+
+const GENERATION_OPTIONS: GenerationOption[] = [
+  {
+    format: 'docx',
+    label: 'Word 文档',
+    icon: <FileWordOutlined />,
+    description: '生成 .docx 格式的 Word 文档',
+    generateCode: (content) => `
+const { Document, Packer, Paragraph, TextRun, HeadingLevel } = docx;
+const lines = ${JSON.stringify(content)}.split('\\n');
+const children = [
+  new Paragraph({ children: [new TextRun({ text: "Generated Document", heading: HeadingLevel.HEADING_1 })] }),
+  new Paragraph({ children: [new TextRun({ text: "Generated at ${new Date().toLocaleString('zh-CN')}", color: "888888" })] }),
+  new Paragraph({ children: [new TextRun("")] }),
+  ...lines.map(line => new Paragraph({ children: [new TextRun(line || " ")] }))
+];
+const doc = new Document({ sections: [{ properties: {}, children }] });
+sandbox.result = await Packer.toBuffer(doc);
+`.trim(),
+  },
+  {
+    format: 'xlsx',
+    label: 'Excel 表格',
+    icon: <FileExcelOutlined />,
+    description: '生成 .xlsx 格式的 Excel 表格',
+    generateCode: (content) => `
+const raw = ${JSON.stringify(content)};
+let rows;
+if (raw.includes('\\t')) {
+  rows = raw.split('\\n').filter(r => r.trim()).map(r => r.split('\\t').map(c => c.trim()));
+} else if (raw.includes(',')) {
+  rows = raw.split('\\n').filter(r => r.trim()).map(r => r.split(',').map(c => c.trim()));
+} else {
+  rows = raw.split('\\n').filter(r => r.trim()).map(r => [r.trim()]);
+}
+const wb = XLSX.utils.book_new();
+const ws = XLSX.utils.aoa_to_sheet(rows);
+XLSX.utils.book_append_sheet(wb, ws, "Data");
+sandbox.result = XLSX.write(wb, { bookType: "xlsx", type: "buffer" });
+`.trim(),
+  },
+  {
+    format: 'pptx',
+    label: 'PPT 演示文稿',
+    icon: <FilePptOutlined />,
+    description: '生成 .pptx 格式的 PowerPoint 演示文稿',
+    generateCode: (content) => `
+const p = new pptxgen();
+p.title = "Generated Presentation";
+p.addSlide().addText(${JSON.stringify(content)}, {
+  x: 0.5, y: 0.5, w: 9.5, h: 6.8,
+  fontSize: 14, fontFace: "Arial", valign: "top"
+});
+await p.writeFile("output.pptx");
+`.trim(),
+  },
+  {
+    format: 'pdf',
+    label: 'PDF 文档',
+    icon: <FilePdfOutlined />,
+    description: '生成 .pdf 格式的 PDF 文档',
+    generateCode: (content) => `
+const p = new pptxgen();
+p.addSlide().addText(${JSON.stringify(content)}, {
+  x: 0.5, y: 0.5, w: 9.5, h: 6.8,
+  fontSize: 11, fontFace: "SimSun", valign: "top"
+});
+await p.writeFile("output.pdf");
+`.trim(),
+  },
+];
+
+function downloadFile(buffer: string, filename: string, mimeType: string) {
+  const binary = atob(buffer);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) {
+    bytes[i] = binary.charCodeAt(i);
+  }
+  const blob = new Blob([bytes], { type: mimeType });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
 export default function ArtifactViewer({ artifact, onClose }: ArtifactViewerProps) {
   const [copied, setCopied] = useState(false);
   const [fullscreen, setFullscreen] = useState(false);
   const [activeTab, setActiveTab] = useState<'code' | 'preview'>('code');
   const [theme, setTheme] = useState<'dark' | 'light'>('dark');
-  const iframeRef = useRef<HTMLIFrameElement>(null);
+  const [generating, setGenerating] = useState<string | null>(null);
 
   const language = LANGUAGE_MAP[artifact.type] || 'javascript';
   const isReact = artifact.type === 'react' || artifact.type === 'html-react';
@@ -54,14 +152,14 @@ export default function ArtifactViewer({ artifact, onClose }: ArtifactViewerProp
   }, [onClose]);
 
   const handleCopy = async () => {
-    await navigator.clipboard.writeText(artifact.content);
+    await navigator.clipboard.writeText(artifact.code || artifact.content);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const handleDownload = () => {
+  const handleDownloadCode = () => {
     const ext = language === 'tsx' ? 'tsx' : language === 'python' ? 'py' : 'html';
-    const blob = new Blob([artifact.content], { type: 'text/plain' });
+    const blob = new Blob([artifact.code || artifact.content], { type: 'text/plain' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
@@ -70,167 +168,31 @@ export default function ArtifactViewer({ artifact, onClose }: ArtifactViewerProp
     URL.revokeObjectURL(url);
   };
 
-  const handleDownloadDocx = () => {
-    // Simple DOCX export using html-docx-js style approach
-    const content = artifact.content;
-    const htmlContent = `
-      <html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word'>
-      <head><meta charset="utf-8"></head>
-      <body>
-        <h1>${artifact.title}</h1>
-        <pre>${content.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</pre>
-      </body>
-      </html>
-    `;
-    const blob = new Blob([htmlContent], { type: 'application/msword' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `${artifact.title.replace(/\s+/g, '_')}.doc`;
-    a.click();
-    URL.revokeObjectURL(url);
-  };
+  const handleGenerate = async (option: GenerationOption) => {
+    const content = artifact.code || artifact.content;
+    if (!content || !content.trim()) {
+      antMessage.error('没有可生成的内容');
+      return;
+    }
+    setGenerating(option.format);
 
-  const handleDownloadXlsx = async () => {
     try {
-      const pptx = new PptxGenJS();
-      pptx.title = artifact.title;
-      
-      // Try to parse as CSV/table data, otherwise show as text
-      const lines = artifact.content.split('\n').filter(line => line.trim());
-      const slide = pptx.addSlide();
-      
-      // Check if content looks like tabular data
-      const hasTabularData = lines.some(line => line.includes('\t') || line.includes(','));
-      
-      if (hasTabularData) {
-        // Export as table
-        const rows = lines.map(line => {
-          const delimiter = line.includes('\t') ? '\t' : ',';
-          return line.split(delimiter).map(cell => ({ text: cell.trim() }));
-        });
-        
-        slide.addTable(rows as any, {
-          x: 0.5,
-          y: 0.5,
-          w: 9,
-          fontFace: 'Arial',
-          fontSize: 10,
-        });
-      } else {
-        // Show as text
-        slide.addText(artifact.title, { x: 0.5, y: 0.5, w: 9, fontSize: 20, bold: true });
-        slide.addText(artifact.content, {
-          x: 0.5,
-          y: 1.2,
-          w: 9,
-          h: 5,
-          fontSize: 11,
-          fontFace: 'Consolas',
-          valign: 'top',
-        });
+      const code = option.generateCode(content);
+      const result = await executeSandbox(code, option.format, `${artifact.title.replace(/\s+/g, '_')}.${option.format}`);
+      if (result) {
+        downloadFile(result.buffer, result.filename, result.mimeType);
+        antMessage.success(`${option.label} 生成成功！`);
       }
-      
-      await pptx.writeFile({ fileName: `${artifact.title.replace(/\s+/g, '_')}.xlsx` });
     } catch (err) {
-      console.error('Failed to export XLSX:', err);
+      const msg = err instanceof Error ? err.message : String(err);
+      antMessage.error(`生成失败: ${msg}`);
+    } finally {
+      setGenerating(null);
     }
   };
-
-  const handleDownloadPdf = () => {
-    // Open print dialog for PDF
-    const printWindow = window.open('', '_blank');
-    if (printWindow) {
-      printWindow.document.write(`
-        <!DOCTYPE html>
-        <html>
-        <head>
-          <title>${artifact.title}</title>
-          <style>
-            body { font-family: 'Consolas', monospace; padding: 40px; }
-            pre { white-space: pre-wrap; word-wrap: break-word; }
-            h1 { margin-bottom: 20px; }
-          </style>
-        </head>
-        <body>
-          <h1>${artifact.title}</h1>
-          <pre>${artifact.content.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</pre>
-          <script>window.print(); window.close();</script>
-        </body>
-        </html>
-      `);
-      printWindow.document.close();
-    }
-  };
-
-  const handleDownloadPptx = async () => {
-    try {
-      const pptx = new PptxGenJS();
-      pptx.title = artifact.title;
-      
-      // Split content into slides (by lines or sections)
-      const lines = artifact.content.split('\n');
-      const slides: string[] = [];
-      let currentSlide = '';
-      const linesPerSlide = 30;
-      
-      for (let i = 0; i < lines.length; i++) {
-        currentSlide += lines[i] + '\n';
-        if ((i + 1) % linesPerSlide === 0 || i === lines.length - 1) {
-          slides.push(currentSlide);
-          currentSlide = '';
-        }
-      }
-      
-      // Create slides
-      for (let i = 0; i < Math.min(slides.length, 20); i++) {
-        const slide = pptx.addSlide();
-        slide.addText(artifact.title, { x: 0.5, y: 0.3, w: 9, fontSize: 18, bold: true });
-        slide.addText(slides[i], {
-          x: 0.5,
-          y: 0.8,
-          w: 9,
-          h: 5,
-          fontSize: 10,
-          fontFace: 'Consolas',
-          valign: 'top',
-        });
-      }
-      
-      // If content is simple text, add as single slide
-      if (slides.length === 1) {
-        const slide = pptx.addSlide();
-        slide.addText(artifact.title, { x: 0.5, y: 0.5, w: 9, fontSize: 24, bold: true });
-        slide.addText(artifact.content, {
-          x: 0.5,
-          y: 1.2,
-          w: 9,
-          h: 5,
-          fontSize: 12,
-          fontFace: 'Consolas',
-          valign: 'top',
-        });
-      }
-      
-      await pptx.writeFile({ fileName: `${artifact.title.replace(/\s+/g, '_')}.pptx` });
-    } catch (err) {
-      console.error('Failed to export PPTX:', err);
-    }
-  };
-
-  const downloadOptions = [
-    { key: 'code', icon: <CodeOutlined />, label: 'Download Code', onClick: handleDownload },
-    { key: 'docx', icon: <FileWordOutlined />, label: 'Export as DOCX', onClick: handleDownloadDocx },
-    { key: 'xlsx', icon: <FileExcelOutlined />, label: 'Export as XLSX', onClick: handleDownloadXlsx },
-    { key: 'pptx', icon: <FilePptOutlined />, label: 'Export as PPTX', onClick: handleDownloadPptx },
-    { key: 'pdf', icon: <FilePdfOutlined />, label: 'Export as PDF', onClick: handleDownloadPdf },
-  ];
-
-  const [showDownloadMenu, setShowDownloadMenu] = useState(false);
 
   const getPreviewHtml = () => {
     if (isReact) {
-      // For React, we'll show a simplified preview
       return `<!DOCTYPE html>
 <html>
 <head>
@@ -238,53 +200,60 @@ export default function ArtifactViewer({ artifact, onClose }: ArtifactViewerProp
   <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-  <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { font-family: -apple-system, sans-serif; padding: 16px; }
-  </style>
+  <style>* { margin: 0; padding: 0; box-sizing: border-box; } body { font-family: -apple-system, sans-serif; padding: 16px; }</style>
 </head>
-<body>
-  <div id="root"></div>
-  <script type="text/babel">
-    ${artifact.content}
-  </script>
-</body>
+<body><div id="root"></div><script type="text/babel">${artifact.code || artifact.content}</script></body>
 </html>`;
     }
     if (artifact.type === 'svg') {
-      return `<!DOCTYPE html>
-<html>
-<head>
-  <style>
-    body { display: flex; justify-content: center; align-items: center; min-height: 100vh; background: #f5f5f5; }
-  </style>
-</head>
-<body>
-  ${artifact.content}
-</body>
-</html>`;
+      return `<!DOCTYPE html><html><head><style>body { display: flex; justify-content: center; align-items: center; min-height: 100vh; background: #f5f5f5; }</style></head><body>${artifact.code || artifact.content}</body></html>`;
     }
     if (artifact.type === 'html') {
-      return `<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="UTF-8">
-  <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { padding: 16px; }
-  </style>
-</head>
-<body>
-  ${artifact.content}
-</body>
-</html>`;
+      return `<!DOCTYPE html><html><head><meta charset="UTF-8"><style>* { margin: 0; padding: 0; box-sizing: border-box; } body { padding: 16px; }</style></head><body>${artifact.code || artifact.content}</body></html>`;
     }
-    return artifact.content;
+    return artifact.code || artifact.content;
   };
 
   const tabs: { key: 'code' | 'preview'; label: string; show: boolean }[] = [
     { key: 'code', label: 'Code', show: true },
     { key: 'preview', label: 'Preview', show: !isPython && !isReact },
+  ];
+
+  const [showDownloadMenu, setShowDownloadMenu] = useState(false);
+  const [canvasMode, setCanvasMode] = useState(false);
+  const [canvasHistory, setCanvasHistory] = useState<string[]>([]);
+  const [historyIndex, setHistoryIndex] = useState(-1);
+  const editAreaRef = useRef<HTMLDivElement>(null);
+
+  // Canvas editing functions
+  const saveToHistory = (content: string) => {
+    const newHistory = canvasHistory.slice(0, historyIndex + 1);
+    newHistory.push(content);
+    setCanvasHistory(newHistory);
+    setHistoryIndex(newHistory.length - 1);
+  };
+
+  const undoCanvas = () => {
+    if (historyIndex > 0) {
+      const newIndex = historyIndex - 1;
+      setHistoryIndex(newIndex);
+    }
+  };
+
+  const handleCanvasEdit = () => {
+    if (!canvasMode) return;
+    saveToHistory(getPreviewHtml());
+  };
+
+  const downloadMenuItems = [
+    { key: 'code', icon: <CodeOutlined />, label: '下载代码', onClick: handleDownloadCode },
+    ...GENERATION_OPTIONS.map(opt => ({
+      key: opt.format,
+      icon: opt.icon,
+      label: opt.label,
+      onClick: () => { handleGenerate(opt); setShowDownloadMenu(false); },
+      loading: generating === opt.format,
+    })),
   ];
 
   return (
@@ -293,6 +262,7 @@ export default function ArtifactViewer({ artifact, onClose }: ArtifactViewerProp
         <div className="artifact-title">
           <CodeOutlined />
           <span>{artifact.title}</span>
+          <span className="artifact-type-tag">{artifact.type.toUpperCase()}</span>
         </div>
         <div className="artifact-tabs">
           {tabs.filter(t => t.show).map(tab => (
@@ -306,58 +276,55 @@ export default function ArtifactViewer({ artifact, onClose }: ArtifactViewerProp
           ))}
         </div>
         <div className="artifact-actions">
-          <button
-            className={`artifact-action-btn ${theme === 'dark' ? 'active' : ''}`}
-            onClick={() => setTheme('dark')}
-            title="Dark theme"
-          >
-            🌙
-          </button>
-          <button
-            className={`artifact-action-btn ${theme === 'light' ? 'active' : ''}`}
-            onClick={() => setTheme('light')}
-            title="Light theme"
-          >
-            ☀️
-          </button>
-          <button className="artifact-action-btn" onClick={handleCopy} title="Copy code">
+          <button className={`artifact-action-btn ${theme === 'dark' ? 'active' : ''}`} onClick={() => setTheme('dark')} title="深色主题">🌙</button>
+          <button className={`artifact-action-btn ${theme === 'light' ? 'active' : ''}`} onClick={() => setTheme('light')} title="浅色主题">☀️</button>
+          {!isPython && (
+            <button
+              className={`artifact-action-btn ${canvasMode ? 'active' : ''}`}
+              onClick={() => setCanvasMode(!canvasMode)}
+              title={canvasMode ? 'Exit Canvas Mode' : 'Canvas Mode'}
+            >
+              <BgColorsOutlined />
+            </button>
+          )}
+          {canvasMode && (
+            <>
+              <button className="artifact-action-btn" onClick={undoCanvas} title="Undo" disabled={historyIndex <= 0}>
+                <ClearOutlined />
+              </button>
+              <button className="artifact-action-btn" onClick={handleCanvasEdit} title="Save State">
+                <span>💾</span>
+              </button>
+            </>
+          )}
+          <button className="artifact-action-btn" onClick={handleCopy} title="复制代码">
             {copied ? <CheckOutlined /> : <CopyOutlined />}
           </button>
-          <div className="download-dropdown" style={{ position: 'relative' }}>
+          <div className="download-dropdown">
             <button
-              className="artifact-action-btn"
+              className="artifact-action-btn primary"
               onClick={() => setShowDownloadMenu(!showDownloadMenu)}
-              title="Download / Export"
+              title="生成文件"
             >
-              <DownloadOutlined />
+              {generating ? <LoadingOutlined /> : <PlayCircleOutlined />}
+              <span>生成文件</span>
               <DownOutlined style={{ fontSize: 10, marginLeft: 2 }} />
             </button>
             {showDownloadMenu && (
               <div className="download-menu">
-                {downloadOptions.map(opt => (
-                  <div
-                    key={opt.key}
-                    className="download-menu-item"
-                    onClick={() => {
-                      opt.onClick();
-                      setShowDownloadMenu(false);
-                    }}
-                  >
-                    {opt.icon}
-                    <span>{opt.label}</span>
+                {downloadMenuItems.map(item => (
+                  <div key={item.key} className="download-menu-item" onClick={item.onClick as any}>
+                    {(item as any).loading ? <LoadingOutlined /> : item.icon}
+                    <span>{(item as any).loading ? '生成中...' : item.label}</span>
                   </div>
                 ))}
               </div>
             )}
           </div>
-          <button
-            className="artifact-action-btn"
-            onClick={() => setFullscreen(!fullscreen)}
-            title={fullscreen ? 'Exit fullscreen' : 'Fullscreen'}
-          >
+          <button className="artifact-action-btn" onClick={() => setFullscreen(!fullscreen)} title={fullscreen ? '退出全屏' : '全屏'}>
             {fullscreen ? <CompressOutlined /> : <FullscreenOutlined />}
           </button>
-          <button className="artifact-action-btn" onClick={onClose} title="Close">
+          <button className="artifact-action-btn" onClick={onClose} title="关闭">
             <CloseOutlined />
           </button>
         </div>
@@ -370,29 +337,15 @@ export default function ArtifactViewer({ artifact, onClose }: ArtifactViewerProp
               language={language}
               style={theme === 'dark' ? vscDarkPlus : oneLight}
               showLineNumbers
-              customStyle={{
-                margin: 0,
-                padding: '16px',
-                fontSize: '13px',
-                lineHeight: '1.5',
-              }}
-              codeTagProps={{
-                style: {
-                  fontFamily: "'Fira Code', 'Monaco', 'Consolas', monospace",
-                },
-              }}
+              customStyle={{ margin: 0, padding: '16px', fontSize: '13px', lineHeight: '1.5' }}
+              codeTagProps={{ style: { fontFamily: "'Fira Code', 'Monaco', 'Consolas', monospace" } }}
             >
-              {artifact.content}
+              {artifact.code || artifact.content}
             </SyntaxHighlighter>
           </div>
         ) : (
-          <div className="preview-container">
-            <iframe
-              ref={iframeRef}
-              srcDoc={getPreviewHtml()}
-              sandbox="allow-scripts"
-              title="Preview"
-            />
+          <div className={`preview-container ${canvasMode ? 'canvas-mode' : ''}`} ref={editAreaRef} onClick={handleCanvasEdit}>
+            <iframe srcDoc={getPreviewHtml()} sandbox="allow-scripts allow-same-origin" title="Preview" />
           </div>
         )}
       </div>
