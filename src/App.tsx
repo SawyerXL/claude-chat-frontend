@@ -15,6 +15,7 @@ import CodePanel from './components/CodePanel';
 import SearchPanel from './components/SearchPanel';
 import StylePanel from './components/StylePanel';
 import ConnectorsPanel from './components/ConnectorsPanel';
+import LoginDialog from './components/LoginDialog';
 // TODO: Enable login before production
 // import LoginPage from './components/LoginPage';
 import Settings from './components/Settings';
@@ -25,6 +26,7 @@ import { sendChatMessageStream } from './services/api';
 import { getSessions, saveSession, deleteSession } from './services/session';
 import { isAuthenticated } from './services/auth';
 import { initTheme, toggleTheme as toggleThemeService } from './services/theme';
+import { getAuthStatus, logout } from './services/login';
 import type { User } from './services/auth';
 import { useKeyboardShortcuts, DEFAULT_SHORTCUTS } from './hooks/useKeyboardShortcuts';
 import './App.css';
@@ -50,6 +52,12 @@ function deriveTitle(messages: ChatMessage[]): string {
 }
 
 export default function App() {
+  // 登录状态（从后端 config.json 初始化）
+  const [authChecked, setAuthChecked] = useState(false);
+  const [loggedIn, setLoggedIn] = useState(false);
+  const [username, setUsername] = useState('');
+  const [showLogin, setShowLogin] = useState(false);
+
   const [activeChat, setActiveChat] = useState<string | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [loading, setLoading] = useState(false);
@@ -74,29 +82,33 @@ export default function App() {
   const [connectorsOpen, setConnectorsOpen] = useState(false);
   const abortControllerRef = useRef<AbortController | null>(null);
 
-  // Initialize theme and check auth
+  // Initialize theme and check auth status from backend
   useEffect(() => {
     const savedTheme = initTheme();
     setTheme(savedTheme);
 
-    // Check auth status
-    // TODO: Enable auth before production
-    // if (isAuthenticated()) {
-    //   const currentUser = getCurrentUser();
-    //   if (currentUser) {
-    //     setUser(currentUser);
-    //   }
-    //   setIsReady(true);
-    // } else {
-    //   setNeedsAuth(true);
-    //   setIsReady(true);
-    // }
-    setIsReady(true);
-    // Set demo user and auth token for testing
-    localStorage.setItem('claude_auth_token', 'demo_token');
-    localStorage.setItem('claude_user', JSON.stringify({ id: 1, email: 'demo@local', username: 'Demo User', role: 'user', balance: 100, concurrency: 5, status: 'active' }));
+    // 从后端获取认证状态
+    getAuthStatus().then(({ loggedIn: isLoggedIn, username: name }) => {
+      setLoggedIn(isLoggedIn);
+      setUsername(name);
+      setAuthChecked(true);
+    });
+
+    // Set demo user for testing (legacy)
     setUser({ id: 1, email: 'demo@local', username: 'Demo User', role: 'user', balance: 100, concurrency: 5, status: 'active' });
+    setIsReady(true);
   }, []);
+
+  // 退出登录处理函数
+  const handleLogout = async () => {
+    const res = await logout();
+    if (res.ok) {
+      setLoggedIn(false);
+      setUsername('');
+    } else {
+      antMessage.error(res.error || '退出登录失败');
+    }
+  };
 
   // Keyboard shortcuts
   const shortcuts = [
@@ -481,6 +493,7 @@ export default function App() {
         onOpenCode={() => setCodeOpen(true)}
         onOpenCustomize={() => setSettingsOpen(true)}
         onOpenSearch={() => setSearchOpen(true)}
+        loggedIn={loggedIn}
       />
 
       <main className="main-content">
@@ -531,6 +544,24 @@ export default function App() {
               <ShareAltOutlined />
               <span>Share</span>
             </button>
+            {/* 登录状态相关按钮 */}
+            {authChecked ? (
+              loggedIn ? (
+                <>
+                  <span className="header-username">{username}</span>
+                  <button
+                    className="header-btn"
+                    onClick={handleLogout}
+                  >
+                    退出登录
+                  </button>
+                </>
+              ) : (
+                <button className="header-btn" onClick={() => setShowLogin(true)}>
+                  登录
+                </button>
+              )
+            ) : null}
           </div>
         </header>
 
@@ -549,6 +580,7 @@ export default function App() {
             model={model}
             onModelChange={setModel}
             onStop={handleStop}
+            loggedIn={loggedIn}
             onRetry={(messageId) => {
               console.log('[App] onRetry called with messageId:', messageId);
               console.log('[App] current messages:', messages.map((m, i) => ({i, role: m.role, content: m.content.substring(0, 30)})));
@@ -600,6 +632,15 @@ export default function App() {
       <SearchPanel open={searchOpen} onClose={() => setSearchOpen(false)} onSelectChat={handleSelectChat} />
       <StylePanel open={styleOpen} onClose={() => setStyleOpen(false)} />
       <ConnectorsPanel open={connectorsOpen} onClose={() => setConnectorsOpen(false)} />
+      <LoginDialog
+        open={showLogin}
+        onCancel={() => setShowLogin(false)}
+        onSuccess={(name) => {
+          setLoggedIn(true);
+          setUsername(name);
+          setShowLogin(false);
+        }}
+      />
     </div>
   );
 }

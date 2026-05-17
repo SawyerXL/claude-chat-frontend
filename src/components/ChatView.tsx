@@ -57,6 +57,7 @@ interface ChatViewProps {
   onOpenProjects?: () => void;
   onOpenStyle?: () => void;
   onOpenConnectors?: () => void;
+  loggedIn?: boolean;
 }
 
 interface Attachment {
@@ -78,6 +79,7 @@ export default function ChatView({
   onOpenProjects,
   onOpenStyle,
   onOpenConnectors,
+  loggedIn = true,
 }: ChatViewProps) {
   const [value, setValue] = useState('');
   const [images, setImages] = useState<string[]>([]);
@@ -985,7 +987,7 @@ export default function ChatView({
                     className="tool-btn send"
                     title="Send"
                     onClick={handleSend}
-                    disabled={!value.trim() && images.length === 0 && attachments.length === 0}
+                    disabled={!loggedIn || (!value.trim() && images.length === 0 && attachments.length === 0)}
                   >
                     <ArrowUpOutlined />
                   </button>

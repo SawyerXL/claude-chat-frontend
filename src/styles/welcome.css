@@ -73,6 +73,14 @@
   justify-content: center;
 }
 
+.header-username {
+  padding: 7px 14px;
+  font-size: 13px;
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+}
+
 /* Welcome page */
 .welcome-container {
   flex: 1;
