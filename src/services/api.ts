@@ -174,6 +174,23 @@ export async function* sendChatMessageStream(
     throw new Error(error.error || `HTTP ${response.status}`);
   }
 
+  const contentType = response.headers.get('content-type') || '';
+  const isSSE = contentType.includes('text/event-stream');
+
+  if (!isSSE) {
+    const json = (await response.json()) as ChatResponse;
+    if (Array.isArray(json?.content)) {
+      for (const block of json.content) {
+        if (block.type === 'thinking' && typeof block.thinking === 'string') {
+          yield { type: 'thinking', thinking: block.thinking };
+        } else if (block.type === 'text' && typeof block.text === 'string') {
+          yield { type: 'text', content: block.text };
+        }
+      }
+    }
+    return;
+  }
+
   if (!response.body) {
     throw new Error('Response body is null');
   }
