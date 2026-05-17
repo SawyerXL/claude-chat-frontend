@@ -39,6 +39,7 @@ interface SidebarProps {
   onOpenArtifacts?: () => void;
   onOpenCode?: () => void;
   onOpenCustomize?: () => void;
+  loggedIn?: boolean;
 }
 
 const NAV_ITEMS = [
@@ -108,6 +109,7 @@ export default function Sidebar({
   onOpenArtifacts,
   onOpenCode,
   onOpenCustomize,
+  loggedIn = false,
 }: SidebarProps) {
   const [collapsed, setCollapsed] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
@@ -247,10 +249,12 @@ export default function Sidebar({
         </Tooltip>
       </div>
 
-      <button className="sidebar-new-chat" onClick={() => onSelectChat(null)}>
-        <EditOutlined />
-        {!collapsed && <span>New chat</span>}
-      </button>
+      {loggedIn && (
+        <button className="sidebar-new-chat" onClick={() => onSelectChat(null)}>
+          <EditOutlined />
+          {!collapsed && <span>New chat</span>}
+        </button>
+      )}
 
       <div className="sidebar-menu">
         {NAV_ITEMS.map((item) => {
