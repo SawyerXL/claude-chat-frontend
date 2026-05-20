@@ -1,30 +1,51 @@
 import type { ChatSession } from '../types';
 
 const SESSIONS_KEY = 'claude_sessions';
-const USER_ID_KEY = 'claude_user_id';
 
+// 获取当前登录用户的 ID（从登录服务保存的用户信息中获取）
 function getUserId(): string {
-  let userId = localStorage.getItem(USER_ID_KEY);
-  if (!userId) {
-    userId = 'user-' + Math.random().toString(36).substring(2, 10);
-    localStorage.setItem(USER_ID_KEY, userId);
+  // 首先尝试从登录服务获取用户 ID
+  const userData = localStorage.getItem('claude_user');
+  if (userData) {
+    try {
+      const user = JSON.parse(userData);
+      if (user?.id) {
+        return 'user_' + user.id;
+      }
+      if (user?.email) {
+        return 'user_' + user.email.replace(/[^a-zA-Z0-9]/g, '_');
+      }
+    } catch {
+      // 解析失败
+    }
   }
-  return userId;
+  
+  // 如果没有登录用户，返回空字符串（让服务器处理）
+  return '';
 }
 
 function getSessionsFromStorage(): ChatSession[] {
+  // 本地存储现在按用户隔离
+  const userId = getUserId();
+  if (!userId) return [];
+  
+  const storageKey = `${SESSIONS_KEY}_${userId}`;
   try {
-    const data = localStorage.getItem(SESSIONS_KEY);
+    const data = localStorage.getItem(storageKey);
     if (!data) return [];
     return JSON.parse(data) as ChatSession[];
   } catch (err) {
-    console.error('[session] Error loading local sessions:', err);
+    console.error('[session] Error loading sessions:', err);
     return [];
   }
 }
 
 function saveSessionsToStorage(sessions: ChatSession[]): void {
-  localStorage.setItem(SESSIONS_KEY, JSON.stringify(sessions));
+  const userId = getUserId();
+  if (!userId) return;
+  
+  const storageKey = `${SESSIONS_KEY}_${userId}`;
+  localStorage.setItem(storageKey, JSON.stringify(sessions));
 }
 
 function mergeSessions(local: ChatSession[], remote: ChatSession[]): ChatSession[] {
@@ -105,12 +126,14 @@ export async function saveSession(session: ChatSession): Promise<void> {
 }
 
 export async function deleteSession(sessionId: string): Promise<void> {
+  const userId = getUserId();
+  const storageKey = `${SESSIONS_KEY}_${userId}`;
   const local = getSessionsFromStorage();
   const filtered = local.filter(s => s.id !== sessionId);
-  saveSessionsToStorage(filtered);
+  localStorage.setItem(storageKey, JSON.stringify(filtered));
 
   try {
-    await fetch(`/session-api/api/sessions/${sessionId}`, { method: 'DELETE' });
+    await fetch(`/session-api/api/sessions/${sessionId}?user_id=${encodeURIComponent(userId)}`, { method: 'DELETE' });
     console.log('[session] Deleted from server');
   } catch (err) {
     console.error('[session] Failed to delete from server:', err);

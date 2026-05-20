@@ -101,23 +101,47 @@ export default function ChatView({
   const endRef = useRef<HTMLDivElement>(null);
   const recognitionRef = useRef<any>(null);
 
+  // 重试逻辑：优先重试失败消息前的用户消息，否则重试最后一条用户消息
   const handleRetry = () => {
-    // Simply trigger regeneration by finding last user message and calling onSend
+    console.log('[Retry] handleRetry called, messages count:', messages.length);
     if (!onSend) {
       console.log('[Retry] onSend is not defined');
       return;
     }
-    
-    // Find the last user message that preceded an assistant message
+
+    // 先查找失败消息
+    let failedIdx = -1;
     for (let i = messages.length - 1; i >= 0; i--) {
       const m = messages[i];
-      if (m.role === 'user') {
-        console.log('[Retry] Found user message to retry:', m.content.substring(0, 30));
-        onSend(m.content);
-        return;
+      if (m.role === 'assistant' && m.content?.startsWith('请求失败: ')) {
+        failedIdx = i;
+        break;
       }
     }
-    console.log('[Retry] No user message found');
+
+    let userMsg = null;
+    if (failedIdx > 0 && messages[failedIdx - 1].role === 'user') {
+      userMsg = messages[failedIdx - 1];
+    } else {
+      // 找不到失败消息，就重试最后一条用户消息
+      for (let i = messages.length - 1; i >= 0; i--) {
+        if (messages[i].role === 'user') {
+          userMsg = messages[i];
+          break;
+        }
+      }
+    }
+
+    if (userMsg) {
+      console.log('[Retry] Retrying user message:', userMsg.content?.substring(0, 30));
+      onSend(
+        userMsg.content || '',
+        [],
+        userMsg.attachments?.map((a: any) => ({ name: a.name, type: a.type, content: a.content })) as any
+      );
+    } else {
+      console.log('[Retry] No user message found to retry');
+    }
   };
 
   // Speech Recognition
@@ -205,7 +229,7 @@ export default function ChatView({
 
   const navigateSearch = (direction: 'next' | 'prev') => {
     const matches = messages.filter(m =>
-      m.content.toLowerCase().includes(searchQuery.toLowerCase())
+      m.content?.toLowerCase().includes(searchQuery.toLowerCase())
     );
 
     if (matches.length === 0) return;
@@ -755,7 +779,7 @@ export default function ChatView({
             style={{ flex: 1 }}
           />
           <span className="search-count">
-            {searchQuery ? `${currentSearchIdx + 1}/${messages.filter(m => m.content.toLowerCase().includes(searchQuery.toLowerCase())).length}` : ''}
+            {searchQuery ? `${currentSearchIdx + 1}/${messages.filter(m => m.content?.toLowerCase().includes(searchQuery.toLowerCase())).length}` : ''}
           </span>
           <Button icon={<UpOutlined />} onClick={() => navigateSearch('prev')} size="small" />
           <Button icon={<DownOutlined />} onClick={() => navigateSearch('next')} size="small" />
@@ -822,10 +846,10 @@ export default function ChatView({
                           <div className="thinking-content">{m.thinking}</div>
                         </div>
                       )}
-                      {renderMessageContent(m.content)}
+                      {m.content ? renderMessageContent(m.content) : null}
                     </>
                   ) : (
-                    <div style={{ whiteSpace: 'pre-wrap' }}>{m.content}</div>
+                    <div style={{ whiteSpace: 'pre-wrap' }}>{m.content || ''}</div>
                   )}
                   {/* Display attachments for user messages */}
                   {m.role === 'user' && m.attachments && m.attachments.length > 0 && (

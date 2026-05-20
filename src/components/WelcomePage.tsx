@@ -21,11 +21,18 @@ import '../styles/welcome.css';
 const { TextArea } = Input;
 
 const QUICK_ACTIONS = [
-  { key: 'create', icon: <ThunderboltOutlined />, label: 'Create' },
-  { key: 'code', icon: <CodeOutlined />, label: 'Code' },
-  { key: 'write', icon: <EditOutlined />, label: 'Write' },
-  { key: 'learn', icon: <BulbOutlined />, label: 'Learn' },
-  { key: 'life', icon: <HeartOutlined />, label: 'Life stuff' },
+  { key: 'create', icon: <ThunderboltOutlined />, label: 'Create', desc: 'Start a new project' },
+  { key: 'code', icon: <CodeOutlined />, label: 'Code', desc: 'Write or debug code' },
+  { key: 'write', icon: <EditOutlined />, label: 'Write', desc: 'Compose articles & docs' },
+  { key: 'learn', icon: <BulbOutlined />, label: 'Learn', desc: 'Explore new topics' },
+  { key: 'life', icon: <HeartOutlined />, label: 'Life stuff', desc: 'Daily tasks & advice' },
+];
+
+const FEATURE_TIPS = [
+  { icon: '💡', text: '支持扩展思考，深入分析复杂问题' },
+  { icon: '📎', text: '上传文件或图片，Claude 会帮你分析' },
+  { icon: '🎨', text: '生成代码、文档、PPT 等多种格式' },
+  { icon: '🔊', text: '语音输入，解放双手' },
 ];
 
 interface WelcomePageProps {
@@ -116,7 +123,7 @@ export default function WelcomePage({ onSend, model, onModelChange, user, onOpen
 
   const handleFileUpload = async (files: File[]) => {
     const newAttachments: Attachment[] = [];
-    
+
     for (const file of files) {
       try {
         let content: string;
@@ -160,25 +167,43 @@ export default function WelcomePage({ onSend, model, onModelChange, user, onOpen
 
   const getGreeting = () => {
     const hour = new Date().getHours();
-    if (hour < 12) return 'Good morning';
-    if (hour < 18) return 'Good afternoon';
-    return 'Good evening';
+    if (hour < 12) return '早上好';
+    if (hour < 18) return '下午好';
+    return '晚上好';
   };
 
   return (
     <div className="welcome-container">
       <div className="welcome-inner">
-        <div className="welcome-greeting">
+        {/* User Greeting */}
+        <div className="welcome-greeting-main">
           <div className="greeting-icon">
-            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <rect width="24" height="24" rx="6" fill="#1a1a1a"/>
-              <circle cx="12" cy="12" r="3" fill="#d4a574"/>
-              <path d="M12 8v1M12 15v1M8 12h1M15 12h1" stroke="#d4a574" strokeWidth="1.5" strokeLinecap="round"/>
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <rect width="24" height="24" rx="6" fill="url(#gradient)"/>
+              <circle cx="12" cy="12" r="3" fill="#fff"/>
+              <path d="M12 8v1M12 15v1M8 12h1M15 12h1" stroke="#fff" strokeWidth="1.5" strokeLinecap="round"/>
+              <defs>
+                <linearGradient id="gradient" x1="0" y1="0" x2="24" y2="24">
+                  <stop offset="0%" stopColor="#8b5cf6"/>
+                  <stop offset="100%" stopColor="#d946ef"/>
+                </linearGradient>
+              </defs>
             </svg>
           </div>
-          <span>{getGreeting()}, {displayName}</span>
+          <span>{getGreeting()}，{displayName}</span>
         </div>
 
+        {/* Features Tips */}
+        <div className="welcome-tips">
+          {FEATURE_TIPS.map((tip, idx) => (
+            <div key={idx} className="tip-item">
+              <span className="tip-icon">{tip.icon}</span>
+              <span className="tip-text">{tip.text}</span>
+            </div>
+          ))}
+        </div>
+
+        {/* Main Input Area */}
         <div className="welcome-input-area">
           {images.length > 0 && (
             <div className="image-preview-container">
@@ -215,7 +240,7 @@ export default function WelcomePage({ onSend, model, onModelChange, user, onOpen
 
           <TextArea
             className="welcome-input"
-            placeholder="How can I help you today?"
+            placeholder="输入消息，Claude 会帮你完成..."
             autoSize={{ minRows: 1, maxRows: 8 }}
             value={value}
             onChange={(e) => setValue(e.target.value)}
@@ -238,7 +263,7 @@ export default function WelcomePage({ onSend, model, onModelChange, user, onOpen
               </button>
               <button
                 className="tool-btn send"
-                title="Send"
+                title="发送"
                 onClick={handleSend}
                 disabled={!value.trim() && images.length === 0 && attachments.length === 0}
               >
@@ -248,12 +273,22 @@ export default function WelcomePage({ onSend, model, onModelChange, user, onOpen
           </div>
         </div>
 
+        {/* Quick Actions */}
         <div className="quick-actions">
           {QUICK_ACTIONS.map((a) => (
             <button
               key={a.key}
               className="quick-action"
-              onClick={() => setValue(`Help me ${a.label.toLowerCase()}...`)}
+              onClick={() => {
+                const prompts: Record<string, string> = {
+                  create: '帮我创建一个新项目，需求是...',
+                  code: '帮我写一段代码，功能是...',
+                  write: '帮我写一篇文章，主题是...',
+                  learn: '帮我学习一个新知识：',
+                  life: '给我一些生活建议：',
+                };
+                setValue(prompts[a.key]);
+              }}
             >
               {a.icon}
               <span>{a.label}</span>
@@ -262,7 +297,7 @@ export default function WelcomePage({ onSend, model, onModelChange, user, onOpen
         </div>
 
         <div className="welcome-tip">
-          Claude can make mistakes. Please double-check responses.
+          Claude 可以分析文件、编写代码、创作内容等。试试发送一张图片或文件！
         </div>
       </div>
     </div>

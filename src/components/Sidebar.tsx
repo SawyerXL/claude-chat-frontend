@@ -125,20 +125,50 @@ export default function Sidebar({
   // Get display name - prefer username, fallback to email
   const displayName = user?.username || user?.email?.split('@')[0] || 'User';
   const initials = displayName.charAt(0).toUpperCase();
+  const userBalance = user?.balance || 0;
 
   // User menu items
   const userMenuItems: MenuProps['items'] = [
+    {
+      key: 'balance',
+      icon: <span style={{ fontSize: '14px' }}>💰</span>,
+      label: <span>余额: <b>¥{userBalance.toFixed(2)}</b></span>,
+      disabled: true,
+    },
+    { type: 'divider' },
     {
       key: 'profile',
       icon: <UserOutlined />,
       label: user?.email || 'Profile',
       disabled: true,
     },
+    {
+      key: 'view-apikey',
+      icon: <span style={{ fontSize: '14px' }}>🔑</span>,
+      label: '查看 API Key',
+      onClick: () => {
+        const apiKey = localStorage.getItem('claude_api_key');
+        if (apiKey) {
+          navigator.clipboard.writeText(apiKey);
+          alert(`API Key 已复制到剪贴板:\n${apiKey}`);
+        } else {
+          alert('暂无 API Key，请联系管理员获取');
+        }
+      },
+    },
+    {
+      key: 'recharge',
+      icon: <span style={{ fontSize: '14px' }}>💳</span>,
+      label: '去充值',
+      onClick: () => {
+        window.open('https://www.claudexia.com', '_blank');
+      },
+    },
     { type: 'divider' },
     {
       key: 'signout',
       icon: <LogoutOutlined />,
-      label: 'Sign out',
+      label: '退出登录',
       danger: true,
       onClick: () => {
         setShowUserMenu(false);
@@ -331,7 +361,11 @@ export default function Sidebar({
               <>
                 <div className="user-info">
                   <div className="user-name">{displayName}</div>
-                  <div className="user-plan">{user?.role === 'admin' ? 'Admin' : 'User'}</div>
+                  <div className="user-plan">
+                    <span style={{ color: 'var(--accent-purple)', fontSize: '12px' }}>
+                      💰 ¥{userBalance.toFixed(2)}
+                    </span>
+                  </div>
                 </div>
                 <MoreOutlined style={{ color: 'var(--text-tertiary)' }} />
               </>

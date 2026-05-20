@@ -350,3 +350,122 @@
 .welcome-input-area .attachment-remove-btn:hover {
   color: var(--text-primary);
 }
+
+/* Welcome Header */
+.welcome-greeting-main {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 24px;
+  font-size: 24px;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.greeting-icon {
+  display: flex;
+  align-items: center;
+}
+
+/* Feature Tips */
+.welcome-tips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 28px;
+  padding: 0 4px;
+}
+
+.tip-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  font-size: 13px;
+  color: var(--text-secondary);
+  transition: all 0.2s;
+}
+
+.tip-item:hover {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(139, 92, 246, 0.2);
+}
+
+.tip-icon {
+  font-size: 14px;
+}
+
+.tip-text {
+  white-space: nowrap;
+}
+
+/* Quick Actions Enhancement */
+.quick-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 24px;
+}
+
+.quick-action {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  color: var(--text-secondary);
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.quick-action:hover {
+  background: rgba(139, 92, 246, 0.1);
+  border-color: rgba(139, 92, 246, 0.3);
+  color: var(--text-primary);
+  transform: translateY(-2px);
+}
+
+.quick-action .anticon {
+  font-size: 14px;
+}
+
+/* Welcome Input Enhancement */
+.welcome-input {
+  font-size: 16px !important;
+}
+
+.welcome-input::placeholder {
+  color: var(--text-tertiary) !important;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .welcome-header {
+    flex-direction: column;
+    gap: 12px;
+    align-items: flex-start;
+  }
+
+  .welcome-tips {
+    flex-direction: column;
+  }
+
+  .tip-item {
+    width: 100%;
+  }
+
+  .quick-actions {
+    flex-direction: column;
+  }
+
+  .quick-action {
+    width: 100%;
+    justify-content: center;
+  }
+}

@@ -38,7 +38,7 @@ export default function SearchPanel({ open, onClose, onSelectChat }: SearchPanel
       const q = query.toLowerCase();
       const filtered = sessions.filter(s =>
         s.title.toLowerCase().includes(q) ||
-        s.messages.some(m => m.content.toLowerCase().includes(q))
+        s.messages.some(m => (m.content || '').toLowerCase().includes(q))
       ).slice(0, 20);
       setResults(filtered);
     } else {
@@ -94,7 +94,7 @@ export default function SearchPanel({ open, onClose, onSelectChat }: SearchPanel
               <span>{session.title}</span>
             </div>
             <div className="search-result-preview">
-              {session.messages.find(m => m.content.toLowerCase().includes(query.toLowerCase()))?.content.slice(0, 100)}
+              {session.messages.find(m => (m.content || '').toLowerCase().includes(query.toLowerCase()))?.content.slice(0, 100)}
             </div>
           </div>
         ))}

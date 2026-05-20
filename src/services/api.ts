@@ -109,6 +109,13 @@ export async function* sendChatMessageStream(
   const customInstructions = loadCustomInstructions();
   let apiMessages: ApiMessage[] = messages.map(toApiMessage);
 
+  // Prepend system message with model info
+  const modelDisplayName = model.replace('claude-', '');
+  apiMessages.unshift({
+    role: 'user' as const,
+    content: `[System Info] You are running on model: ${modelDisplayName}. When user asks what model you are, respond with: "当前模型: ${modelDisplayName}"`,
+  });
+
   // Prepend custom instructions to first user message
   if (customInstructions.background || customInstructions.preferences) {
     const instructionParts = [];
@@ -140,11 +147,20 @@ export async function* sendChatMessageStream(
   const useTempParams = !newModelsNoTemp.includes(model);
 
   // Build request body - only include temperature/top_p for older models
-  const requestBody: ChatRequest & { stream?: boolean } = {
+  // opus-4-7 requires thinking.type: "adaptive", other models use "enabled"
+  const thinkingType = model === 'claude-opus-4-7' ? 'adaptive' : 'enabled';
+  const requestBody: ChatRequest & { stream?: boolean; thinking?: { type: string; budget_tokens?: number }; output_config?: { effort?: string } } = {
     model,
     messages: apiMessages,
-    max_tokens: modelSettings.maxTokens || 4096,
+    // max_tokens must be > thinking.budget_tokens (8000), ensure at least 10000
+    max_tokens: Math.max(modelSettings.maxTokens || 16000, 10000),
     stream: true,
+    // 启用扩展思考（Claude 4 模型支持）
+    thinking: thinkingType === 'enabled' ? {
+      type: 'enabled',
+      budget_tokens: 8000,
+    } : undefined,
+    ...(thinkingType === 'adaptive' ? { output_config: { effort: 'medium' } } : {}),
   };
 
   if (useTempParams) {
@@ -164,6 +180,7 @@ export async function* sendChatMessageStream(
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
+      'x-api-key': localStorage.getItem('claude_api_key') || '',
     },
     body: JSON.stringify(requestBody),
     signal,

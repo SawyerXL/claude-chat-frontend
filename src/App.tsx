@@ -26,7 +26,6 @@ import { sendChatMessageStream } from './services/api';
 import { getSessions, saveSession, deleteSession } from './services/session';
 import { isAuthenticated } from './services/auth';
 import { initTheme, toggleTheme as toggleThemeService } from './services/theme';
-import { getAuthStatus, logout } from './services/login';
 import type { User } from './services/auth';
 import { useKeyboardShortcuts, DEFAULT_SHORTCUTS } from './hooks/useKeyboardShortcuts';
 import './App.css';
@@ -53,9 +52,7 @@ function deriveTitle(messages: ChatMessage[]): string {
 
 export default function App() {
   // 登录状态（从后端 config.json 初始化）
-  const [authChecked, setAuthChecked] = useState(false);
   const [loggedIn, setLoggedIn] = useState(false);
-  const [username, setUsername] = useState('');
   const [showLogin, setShowLogin] = useState(false);
 
   const [activeChat, setActiveChat] = useState<string | null>(null);
@@ -87,28 +84,27 @@ export default function App() {
     const savedTheme = initTheme();
     setTheme(savedTheme);
 
-    // 从后端获取认证状态
-    getAuthStatus().then(({ loggedIn: isLoggedIn, username: name }) => {
-      setLoggedIn(isLoggedIn);
-      setUsername(name);
-      setAuthChecked(true);
-    });
+    // Load user from localStorage if exists
+    const savedUser = localStorage.getItem('claude_user');
+    if (savedUser) {
+      try {
+        const userData = JSON.parse(savedUser);
+        if (userData && userData.id) {
+          setUser(userData);
+          setLoggedIn(true);
+        }
+      } catch (e) {
+        console.error('Failed to parse saved user:', e);
+      }
+    }
 
-    // Set demo user for testing (legacy)
-    setUser({ id: 1, email: 'demo@local', username: 'Demo User', role: 'user', balance: 100, concurrency: 5, status: 'active' });
+    // Check if authenticated
+    if (isAuthenticated()) {
+      setLoggedIn(true);
+    }
+
     setIsReady(true);
   }, []);
-
-  // 退出登录处理函数
-  const handleLogout = async () => {
-    const res = await logout();
-    if (res.ok) {
-      setLoggedIn(false);
-      setUsername('');
-    } else {
-      antMessage.error(res.error || '退出登录失败');
-    }
-  };
 
   // Keyboard shortcuts
   const shortcuts = [
@@ -178,7 +174,9 @@ export default function App() {
 
   const refreshSessions = useCallback(async () => {
     try {
+      console.log('[refreshSessions] Getting sessions...');
       const list = await getSessions();
+      console.log('[refreshSessions] Got', list.length, 'sessions');
       setSessions(list);
     } catch (err) {
       console.error('Failed to load sessions:', err);
@@ -332,8 +330,9 @@ export default function App() {
         }
         return updated;
       });
-      const finalMessages = messages;
-      await persistSession(sessionId, [...finalMessages, { ...assistantMsg, content: `请求失败: ${msg}` }], model);
+      if (activeChat) {
+        await persistSession(activeChat, messages, model);
+      }
     } finally {
       setLoading(false);
       abortControllerRef.current = null;
@@ -354,20 +353,26 @@ export default function App() {
   };
 
   const handleSelectChat = async (id: string | null) => {
+    console.log('[handleSelectChat] id:', id, 'messages count:', messages.length, 'activeChat:', activeChat);
+
     if (messages.length > 0 && activeChat) {
       await persistSession(activeChat, messages, model);
     }
 
     if (id === null) {
+      console.log('[handleSelectChat] Creating new chat');
       setActiveChat(null);
       setMessages([]);
       setModel(MODELS[1].id);
     } else {
       const session = sessions.find((s) => s.id === id);
+      console.log('[handleSelectChat] Found session:', session?.id, 'messages:', session?.messages?.length);
       if (session) {
         setActiveChat(session.id);
-        setMessages(session.messages);
-        setModel(session.model);
+        setMessages(session.messages || []);
+        setModel(session.model || MODELS[1].id);
+      } else {
+        console.log('[handleSelectChat] Session not found for id:', id);
       }
     }
   };
@@ -469,11 +474,32 @@ export default function App() {
     );
   }
 
-  // Show login page if not authenticated
-  // TODO: Enable auth before production
-  // if (needsAuth) {
-  //   return <LoginPage />;
-  // }
+  // 未登录时显示登录对话框
+  if (!loggedIn) {
+    return (
+      <div className="app-layout" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh' }}>
+        <LoginDialog
+          open={true}
+          onCancel={() => {}}
+          onSuccess={() => {
+            // Refresh user from localStorage after login
+            const savedUser = localStorage.getItem('claude_user');
+            if (savedUser) {
+              try {
+                const userData = JSON.parse(savedUser);
+                if (userData && userData.id) {
+                  setUser(userData);
+                }
+              } catch (e) {
+                console.error('Failed to parse saved user:', e);
+              }
+            }
+            setLoggedIn(true);
+          }}
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="app-layout">
@@ -544,24 +570,6 @@ export default function App() {
               <ShareAltOutlined />
               <span>Share</span>
             </button>
-            {/* 登录状态相关按钮 */}
-            {authChecked ? (
-              loggedIn ? (
-                <>
-                  <span className="header-username">{username}</span>
-                  <button
-                    className="header-btn"
-                    onClick={handleLogout}
-                  >
-                    退出登录
-                  </button>
-                </>
-              ) : (
-                <button className="header-btn" onClick={() => setShowLogin(true)}>
-                  登录
-                </button>
-              )
-            ) : null}
           </div>
         </header>
 
@@ -635,9 +643,8 @@ export default function App() {
       <LoginDialog
         open={showLogin}
         onCancel={() => setShowLogin(false)}
-        onSuccess={(name) => {
+        onSuccess={() => {
           setLoggedIn(true);
-          setUsername(name);
           setShowLogin(false);
         }}
       />
