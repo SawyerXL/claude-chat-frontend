@@ -6,11 +6,11 @@ import {
   BulbOutlined,
   CodeOutlined,
   EditOutlined,
-  HeartOutlined,
   ThunderboltOutlined,
   CloseOutlined,
   FileOutlined,
   LoadingOutlined,
+  SearchOutlined,
 } from '@ant-design/icons';
 import mammoth from 'mammoth';
 import ModelSelector from './ModelSelector';
@@ -21,11 +21,14 @@ import '../styles/welcome.css';
 const { TextArea } = Input;
 
 const QUICK_ACTIONS = [
+  { key: 'code', icon: <CodeOutlined />, label: 'Write code', desc: 'Debug or create new features' },
   { key: 'create', icon: <ThunderboltOutlined />, label: 'Create', desc: 'Start a new project' },
-  { key: 'code', icon: <CodeOutlined />, label: 'Code', desc: 'Write or debug code' },
-  { key: 'write', icon: <EditOutlined />, label: 'Write', desc: 'Compose articles & docs' },
-  { key: 'learn', icon: <BulbOutlined />, label: 'Learn', desc: 'Explore new topics' },
-  { key: 'life', icon: <HeartOutlined />, label: 'Life stuff', desc: 'Daily tasks & advice' },
+  { key: 'write', icon: <EditOutlined />, label: 'Write', desc: 'Articles, emails, docs' },
+  { key: 'learn', icon: <BulbOutlined />, label: 'Analyze', desc: 'Review and explain data' },
+  { key: 'think', icon: <BulbOutlined />, label: 'Think', desc: 'Brainstorm and plan' },
+  { key: 'art', icon: <EditOutlined />, label: 'Create art', desc: 'Generate images or designs' },
+  { key: 'research', icon: <SearchOutlined />, label: 'Research', desc: 'Explore topics deeply' },
+  { key: 'review', icon: <EditOutlined />, label: 'Review', desc: 'Check code or documents' },
 ];
 
 const FEATURE_TIPS = [
@@ -281,11 +284,14 @@ export default function WelcomePage({ onSend, model, onModelChange, user, onOpen
               className="quick-action"
               onClick={() => {
                 const prompts: Record<string, string> = {
-                  create: '帮我创建一个新项目，需求是...',
-                  code: '帮我写一段代码，功能是...',
-                  write: '帮我写一篇文章，主题是...',
-                  learn: '帮我学习一个新知识：',
-                  life: '给我一些生活建议：',
+                  code: 'Help me write some code. I need to implement:',
+                  create: 'Help me create something new. My idea is:',
+                  write: 'Help me write something. Topic:',
+                  learn: 'Help me analyze and understand:',
+                  think: 'Help me brainstorm and plan:',
+                  art: 'Help me design or create:',
+                  research: 'Help me research:',
+                  review: 'Help me review:',
                 };
                 setValue(prompts[a.key]);
               }}

@@ -1,0 +1,86 @@
+.memory-panel {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding: 16px;
+}
+
+.memory-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.memory-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.memory-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.memory-search {
+  margin-bottom: 16px;
+}
+
+.memory-list {
+  flex: 1;
+  overflow-y: auto;
+}
+
+.memory-category {
+  margin-bottom: 16px;
+}
+
+.category-header {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  margin-bottom: 8px;
+  padding: 0 4px;
+}
+
+.memory-item {
+  background: var(--bg-secondary);
+  border-radius: 8px;
+  padding: 12px;
+  margin-bottom: 8px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.memory-item .memory-fact {
+  flex: 1;
+  color: var(--text-primary);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.memory-item .memory-actions {
+  display: flex;
+  gap: 4px;
+  margin-left: 8px;
+}
+
+.modal-form {
+  padding: 8px 0;
+}
+
+.form-label {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-primary);
+  margin-bottom: 8px;
+}
+
+.category-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}

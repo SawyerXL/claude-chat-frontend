@@ -15,12 +15,14 @@ import {
   LogoutOutlined,
   LeftOutlined,
   HolderOutlined,
+  BulbOutlined,
 } from '@ant-design/icons';
 import { Tooltip, Dropdown, type MenuProps } from 'antd';
 import type { ChatSession } from '../types';
 import type { User } from '../services/auth';
 import { logout } from '../services/auth';
 import ProjectsPanel from './ProjectsPanel';
+import MemoryPanel from './MemoryPanel';
 import '../styles/sidebar.css';
 
 interface SidebarProps {
@@ -39,6 +41,7 @@ interface SidebarProps {
   onOpenArtifacts?: () => void;
   onOpenCode?: () => void;
   onOpenCustomize?: () => void;
+  onOpenMemory?: () => void;
   loggedIn?: boolean;
 }
 
@@ -46,6 +49,7 @@ const NAV_ITEMS = [
   { key: 'search', icon: <SearchOutlined />, label: 'Search' },
   { key: 'chats', icon: <MessageOutlined />, label: 'Chats' },
   { key: 'projects', icon: <FolderOutlined />, label: 'Projects' },
+  { key: 'memory', icon: <BulbOutlined />, label: 'Memory' },
   { key: 'artifacts', icon: <AppstoreOutlined />, label: 'Artifacts' },
   { key: 'code', icon: <CodeOutlined />, label: 'Code' },
   { key: 'customize', icon: <SettingOutlined />, label: 'Customize' },
@@ -114,6 +118,7 @@ export default function Sidebar({
   const [collapsed, setCollapsed] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showProjects, setShowProjects] = useState(false);
+  const [showMemory, setShowMemory] = useState(false);
 
   // Filter sessions by project
   const filteredSessions = activeProjectId
@@ -304,6 +309,8 @@ export default function Sidebar({
                   onOpenCode?.();
                 } else if (item.key === 'customize') {
                   onOpenCustomize?.();
+                } else if (item.key === 'memory') {
+                  setShowMemory(!showMemory);
                 } else {
                   onTabChange?.(item.key);
                 }
@@ -336,8 +343,22 @@ export default function Sidebar({
           </div>
         )}
 
+        {/* Memory panel overlay */}
+        {showMemory && (
+          <div className="projects-overlay">
+            <div className="projects-overlay-header">
+              <button onClick={() => setShowMemory(false)}>
+                <LeftOutlined /> Back
+              </button>
+            </div>
+            <MemoryPanel
+              open={showMemory}
+            />
+          </div>
+        )}
+
         {/* Conversations list */}
-        {!showProjects && (
+        {!showProjects && !showMemory && (
           <div className="sidebar-conversations">
             {renderGroup('Today', groups.today)}
             {renderGroup('Yesterday', groups.yesterday)}

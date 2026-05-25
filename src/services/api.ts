@@ -1,4 +1,5 @@
 import type { ChatMessage, ModelSettings } from '../types';
+import { formatMemoryForContext } from './memory';
 
 export interface ThinkingBlock {
   thinking: string;
@@ -105,16 +106,32 @@ export async function* sendChatMessageStream(
   signal?: AbortSignal,
   settings?: Partial<ModelSettings>,
 ): AsyncGenerator<StreamChunk, void, unknown> {
-  // Load custom instructions
+  // Load custom instructions and memory
   const customInstructions = loadCustomInstructions();
+  const memoryContext = formatMemoryForContext();
   let apiMessages: ApiMessage[] = messages.map(toApiMessage);
 
   // Prepend system message with model info
   const modelDisplayName = model.replace('claude-', '');
-  apiMessages.unshift({
-    role: 'user' as const,
-    content: `[System Info] You are running on model: ${modelDisplayName}. When user asks what model you are, respond with: "当前模型: ${modelDisplayName}"`,
-  });
+  const systemPrompt = `[System Info] You are running on model: ${modelDisplayName}. When user asks what model you are, respond with: "当前模型: ${modelDisplayName}"${memoryContext ? '\n\n' + memoryContext : ''}`;
+
+  // Prepend memory context to first user message
+  if (memoryContext) {
+    const firstUserIndex = apiMessages.findIndex(m => m.role === 'user');
+    if (firstUserIndex >= 0) {
+      const firstUser = apiMessages[firstUserIndex];
+      const originalContent = typeof firstUser.content === 'string' ? firstUser.content : '';
+      apiMessages[firstUserIndex] = {
+        ...firstUser,
+        content: `${systemPrompt}\n\n[User Request]\n${originalContent}`,
+      };
+    }
+  } else {
+    apiMessages.unshift({
+      role: 'user' as const,
+      content: systemPrompt,
+    });
+  }
 
   // Prepend custom instructions to first user message
   if (customInstructions.background || customInstructions.preferences) {
