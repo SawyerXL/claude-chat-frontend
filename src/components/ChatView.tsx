@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Input, Button, message } from 'antd';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import { getTrialInfo } from '../utils/trialManager';
 import {
   AudioOutlined,
   ArrowUpOutlined,
@@ -995,6 +996,27 @@ export default function ChatView({
               <div className="toolbar-left">
                 <PlusMenu onImageUpload={handleImageUpload} onFileUpload={handleFileUpload} onTemplateSelect={handleTemplateSelect} onWebSearch={handleWebSearch} onOpenSkills={onOpenSkills} onOpenProjects={onOpenProjects} onOpenStyle={onOpenStyle} onOpenConnectors={onOpenConnectors} />
                 <ModelSelector value={model} onChange={onModelChange} />
+                {(() => {
+                  const trialInfo = getTrialInfo();
+                  if (!trialInfo.isTrial) return null;
+                  return (
+                    <div className="trial-indicator" style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                      padding: '4px 8px',
+                      background: trialInfo.remainingMessages > 0 ? 'rgba(30, 96, 145, 0.2)' : 'rgba(220, 53, 69, 0.2)',
+                      borderRadius: '6px',
+                      fontSize: '12px',
+                      color: trialInfo.remainingMessages > 0 ? '#5dade2' : '#f5b7b1',
+                      marginLeft: '8px',
+                    }}>
+                      <span>📊 {trialInfo.remainingMessages}/{trialInfo.totalDailyLimit} 次</span>
+                      <span style={{ opacity: 0.7 }}>|</span>
+                      <span>⏰ {trialInfo.remainingDays}天</span>
+                    </div>
+                  );
+                })()}
               </div>
               <div className="toolbar-right">
                 <button

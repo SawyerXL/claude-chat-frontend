@@ -19,6 +19,7 @@ import LoginDialog from './components/LoginDialog';
 // TODO: Enable login before production
 // import LoginPage from './components/LoginPage';
 import Settings from './components/Settings';
+import { canSendMessage, recordMessageSent, getTrialInfo } from './utils/trialManager';
 import SkillPanel from './components/SkillPanel';
 import { SKILLS_REGISTRY } from './skills/registry';
 import type { ChatMessage, ChatSession } from './types';
@@ -239,6 +240,13 @@ export default function App() {
   );
 
   const handleSend = async (text: string, images?: string[], attachments?: Array<{ name: string; type: string; content: string }>) => {
+    // Check trial limits
+    const trialCheck = canSendMessage();
+    if (!trialCheck.canSend) {
+      antMessage.warning(trialCheck.reason || '今日对话次数已用完');
+      return;
+    }
+
     const sessionId = activeChat ?? generateSessionId();
     if (!activeChat) setActiveChat(sessionId);
 
@@ -318,6 +326,9 @@ export default function App() {
           return updated;
         });
       }
+
+      // Record message sent for trial tracking
+      recordMessageSent();
 
       await persistSession(sessionId, [...nextMessages, { ...assistantMsg, content: fullResponse, thinking: fullThinking || undefined }], model);
     } catch (err) {
@@ -556,6 +567,8 @@ ${promptOrSystemPrompt ? `\n用户需求：${promptOrSystemPrompt}` : ''}
               }
             }
             setLoggedIn(true);
+            // Refresh sessions after login
+            refreshSessions();
           }}
         />
       </div>
@@ -711,6 +724,8 @@ ${promptOrSystemPrompt ? `\n用户需求：${promptOrSystemPrompt}` : ''}
         onSuccess={() => {
           setLoggedIn(true);
           setShowLogin(false);
+          // Refresh sessions after login
+          refreshSessions();
         }}
       />
     </div>

@@ -34,23 +34,26 @@ const FILE_GENERATION_SKILL = `
 ## 输出格式要求
 当用户请求生成文件时，**必须**按以下格式输出数据：
 
-### 表格数据格式
-使用 **Tab 分隔符** 分隔列，每行用**换行符**分隔，表头必须在第一行。
+### 使用 Artifact 语法
+使用特殊的 artifact 语法来创建可下载的数据表格：
 
-示例（用实际Tab键分隔，不要用空格）：
-\`\`\`
-名称[TAB]价格[TAB]数量[TAB]备注
-产品A[TAB]¥99[TAB]10[TAB]热销
-产品B[TAB]¥199[TAB]5[TAB]新品
+\`\`\`artifact:table "产品报价单"
+名称	价格	数量	备注
+产品A	¥99	10	热销
+产品B	¥199	5	新品
+产品C	¥299	3	特价
 \`\`\`
 
-注意：上面的 [TAB] 表示实际按键盘的 Tab 键，不是文字"[TAB]"
+**重要：**
+- 第一行必须是 \`\`\`artifact:table "标题"\`
+- **标题必须是中文描述性名称**，如"产品报价单"、"库存清单"、"客户列表"等
+- 表格内容使用 **Tab 键** 分隔列（不是空格）
+- 表头必须在第一行
+- 每行用换行符分隔
 
 ### 提示用户
-生成数据后，**必须明确告诉用户**：
-1. 数据已生成在上面
-2. 点击展开 Artifact 查看器
-3. 在 Artifact 中选择需要导出的格式（XLSX/DOCX/PDF/PPTX）
+生成 artifact 后，**必须明确告诉用户**：
+"✅ 数据已生成！点击上方的 Artifact 查看器，可以使用「生成文件」按钮导出为 Excel/Word/PDF 等格式。"
 
 ## 支持的导出格式
 1. **Excel (.xlsx)** - 适用于表格数据
@@ -59,11 +62,10 @@ const FILE_GENERATION_SKILL = `
 4. **PowerPoint (.pptx)** - 适用于演示展示
 
 ## 重要提示
-- 使用 Tab 键分隔列，不是空格
+- Tab 键分隔必须是键盘上的 **Tab 键**，不是空格
 - 保持数据对齐，便于用户查看
-- 不要在数据前后添加多余的说明文字
-- 生成后提示："数据已生成，可以导出为 Excel/Word/PDF 等格式"
-- 完整数据可分多个表格展示
+- 不要在 artifact 前后添加多余的说明文字（除了提示用户导出的那句话）
+- 完整数据可分多个 artifact 展示
 `;
 
 export interface Skill {
@@ -437,25 +439,35 @@ export function getSkillsByCategory(): Record<string, Skill[]> {
 export function generateSkillsSystemPrompt(): string {
   const officialSkills = SKILLS_REGISTRY.filter(s => s.isOfficial);
   const customSkills = SKILLS_REGISTRY.filter(s => !s.isOfficial);
-  
-  let prompt = `\n\n## 🤖 可用技能 (Skills) - 官方 Skills ⭐\n\n`;
-  prompt += `以下是你可以使用的技能模块。**官方 Skills 已标注 ⭐，优先使用。**\n\n`;
+  const fileGeneratorSkill = customSkills.find(s => s.id === 'file-generator');
+  const otherCustomSkills = customSkills.filter(s => s.id !== 'file-generator');
+
+  let prompt = `\n\n## 🤖 可用技能 (Skills)\n\n`;
+
+  // File Generator - highest priority for file generation
+  if (fileGeneratorSkill) {
+    prompt += `### 📥 文件生成技能 (最重要！)\n`;
+    prompt += `**${fileGeneratorSkill.name}**: ${fileGeneratorSkill.description}\n\n`;
+    prompt += fileGeneratorSkill.systemPrompt;
+  }
+
+  prompt += `\n---\n\n`;
 
   prompt += `### ⭐ 官方 Skills\n`;
   for (const skill of officialSkills) {
     prompt += `- ${skill.icon} **${skill.name}**: ${skill.description}\n`;
   }
 
-  prompt += `\n### 自定义 Skills\n`;
-  for (const skill of customSkills) {
+  prompt += `\n### 其他自定义 Skills\n`;
+  for (const skill of otherCustomSkills) {
     prompt += `- ${skill.icon} **${skill.name}**: ${skill.description}\n`;
   }
 
   prompt += `\n**使用规则：**
-1. 优先使用官方 Skills（标记为 ⭐）
-2. 当检测到相关关键词时，自动激活对应技能
-3. 一个请求可以同时使用多个技能
-4. 如果用户明确要求使用某个技能，直接激活
+1. 当用户请求生成 Excel/Word/PDF/PPT 文件时，**必须使用「文件生成技能」**，输出 artifact:table 格式
+2. 官方 Skills 用于文件读取和处理任务
+3. 当检测到相关关键词时，自动激活对应技能
+4. 一个请求可以同时使用多个技能
 
 `;
   return prompt;

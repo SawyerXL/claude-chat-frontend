@@ -20,8 +20,10 @@ import {
   ClearOutlined,
 } from '@ant-design/icons';
 import type { Artifact } from '../types';
-import { executeSandbox } from '../services/session';
 import './ArtifactViewer.css';
+import * as XLSX from 'xlsx';
+import pptxgen from 'pptxgenjs';
+import { jsPDF } from 'jspdf';
 
 interface ArtifactViewerProps {
   artifact: Artifact;
@@ -36,6 +38,7 @@ const LANGUAGE_MAP: Record<string, string> = {
   'html-react': 'tsx',
   '_generative': 'javascript',
   'notebook': 'python',
+  'table': 'plaintext',
 };
 
 interface GenerationOption {
@@ -117,12 +120,22 @@ await p.writeFile("output.pdf");
   },
 ];
 
-function downloadFile(buffer: string, filename: string, mimeType: string) {
-  const binary = atob(buffer);
-  const bytes = new Uint8Array(binary.length);
-  for (let i = 0; i < binary.length; i++) {
-    bytes[i] = binary.charCodeAt(i);
+function downloadFile(buffer: ArrayBuffer | Uint8Array | string, filename: string, mimeType: string) {
+  let bytes: Uint8Array;
+
+  if (typeof buffer === 'string') {
+    // Base64 string
+    const binary = atob(buffer);
+    bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) {
+      bytes[i] = binary.charCodeAt(i);
+    }
+  } else if (buffer instanceof ArrayBuffer) {
+    bytes = new Uint8Array(buffer);
+  } else {
+    bytes = buffer;
   }
+
   const blob = new Blob([bytes], { type: mimeType });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
@@ -142,6 +155,25 @@ export default function ArtifactViewer({ artifact, onClose }: ArtifactViewerProp
   const language = LANGUAGE_MAP[artifact.type] || 'javascript';
   const isReact = artifact.type === 'react' || artifact.type === 'html-react';
   const isPython = artifact.type === 'python';
+  const isTable = artifact.type === 'table';
+
+  // Parse table data (Tab-separated or comma-separated)
+  const parseTableData = (content: string): { headers: string[]; rows: string[][] } => {
+    const lines = content.trim().split('\n').filter(l => l.trim());
+    if (lines.length === 0) return { headers: [], rows: [] };
+
+    let rows = lines.map(line => {
+      if (line.includes('\t')) return line.split('\t').map(c => c.trim());
+      if (line.includes(',')) return line.split(',').map(c => c.trim());
+      return [line.trim()];
+    });
+
+    const headers = rows[0] || [];
+    const dataRows = rows.slice(1);
+    return { headers, rows: dataRows };
+  };
+
+  const { headers, rows } = isTable ? parseTableData(artifact.content) : { headers: [], rows: [] };
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -177,12 +209,326 @@ export default function ArtifactViewer({ artifact, onClose }: ArtifactViewerProp
     setGenerating(option.format);
 
     try {
-      const code = option.generateCode(content);
-      const result = await executeSandbox(code, option.format, `${artifact.title.replace(/\s+/g, '_')}.${option.format}`);
-      if (result) {
-        downloadFile(result.buffer, result.filename, result.mimeType);
-        antMessage.success(`${option.label} 生成成功！`);
+      const filename = `${artifact.title.replace(/\s+/g, '_')}.${option.format}`;
+
+      switch (option.format) {
+        case 'xlsx': {
+          // Parse content into rows
+          let rows: string[][];
+          if (content.includes('\t')) {
+            rows = content.split('\n').filter(r => r.trim()).map(r => r.split('\t').map(c => c.trim()));
+          } else if (content.includes(',')) {
+            rows = content.split('\n').filter(r => r.trim()).map(r => r.split(',').map(c => c.trim()));
+          } else {
+            rows = content.split('\n').filter(r => r.trim()).map(r => [r.trim()]);
+          }
+
+          if (rows.length === 0) {
+            antMessage.error('没有可生成的内容');
+            return;
+          }
+
+          const wb = XLSX.utils.book_new();
+          const ws = XLSX.utils.aoa_to_sheet(rows);
+
+          // Set column widths based on content
+          const colWidths: { wch: number }[] = [];
+          for (let i = 0; i < rows[0].length; i++) {
+            let maxLen = rows[0][i]?.length || 10;
+            for (const row of rows) {
+              if (row[i] && row[i].length > maxLen) {
+                maxLen = Math.min(row[i].length, 50);
+              }
+            }
+            colWidths.push({ wch: Math.max(maxLen + 2, 8) });
+          }
+          ws['!cols'] = colWidths;
+
+          // Style the worksheet
+          const range = XLSX.utils.decode_range(ws['!ref'] || 'A1');
+
+          // Apply styles to header row
+          for (let col = range.s.c; col <= range.e.c; col++) {
+            const cell = ws[XLSX.utils.encode_cell({ r: 0, c: col })];
+            if (cell) {
+              cell.s = {
+                font: { bold: true, color: { rgb: 'FFFFFF' }, sz: 12 },
+                fill: { fgColor: { rgb: '1E6091' }, patternType: 'solid' },
+                alignment: { horizontal: 'center', vertical: 'center', wrap_text: true },
+                border: {
+                  top: { style: 'thin', color: { rgb: '1B3A6B' } },
+                  bottom: { style: 'thin', color: { rgb: '1B3A6B' } },
+                  left: { style: 'thin', color: { rgb: 'CCCCCC' } },
+                  right: { style: 'thin', color: { rgb: 'CCCCCC' } },
+                },
+              };
+            }
+          }
+
+          // Apply styles to data rows
+          for (let row = range.s.r + 1; row <= range.e.r; row++) {
+            const isEvenRow = (row - 1) % 2 === 0;
+            for (let col = range.s.c; col <= range.e.c; col++) {
+              const cell = ws[XLSX.utils.encode_cell({ r: row, c: col })];
+              if (cell) {
+                cell.s = {
+                  font: { sz: 11 },
+                  fill: { fgColor: { rgb: isEvenRow ? 'E8F4FD' : 'FFFFFF' }, patternType: 'solid' },
+                  alignment: { horizontal: 'left', vertical: 'center', wrap_text: true },
+                  border: {
+                    top: { style: 'thin', color: { rgb: 'DDDDDD' } },
+                    bottom: { style: 'thin', color: { rgb: 'DDDDDD' } },
+                    left: { style: 'thin', color: { rgb: 'DDDDDD' } },
+                    right: { style: 'thin', color: { rgb: 'DDDDDD' } },
+                  },
+                };
+              }
+            }
+          }
+
+          // Set row height for header
+          ws['!rows'] = [{ hpt: 25 }];
+
+          XLSX.utils.book_append_sheet(wb, ws, artifact.title.slice(0, 31) || '数据');
+
+          const buffer = XLSX.write(wb, { bookType: "xlsx", type: "array" });
+          downloadFile(buffer, filename, 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+          break;
+        }
+
+        case 'docx': {
+          const lines = content.split('\n').filter(l => l.trim());
+          const headers = lines[0]?.split('\t') || [];
+          const dataRows = lines.slice(1);
+
+          // Parse table data
+          const tableData = dataRows.map(row => {
+            return row.split('\t').map(cell => cell.trim());
+          });
+
+          // Create professional Word document
+          const { Document, Packer, Paragraph, TextRun, HeadingLevel, Table, TableRow, TableCell, WidthType, BorderStyle, AlignmentType, ShadingType } = await import('docx');
+
+          // Table header row
+          const headerRow = new TableRow({
+            children: headers.map(h => new TableCell({
+              children: [new Paragraph({
+                children: [new TextRun({ text: h, bold: true, color: 'FFFFFF', font: 'Arial' })],
+                alignment: AlignmentType.CENTER,
+              })],
+              shading: { fill: '1E6091', type: ShadingType.CLEAR },
+              width: { size: Math.floor(100 / headers.length), type: WidthType.PERCENTAGE },
+              margins: { top: 100, bottom: 100, left: 100, right: 100 },
+            })),
+          });
+
+          // Data rows
+          const dataTableRows = tableData.map((row, idx) => {
+            const isEven = idx % 2 === 0;
+            return new TableRow({
+              children: row.map(cell => new TableCell({
+                children: [new Paragraph({
+                  children: [new TextRun({ text: cell || '', font: 'Arial', size: 22 })],
+                  alignment: AlignmentType.LEFT,
+                })],
+                shading: { fill: isEven ? 'E8F4FD' : 'FFFFFF', type: ShadingType.CLEAR },
+                margins: { top: 80, bottom: 80, left: 100, right: 100 },
+              })),
+            });
+          });
+
+          const doc = new Document({
+            sections: [{
+              properties: {
+                page: { margin: { top: 1134, bottom: 1134, left: 1134, right: 1134 } },
+              },
+              children: [
+                // Title
+                new Paragraph({
+                  children: [
+                    new TextRun({
+                      text: artifact.title || '数据文档',
+                      heading: HeadingLevel.TITLE,
+                      font: 'Arial',
+                      size: 48,
+                      bold: true,
+                      color: '1B3A6B',
+                    }),
+                  ],
+                  alignment: AlignmentType.CENTER,
+                  spacing: { after: 200 },
+                }),
+                // Subtitle
+                new Paragraph({
+                  children: [
+                    new TextRun({
+                      text: `生成时间: ${new Date().toLocaleString('zh-CN')}`,
+                      font: 'Arial',
+                      size: 20,
+                      color: '666666',
+                      italics: true,
+                    }),
+                  ],
+                  alignment: AlignmentType.CENTER,
+                  spacing: { after: 400 },
+                }),
+                // Table
+                new Table({
+                  width: { size: 100, type: WidthType.PERCENTAGE },
+                  rows: [headerRow, ...dataTableRows],
+                }),
+              ],
+            }],
+          });
+
+          const buffer = await Packer.toBuffer(doc);
+          downloadFile(buffer, filename, 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
+          break;
+        }
+
+        case 'pptx': {
+          // Parse content into rows
+          let rows: string[][];
+          if (content.includes('\t')) {
+            rows = content.split('\n').filter(r => r.trim()).map(r => r.split('\t').map(c => c.trim()));
+          } else if (content.includes(',')) {
+            rows = content.split('\n').filter(r => r.trim()).map(r => r.split(',').map(c => c.trim()));
+          } else {
+            rows = content.split('\n').filter(r => r.trim()).map(r => [r.trim()]);
+          }
+
+          if (rows.length === 0) {
+            antMessage.error('没有可生成的内容');
+            return;
+          }
+
+          const pptx = new pptxgen();
+          pptx.title = artifact.title || '数据演示文稿';
+          pptx.author = 'Claude Chat';
+          pptx.subject = artifact.title || 'Generated Data';
+
+          // Title slide
+          const titleSlide = pptx.addSlide();
+          titleSlide.addText(artifact.title || '数据演示文稿', {
+            x: 0.5, y: 2, w: 9, h: 1.5,
+            fontSize: 44, fontFace: 'Arial', bold: true,
+            color: '1E6091', align: 'center',
+          });
+          titleSlide.addText(`生成时间: ${new Date().toLocaleString('zh-CN')}`, {
+            x: 0.5, y: 3.8, w: 9, h: 0.5,
+            fontSize: 16, fontFace: 'Arial',
+            color: '666666', align: 'center',
+          });
+
+          // Table slide
+          const tableSlide = pptx.addSlide();
+          tableSlide.addText(artifact.title || '数据表格', {
+            x: 0.5, y: 0.3, w: 9, h: 0.7,
+            fontSize: 28, fontFace: 'Arial', bold: true,
+            color: '1B3A6B',
+          });
+
+          // Style for table
+          const tableRows = rows.map((row, rowIdx) => {
+            return row.map((cell, colIdx) => ({
+              text: cell,
+              options: {
+                fill: rowIdx === 0 ? '1E6091' : (rowIdx % 2 === 1 ? 'E8F4FD' : 'FFFFFF'),
+                color: rowIdx === 0 ? 'FFFFFF' : '333333',
+                bold: rowIdx === 0,
+                fontFace: 'Arial',
+                fontSize: 12,
+                align: 'left',
+                valign: 'middle',
+              },
+            }));
+          });
+
+          tableSlide.addTable(tableRows, {
+            x: 0.5, y: 1.2, w: 9, h: 5.5,
+            border: { pt: 0.5, color: 'CCCCCC' },
+            colW: rows[0].map((_, i) => 9 / rows[0].length),
+          });
+
+          const pptxBuffer = await pptx.writeFile({ fileName: 'temp.pptx' }) as ArrayBuffer;
+          downloadFile(pptxBuffer, filename, 'application/vnd.openxmlformats-officedocument.presentationml.presentation');
+          break;
+        }
+
+        case 'pdf': {
+          // Parse content into rows
+          let rows: string[][];
+          if (content.includes('\t')) {
+            rows = content.split('\n').filter(r => r.trim()).map(r => r.split('\t').map(c => c.trim()));
+          } else if (content.includes(',')) {
+            rows = content.split('\n').filter(r => r.trim()).map(r => r.split(',').map(c => c.trim()));
+          } else {
+            rows = content.split('\n').filter(r => r.trim()).map(r => [r.trim()]);
+          }
+
+          if (rows.length === 0) {
+            antMessage.error('没有可生成的内容');
+            return;
+          }
+
+          const doc = new jsPDF();
+          const pageWidth = doc.internal.pageSize.getWidth();
+
+          // Title
+          doc.setFontSize(24);
+          doc.setTextColor(30, 96, 145); // #1E6091
+          doc.setFont('helvetica', 'bold');
+          doc.text(artifact.title || '数据文档', pageWidth / 2, 20, { align: 'center' });
+
+          // Subtitle
+          doc.setFontSize(10);
+          doc.setTextColor(102, 102, 102);
+          doc.setFont('helvetica', 'normal');
+          doc.text(`生成时间: ${new Date().toLocaleString('zh-CN')}`, pageWidth / 2, 28, { align: 'center' });
+
+          // Table
+          const startY = 40;
+          const colCount = rows[0].length;
+          const colWidth = (pageWidth - 20) / colCount;
+          const rowHeight = 10;
+
+          // Header
+          doc.setFillColor(30, 96, 145); // #1E6091
+          doc.setTextColor(255, 255, 255);
+          doc.setFont('helvetica', 'bold');
+          doc.setFontSize(10);
+
+          rows[0].forEach((cell, i) => {
+            doc.rect(10 + i * colWidth, startY, colWidth, rowHeight, 'F');
+            doc.text(String(cell).substring(0, 20), 10 + i * colWidth + 2, startY + 7);
+          });
+
+          // Data rows
+          doc.setFont('helvetica', 'normal');
+          doc.setFontSize(9);
+
+          rows.slice(1).forEach((row, rowIdx) => {
+            const y = startY + (rowIdx + 1) * rowHeight;
+            const fillColor = rowIdx % 2 === 0 ? [232, 244, 253] : [255, 255, 255]; // #E8F4FD or white
+            doc.setFillColor(fillColor[0], fillColor[1], fillColor[2]);
+            doc.setTextColor(51, 51, 51);
+
+            row.forEach((cell, i) => {
+              doc.rect(10 + i * colWidth, y, colWidth, rowHeight, 'F');
+              doc.text(String(cell).substring(0, 25), 10 + i * colWidth + 2, y + 7);
+            });
+          });
+
+          const pdfBuffer = doc.output('arraybuffer');
+          downloadFile(pdfBuffer, filename, 'application/pdf');
+          break;
+        }
+
+        default:
+          antMessage.error('不支持的格式');
       }
+
+      antMessage.success(`${option.label} 生成成功！`);
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       antMessage.error(`生成失败: ${msg}`);
@@ -216,7 +562,7 @@ export default function ArtifactViewer({ artifact, onClose }: ArtifactViewerProp
 
   const tabs: { key: 'code' | 'preview'; label: string; show: boolean }[] = [
     { key: 'code', label: 'Code', show: true },
-    { key: 'preview', label: 'Preview', show: !isPython && !isReact },
+    { key: 'preview', label: 'Preview', show: !isPython && !isReact && !isTable },
   ];
 
   const [showDownloadMenu, setShowDownloadMenu] = useState(false);
@@ -331,7 +677,48 @@ export default function ArtifactViewer({ artifact, onClose }: ArtifactViewerProp
       </div>
 
       <div className="artifact-content">
-        {activeTab === 'code' ? (
+        {isTable && headers.length > 0 ? (
+          <div className="table-container" style={{ padding: '16px', overflow: 'auto', height: '100%' }}>
+            <table style={{
+              width: '100%',
+              borderCollapse: 'collapse',
+              fontSize: '14px',
+              fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+            }}>
+              <thead>
+                <tr>
+                  {headers.map((header, i) => (
+                    <th key={i} style={{
+                      padding: '12px 16px',
+                      textAlign: 'left',
+                      background: theme === 'dark' ? '#2a2a2a' : '#f5f5f5',
+                      borderBottom: '2px solid ' + (theme === 'dark' ? '#444' : '#ddd'),
+                      fontWeight: '600',
+                      color: theme === 'dark' ? '#fff' : '#333',
+                    }}>
+                      {header}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map((row, i) => (
+                  <tr key={i}>
+                    {row.map((cell, j) => (
+                      <td key={j} style={{
+                        padding: '10px 16px',
+                        borderBottom: '1px solid ' + (theme === 'dark' ? '#333' : '#eee'),
+                        color: theme === 'dark' ? '#ccc' : '#333',
+                      }}>
+                        {cell || '\u00A0'}
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : activeTab === 'code' ? (
           <div className="code-container">
             <SyntaxHighlighter
               language={language}

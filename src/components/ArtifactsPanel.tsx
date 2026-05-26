@@ -12,7 +12,7 @@ interface ArtifactsPanelProps {
   onSelectArtifact?: (artifact: Artifact) => void;
 }
 
-const ARTIFACT_TYPES = ['All', 'code', 'react', 'html', 'svg', 'document'];
+const ARTIFACT_TYPES = ['All', 'code', 'react', 'html', 'svg', 'document', 'table'];
 const TYPE_LABELS: Record<string, string> = {
   'All': 'All Types',
   'code': 'Code',
@@ -20,6 +20,7 @@ const TYPE_LABELS: Record<string, string> = {
   'html': 'HTML',
   'svg': 'SVG',
   'document': 'Document',
+  'table': 'Table',
 };
 
 function loadArtifacts(): Artifact[] {

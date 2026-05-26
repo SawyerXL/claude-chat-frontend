@@ -49,6 +49,7 @@ function getDefaultTitle(type: string): string {
     'html-react': 'React Component',
     '_generative': 'Generative Art',
     'notebook': 'Notebook',
+    'table': 'Data Table',
   };
   return titles[type] || 'Code';
 }

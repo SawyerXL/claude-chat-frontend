@@ -46,7 +46,7 @@ export const DEFAULT_MODEL_SETTINGS: ModelSettings = {
 
 export interface Artifact {
   id: string;
-  type: 'react' | 'html' | 'svg' | 'python' | 'html-react' | '_generative' | 'notebook';
+  type: 'react' | 'html' | 'svg' | 'python' | 'html-react' | '_generative' | 'notebook' | 'table';
   title: string;
   content: string;
   language?: string;
