@@ -227,6 +227,10 @@
   color: var(--text-primary);
 }
 
+.recent-item.hovered {
+  background: rgba(255, 255, 255, 0.08);
+}
+
 .recent-item.active {
   background: rgba(255, 255, 255, 0.08);
   color: var(--text-primary);
@@ -239,6 +243,7 @@
   gap: 0;
   flex: 1;
   min-width: 0;
+  position: relative;
 }
 
 .recent-title {
@@ -246,6 +251,55 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.recent-actions {
+  display: flex;
+  gap: 2px;
+  margin-left: auto;
+  flex-shrink: 0;
+  padding-left: 8px;
+}
+
+.action-btn {
+  width: 24px;
+  height: 24px;
+  border: none;
+  background: transparent;
+  color: var(--text-tertiary);
+  border-radius: 4px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+  font-size: 12px;
+}
+
+.action-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--text-primary);
+}
+
+.action-btn.delete:hover {
+  background: rgba(220, 53, 69, 0.2);
+  color: #f5b7b1;
+}
+
+.rename-input {
+  flex: 1;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--accent-color);
+  border-radius: 4px;
+  padding: 2px 8px;
+  font-size: 14px;
+  color: var(--text-primary);
+}
+
+.rename-input:focus {
+  outline: none;
+  border-color: var(--accent-color);
+  box-shadow: 0 0 0 2px rgba(22, 186, 170, 0.2);
 }
 
 .empty-conversations {

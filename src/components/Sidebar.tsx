@@ -16,8 +16,11 @@ import {
   LeftOutlined,
   HolderOutlined,
   BulbOutlined,
+  StarOutlined,
+  CheckOutlined,
+  SwapOutlined,
 } from '@ant-design/icons';
-import { Tooltip, Dropdown, type MenuProps } from 'antd';
+import { Tooltip, Dropdown, type MenuProps, Modal, Input } from 'antd';
 import type { ChatSession } from '../types';
 import type { User } from '../services/auth';
 import { logout } from '../services/auth';
@@ -43,6 +46,8 @@ interface SidebarProps {
   onOpenCustomize?: () => void;
   onOpenMemory?: () => void;
   loggedIn?: boolean;
+  mobileOpen?: boolean;
+  onMobileClose?: () => void;
 }
 
 const NAV_ITEMS = [
@@ -114,11 +119,17 @@ export default function Sidebar({
   onOpenCode,
   onOpenCustomize,
   loggedIn = false,
+  mobileOpen = false,
+  onMobileClose,
 }: SidebarProps) {
   const [collapsed, setCollapsed] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showProjects, setShowProjects] = useState(false);
   const [showMemory, setShowMemory] = useState(false);
+  const [hoveredSession, setHoveredSession] = useState<string | null>(null);
+  const [renamingSession, setRenamingSession] = useState<string | null>(null);
+  const [renameValue, setRenameValue] = useState('');
+  const [deleteTarget, setDeleteTarget] = useState<ChatSession | null>(null);
 
   // Filter sessions by project
   const filteredSessions = activeProjectId
@@ -153,11 +164,13 @@ export default function Sidebar({
       label: '查看 API Key',
       onClick: () => {
         const apiKey = localStorage.getItem('claude_api_key');
+        console.log('[Sidebar] claude_api_key from localStorage:', apiKey);
+        console.log('[Sidebar] All localStorage keys:', Object.keys(localStorage));
         if (apiKey) {
           navigator.clipboard.writeText(apiKey);
           alert(`API Key 已复制到剪贴板:\n${apiKey}`);
         } else {
-          alert('暂无 API Key，请联系管理员获取');
+          alert('暂无 API Key，请联系管理员获取\n\n调试信息:\n所有存储: ' + JSON.stringify(Object.keys(localStorage).reduce((acc, k) => { if (k.includes('claude') || k.includes('token') || k.includes('key')) acc[k] = localStorage.getItem(k); return acc; }, {})));
         }
       },
     },
@@ -185,26 +198,96 @@ export default function Sidebar({
 
   const renderConvItem = (session: ChatSession) => {
     const isActive = activeChat === session.id;
+    const isHovered = hoveredSession === session.id;
+    const isRenaming = renamingSession === session.id;
+
+    // Context menu items with icons
     const menuItems: MenuProps['items'] = [
-      { key: 'star', label: '标星' },
+      { key: 'star', icon: <StarOutlined />, label: '标星', onClick: () => console.log('Star:', session.id) },
       { type: 'divider' as const },
       { key: 'rename', icon: <EditOutlined />, label: '重命名', onClick: () => {
-        const newTitle = prompt('输入新标题:', session.title);
-        if (newTitle && newTitle.trim()) onRenameChat(session.id, newTitle.trim());
+        setRenamingSession(session.id);
+        setRenameValue(session.title);
       }},
-      { key: 'add-project', label: '添加到项目' },
+      { key: 'branch', icon: <SwapOutlined />, label: '分支对话', onClick: () => onBranchChat?.(session.id) },
       { type: 'divider' as const },
-      { key: 'delete', icon: <DeleteOutlined />, label: '删除', danger: true, onClick: () => onDeleteChat(session.id) },
+      { key: 'delete', icon: <DeleteOutlined />, label: '删除', danger: true, onClick: () => {
+        setDeleteTarget(session);
+      }},
     ];
 
+    // Handle rename submit
+    const handleRenameSubmit = () => {
+      if (renameValue.trim() && renamingSession) {
+        onRenameChat(renamingSession, renameValue.trim());
+      }
+      setRenamingSession(null);
+      setRenameValue('');
+    };
+
+    // Handle rename cancel
+    const handleRenameCancel = () => {
+      setRenamingSession(null);
+      setRenameValue('');
+    };
+
     return (
-      <Dropdown key={session.id} menu={{ items: menuItems }} trigger={['contextMenu']} placement="bottomLeft">
-        <div className={`recent-item ${isActive ? 'active' : ''}`} onClick={() => onSelectChat(session.id)}>
-          <div className="recent-item-content">
-            <div className="recent-title">{session.title}</div>
+      <>
+        <Dropdown key={session.id} menu={{ items: menuItems }} trigger={['contextMenu']} placement="bottomLeft">
+          <div
+            className={`recent-item ${isActive ? 'active' : ''} ${isHovered ? 'hovered' : ''}`}
+            onClick={() => !isRenaming && onSelectChat(session.id)}
+            onMouseEnter={() => setHoveredSession(session.id)}
+            onMouseLeave={() => setHoveredSession(null)}
+          >
+            <div className="recent-item-content">
+              {isRenaming ? (
+                <Input
+                  className="rename-input"
+                  value={renameValue}
+                  onChange={(e) => setRenameValue(e.target.value)}
+                  onPressEnter={handleRenameSubmit}
+                  onBlur={handleRenameSubmit}
+                  onClick={(e) => e.stopPropagation()}
+                  autoFocus
+                  size="small"
+                />
+              ) : (
+                <>
+                  <div className="recent-title">{session.title}</div>
+                  {isHovered && !collapsed && (
+                    <div className="recent-actions" onClick={(e) => e.stopPropagation()}>
+                      <Tooltip title="重命名">
+                        <button
+                          className="action-btn"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setRenamingSession(session.id);
+                            setRenameValue(session.title);
+                          }}
+                        >
+                          <EditOutlined />
+                        </button>
+                      </Tooltip>
+                      <Tooltip title="删除">
+                        <button
+                          className="action-btn delete"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setDeleteTarget(session);
+                          }}
+                        >
+                          <DeleteOutlined />
+                        </button>
+                      </Tooltip>
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
           </div>
-        </div>
-      </Dropdown>
+        </Dropdown>
+      </>
     );
   };
 
@@ -219,7 +302,14 @@ export default function Sidebar({
   };
 
   return (
-    <aside className={`sidebar ${collapsed ? 'collapsed' : ''}`}>
+    <>
+      {/* Mobile overlay */}
+      <div
+        className={`sidebar-overlay ${mobileOpen ? 'active' : ''}`}
+        onClick={onMobileClose}
+      />
+
+      <aside className={`sidebar ${collapsed ? 'collapsed' : ''} ${mobileOpen ? 'mobile-open' : ''}`}>
       {!collapsed && (
           <>
             <div className="sidebar-header">
@@ -329,6 +419,26 @@ export default function Sidebar({
             </div>
           </Dropdown>
         </div>
+
+        {/* Delete Confirmation Modal */}
+        <Modal
+          title="删除对话"
+          open={!!deleteTarget}
+          onOk={() => {
+            if (deleteTarget) {
+              onDeleteChat(deleteTarget.id);
+              setDeleteTarget(null);
+            }
+          }}
+          onCancel={() => setDeleteTarget(null)}
+          okText="删除"
+          cancelText="取消"
+          okButtonProps={{ danger: true }}
+        >
+          <p>确定要删除对话 "<strong>{deleteTarget?.title}</strong>" 吗？</p>
+          <p style={{ color: 'var(--text-tertiary)', fontSize: '13px', marginTop: '8px' }}>此操作无法撤销。</p>
+        </Modal>
       </aside>
+    </>
   );
 }

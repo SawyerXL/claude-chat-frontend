@@ -5,6 +5,7 @@ import {
   StarOutlined,
   DownOutlined,
   EditOutlined,
+  MenuOutlined,
 } from '@ant-design/icons';
 import Sidebar from './components/Sidebar';
 import WelcomePage from './components/WelcomePage';
@@ -31,6 +32,7 @@ import { initTheme, toggleTheme as toggleThemeService } from './services/theme';
 import type { User } from './services/auth';
 import { useKeyboardShortcuts, DEFAULT_SHORTCUTS } from './hooks/useKeyboardShortcuts';
 import './App.css';
+import './styles/mobile.css';
 
 const MODEL_ID_MAP: Record<string, string> = {
   'opus-4-7': 'claude-opus-4-7',
@@ -74,6 +76,7 @@ export default function App() {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [skillPanelOpen, setSkillPanelOpen] = useState(false);
   const [sidebarTab, setSidebarTab] = useState<string>('chats');
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [artifactsOpen, setArtifactsOpen] = useState(false);
   const [codeOpen, setCodeOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
@@ -594,6 +597,8 @@ ${promptOrSystemPrompt ? `\n用户需求：${promptOrSystemPrompt}` : ''}
         onOpenCustomize={() => setSettingsOpen(true)}
         onOpenSearch={() => setSearchOpen(true)}
         loggedIn={loggedIn}
+        mobileOpen={sidebarOpen}
+        onMobileClose={() => setSidebarOpen(false)}
       />
 
       <main className="main-content">
@@ -616,6 +621,9 @@ ${promptOrSystemPrompt ? `\n用户需求：${promptOrSystemPrompt}` : ''}
             </div>
           ) : (
             <div className="header-title" onClick={hasConversation ? handleEditTitle : undefined}>
+              <button className="sidebar-toggle-mobile" style={{ display: 'none' }} onClick={() => setSidebarOpen(true)}>
+                <MenuOutlined />
+              </button>
               <span>{currentTitle}</span>
               {hasConversation && <DownOutlined style={{ fontSize: 10, color: 'var(--text-tertiary)' }} />}
             </div>

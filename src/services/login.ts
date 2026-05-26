@@ -37,6 +37,9 @@ export async function login(username: string, password: string): Promise<LoginRe
       localStorage.setItem('claude_auth_token', token);
       localStorage.setItem('claude_user', JSON.stringify(data.data.user || { username }));
 
+      // 清除旧的 API Key，确保使用当前用户的 key
+      localStorage.removeItem('claude_api_key');
+
       // 获取用户的 API Key 列表，使用第一个可用的 key
       try {
         const keysRes = await fetch('/api/v1/keys?page=1&page_size=10', {
@@ -45,13 +48,36 @@ export async function login(username: string, password: string): Promise<LoginRe
           },
         });
         const keysData = await keysRes.json();
-        if (keysData.code === 0 && keysData.data?.list?.length > 0) {
+        console.log('[login] Keys response:', JSON.stringify(keysData, null, 2));
+
+        // API 返回格式: { data: { items: [...] } }
+        // 尝试多种可能的响应格式
+        let keyList = keysData.data?.items || keysData.data?.list || keysData.data?.keys || [];
+        if (!Array.isArray(keyList)) {
+          // 如果 data 不是数组，可能是直接的对象
+          if (typeof keysData.data === 'object' && keysData.data !== null && Array.isArray(keysData.data.items)) {
+            keyList = keysData.data.items;
+          }
+        }
+
+        console.log('[login] keyList extracted:', keyList);
+
+        if (keysData.code === 0 && keyList.length > 0) {
           // 使用第一个启用状态的 API Key
-          const activeKey = keysData.data.list.find((k: any) => k.status === 'active') || keysData.data.list[0];
-          localStorage.setItem('claude_api_key', activeKey.key);
+          const activeKey = keyList.find((k: any) => k.status === 'active') || keyList[0];
+          console.log('[login] activeKey:', activeKey);
+          if (activeKey && (activeKey.key || activeKey.api_key || activeKey.value)) {
+            const apiKey = activeKey.key || activeKey.api_key || activeKey.value;
+            localStorage.setItem('claude_api_key', apiKey);
+            console.log('[login] API Key set:', apiKey.substring(0, 8) + '...');
+          } else {
+            console.warn('[login] Key object has no key field:', activeKey);
+          }
+        } else {
+          console.warn('[login] No API keys found, keysData:', keysData);
         }
       } catch (e) {
-        console.log('Failed to fetch API keys:', e);
+        console.log('[login] Failed to fetch API keys, key cleared:', e);
       }
 
       return { ok: true, username: data.data.user?.email || username };
