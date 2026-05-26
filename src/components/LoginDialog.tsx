@@ -62,7 +62,7 @@ export default function LoginDialog({ open, onCancel, onSuccess }: LoginDialogPr
     >
       <div className="login-container">
         <div className="login-header">
-          <div className="logo-icon">C</div>
+          <img src="/favicon.svg" alt="Claude" className="logo-icon" width="48" height="48" />
           <h1 className="login-title">欢迎回来</h1>
           <p className="login-subtitle">登录您的账户以继续</p>
         </div>

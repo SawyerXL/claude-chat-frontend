@@ -799,7 +799,9 @@ export default function ChatView({
               }}
             >
               {m.role === 'assistant' && (
-                <div className="message-avatar assistant">C</div>
+                <div className="message-avatar assistant">
+                  <img src="/favicon.svg" alt="Claude" />
+                </div>
               )}
               <div className="message-body">
                 {m.role === 'user' && (

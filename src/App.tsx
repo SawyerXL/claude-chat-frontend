@@ -20,6 +20,7 @@ import LoginDialog from './components/LoginDialog';
 // import LoginPage from './components/LoginPage';
 import Settings from './components/Settings';
 import SkillPanel from './components/SkillPanel';
+import { SKILLS_REGISTRY } from './skills/registry';
 import type { ChatMessage, ChatSession } from './types';
 import { MODELS } from './constants';
 import { sendChatMessageStream } from './services/api';
@@ -321,6 +322,18 @@ export default function App() {
       await persistSession(sessionId, [...nextMessages, { ...assistantMsg, content: fullResponse, thinking: fullThinking || undefined }], model);
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
+      // Ignore abort errors (user stopped the request)
+      if (msg === 'Aborted' || msg === 'The user aborted the request' || msg.includes('abort')) {
+        setMessages((prev) => {
+          const updated = [...prev];
+          const lastIndex = updated.length - 1;
+          if (lastIndex >= 0 && updated[lastIndex].role === 'assistant' && !updated[lastIndex].content) {
+            updated[lastIndex] = { ...updated[lastIndex], content: '(已停止)' };
+          }
+          return updated;
+        });
+        return;
+      }
       antMessage.error(`请求失败: ${msg}`);
       setMessages((prev) => {
         const updated = [...prev];
@@ -424,6 +437,54 @@ export default function App() {
       }
     } catch (err) {
       console.error('Failed to branch session:', err);
+    }
+  };
+
+  // Handle skill activation
+  const handleUseSkill = (skillKey: string, promptOrSystemPrompt?: string) => {
+    // Find the skill from registry
+    const skill = SKILLS_REGISTRY.find(s => s.id === skillKey);
+    
+    if (skill) {
+      // If systemPrompt is provided (for direct activation), use it
+      // Otherwise, construct the activation message
+      let activationContext: string;
+      
+      if (promptOrSystemPrompt && !promptOrSystemPrompt.includes('描述你的')) {
+        // It's a system prompt
+        activationContext = promptOrSystemPrompt;
+      } else {
+        // It's a user prompt or we need to create activation message
+        activationContext = `【技能激活】${skill.icon} ${skill.name}
+
+${skill.systemPrompt}
+
+${promptOrSystemPrompt ? `\n用户需求：${promptOrSystemPrompt}` : ''}
+
+请确认技能已激活，并询问用户具体需求。`;
+      }
+
+      // Add as a user message with skill context
+      const skillMsg: ChatMessage = {
+        id: `skill-${Date.now()}`,
+        role: 'user',
+        content: activationContext,
+        timestamp: Date.now(),
+      };
+
+      // Start a new chat with this context or add to existing
+      if (messages.length === 0) {
+        const newSessionId = `s-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+        setActiveChat(newSessionId);
+        setMessages([skillMsg]);
+      } else {
+        setMessages(prev => [...prev, skillMsg]);
+      }
+      
+      setModel(MODELS[1].id);
+      antMessage.success(`${skill.name} 技能已激活！`);
+    } else {
+      antMessage.error(`未找到技能: ${skillKey}`);
     }
   };
 
@@ -634,7 +695,11 @@ export default function App() {
         session={sessions.find(s => s.id === activeChat)}
       />
       <Settings open={settingsOpen} onClose={() => setSettingsOpen(false)} onThemeChange={(theme) => { setTheme(theme); document.documentElement.setAttribute('data-theme', theme); }} />
-      <SkillPanel open={skillPanelOpen} onClose={() => setSkillPanelOpen(false)} />
+      <SkillPanel 
+        open={skillPanelOpen} 
+        onClose={() => setSkillPanelOpen(false)} 
+        onUseSkill={handleUseSkill}
+      />
       <ArtifactsPanel open={artifactsOpen} onClose={() => setArtifactsOpen(false)} />
       <CodePanel open={codeOpen} onClose={() => setCodeOpen(false)} />
       <SearchPanel open={searchOpen} onClose={() => setSearchOpen(false)} onSelectChat={handleSelectChat} />

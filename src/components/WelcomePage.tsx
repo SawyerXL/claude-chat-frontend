@@ -178,21 +178,8 @@ export default function WelcomePage({ onSend, model, onModelChange, user, onOpen
   return (
     <div className="welcome-container">
       <div className="welcome-inner">
-        {/* User Greeting */}
+        {/* User Greeting - Official Claude style */}
         <div className="welcome-greeting-main">
-          <div className="greeting-icon">
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <rect width="24" height="24" rx="6" fill="url(#gradient)"/>
-              <circle cx="12" cy="12" r="3" fill="#fff"/>
-              <path d="M12 8v1M12 15v1M8 12h1M15 12h1" stroke="#fff" strokeWidth="1.5" strokeLinecap="round"/>
-              <defs>
-                <linearGradient id="gradient" x1="0" y1="0" x2="24" y2="24">
-                  <stop offset="0%" stopColor="#8b5cf6"/>
-                  <stop offset="100%" stopColor="#d946ef"/>
-                </linearGradient>
-              </defs>
-            </svg>
-          </div>
           <span>{getGreeting()}，{displayName}</span>
         </div>
 

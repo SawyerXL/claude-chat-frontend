@@ -1,9 +1,26 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
-import chatApiPlugin from './vite-chat-plugin'
-import sessionApiPlugin from './vite-session-plugin'
 
-// https://vite.dev/config/
 export default defineConfig({
-  plugins: [react(), chatApiPlugin(), sessionApiPlugin()],
+  plugins: [
+    react({
+      babel: {
+        plugins: []
+      }
+    })
+  ],
+  build: {
+    outDir: 'dist',
+    minify: false,
+    sourcemap: false,
+    rollupOptions: {
+      output: {
+        manualChunks: undefined
+      }
+    }
+  },
+  esbuild: {
+    jsxFactory: 'React.createElement',
+    jsxFragment: 'React.Fragment'
+  }
 })

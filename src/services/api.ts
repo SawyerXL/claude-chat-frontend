@@ -1,5 +1,6 @@
 import type { ChatMessage, ModelSettings } from '../types';
 import { formatMemoryForContext } from './memory';
+import { generateSkillsSystemPrompt } from '../skills/registry';
 
 export interface ThinkingBlock {
   thinking: string;
@@ -109,11 +110,12 @@ export async function* sendChatMessageStream(
   // Load custom instructions and memory
   const customInstructions = loadCustomInstructions();
   const memoryContext = formatMemoryForContext();
+  const skillsContext = generateSkillsSystemPrompt();
   let apiMessages: ApiMessage[] = messages.map(toApiMessage);
 
   // Prepend system message with model info
   const modelDisplayName = model.replace('claude-', '');
-  const systemPrompt = `[System Info] You are running on model: ${modelDisplayName}. When user asks what model you are, respond with: "当前模型: ${modelDisplayName}"${memoryContext ? '\n\n' + memoryContext : ''}`;
+  const systemPrompt = `[System Info] You are running on model: ${modelDisplayName}. When user asks what model you are, respond with: "当前模型: ${modelDisplayName}"${memoryContext ? '\n\n' + memoryContext : ''}${skillsContext}`;
 
   // Prepend memory context to first user message
   if (memoryContext) {

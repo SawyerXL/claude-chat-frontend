@@ -5,51 +5,67 @@
   background: var(--bg-primary);
 }
 
-/* Sidebar */
+/* Sidebar - Official Claude Style */
 .sidebar {
   width: var(--sidebar-width);
-  background: var(--bg-secondary);
+  background: var(--bg-primary);
   display: flex;
   flex-direction: column;
-  border-right: 1px solid var(--border-color);
+  border-right: 1px solid rgba(255, 255, 255, 0.08);
   transition: width 0.2s ease;
   flex-shrink: 0;
+  position: relative;
+  z-index: 100;
+  height: 100vh;
+  overflow: hidden;
 }
 
 .sidebar.collapsed {
-  width: 60px;
+  width: 48px;
+  min-width: 48px;
+  overflow: hidden;
+}
+
+.sidebar.collapsed > *:not(.sidebar-header-collapsed) {
+  display: none !important;
 }
 
 .sidebar-header {
-  padding: 14px 16px;
+  padding: 12px 12px;
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  gap: 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.sidebar-top-section {
+  padding: 8px 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.sidebar-header-collapsed {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px;
 }
 
 .sidebar-logo {
   display: flex;
   align-items: center;
   gap: 8px;
-  font-weight: 600;
-  font-size: 16px;
+  font-weight: 500;
+  font-size: 14px;
   color: var(--text-primary);
 }
 
 .sidebar-logo-icon {
-  width: 28px;
-  height: 28px;
+  width: 24px;
+  height: 24px;
   border-radius: 6px;
-  background: #d4a574;
   display: flex;
   align-items: center;
   justify-content: center;
-  overflow: hidden;
-}
-
-.sidebar-logo-icon svg {
-  width: 20px;
-  height: 20px;
 }
 
 .sidebar-toggle {
@@ -57,15 +73,74 @@
   border: none;
   color: var(--text-secondary);
   cursor: pointer;
-  padding: 4px;
+  padding: 6px;
   border-radius: 6px;
   display: flex;
   align-items: center;
   justify-content: center;
+  transition: all 0.15s;
 }
 
 .sidebar-toggle:hover {
-  background: var(--bg-hover);
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--text-primary);
+}
+
+/* Collapsed header with chat title - Official Claude Style */
+.sidebar-collapsed-header {
+  position: fixed;
+  top: 12px;
+  left: 12px;
+  z-index: 1003;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--bg-primary);
+  padding: 4px 12px 4px 4px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.collapsed-chat-title {
+  font-size: 14px;
+  font-weight: 400;
+  color: var(--text-primary);
+  max-width: 180px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Sidebar header with chat title when expanded */
+.sidebar-chat-title {
+  font-size: 14px;
+  font-weight: 400;
+  color: var(--text-primary);
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Floating toggle button when collapsed */
+.sidebar-floating-toggle {
+  width: 32px;
+  height: 32px;
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  transition: all 0.15s ease;
+}
+
+.sidebar-floating-toggle:hover {
+  background: rgba(255, 255, 255, 0.1);
   color: var(--text-primary);
 }
 
@@ -125,74 +200,59 @@
 .sidebar-recents {
   flex: 1;
   overflow-y: auto;
-  padding: 0 12px;
+  padding: 0;
+}
+
+.sidebar-conversations {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0;
 }
 
 .recent-item {
-  padding: 8px 10px;
-  border-radius: 8px;
+  padding: 8px 16px;
   color: var(--text-secondary);
-  font-size: 13px;
+  font-size: 14px;
   cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 10px;
+  display: block;
   transition: background 0.15s ease;
   position: relative;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .recent-item:hover {
-  background: var(--bg-hover);
+  background: rgba(255, 255, 255, 0.05);
   color: var(--text-primary);
 }
 
 .recent-item.active {
-  background: var(--bg-hover);
+  background: rgba(255, 255, 255, 0.08);
   color: var(--text-primary);
+  font-weight: 500;
 }
 
 .recent-item-content {
   display: flex;
-  align-items: flex-start;
-  gap: 10px;
-  flex: 1;
-  min-width: 0;
-}
-
-.recent-icon {
-  width: 20px;
-  height: 20px;
-  border-radius: 4px;
-  background: var(--bg-tertiary);
-  display: flex;
   align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  color: var(--text-tertiary);
-  font-size: 11px;
-}
-
-.recent-item.active .recent-icon {
-  background: var(--accent);
-  color: #fff;
-}
-
-.recent-info {
+  gap: 0;
   flex: 1;
   min-width: 0;
 }
 
 .recent-title {
+  flex: 1;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  font-size: 13px;
 }
 
-.recent-time {
-  font-size: 11px;
+.empty-conversations {
+  padding: 24px 16px;
+  text-align: center;
   color: var(--text-tertiary);
-  margin-top: 2px;
+  font-size: 13px;
 }
 
 .recent-delete {

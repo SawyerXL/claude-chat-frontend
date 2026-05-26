@@ -1,97 +1,139 @@
-/* Chat view */
+/* ============================================
+   Chat View - Claude Official Style
+   ============================================ */
+
 .chat-container {
   flex: 1;
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  height: 100%;
+  background: var(--bg-primary);
 }
 
+/* Scrollbar - thin, elegant style like Claude */
 .chat-messages {
   flex: 1;
   overflow-y: auto;
+  overflow-x: hidden;
   padding: 24px 0;
+  scroll-behavior: smooth;
+  /* Smooth momentum scrolling on iOS/macOS */
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+}
+
+/* Custom scrollbar */
+.chat-messages::-webkit-scrollbar {
+  width: 8px;
+}
+
+.chat-messages::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.chat-messages::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+
+.chat-messages::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.2);
+  border: 2px solid transparent;
+  background-clip: padding-box;
 }
 
 .chat-messages-inner {
-  max-width: 760px;
+  max-width: 800px;
   margin: 0 auto;
   padding: 0 24px;
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 24px;
 }
 
-.message-content {
-  max-height: 500px;
-  overflow-y: auto;
-  word-break: break-word;
-}
-
-.message-content::-webkit-scrollbar {
-  width: 6px;
-}
-
-.message-content::-webkit-scrollbar-thumb {
-  background: var(--border-color);
-  border-radius: 3px;
-}
-
-.message-content::-webkit-scrollbar-track {
-  background: transparent;
-}
-
+/* Message layout */
 .chat-message {
   display: flex;
-  gap: 14px;
+  gap: 16px;
+  animation: message-appear 0.2s ease-out;
+}
+
+@keyframes message-appear {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .chat-message.user {
   flex-direction: row-reverse;
 }
 
+/* User message bubble */
 .chat-message.user .message-body {
-  background: var(--bg-tertiary);
-  padding: 12px 16px;
-  border-radius: 16px;
-  max-width: 75%;
+  background: rgba(255, 255, 255, 0.08);
+  padding: 10px 14px;
+  border-radius: 18px;
+  border-bottom-right-radius: 4px;
+  max-width: 85%;
+  word-break: break-word;
 }
 
 .chat-message.user .message-header {
-  margin-bottom: 4px;
+  display: none;
 }
 
-.message-sender {
-  font-size: 12px;
-  color: var(--text-tertiary);
-}
-
+/* Assistant message */
 .chat-message.assistant .message-body {
   flex: 1;
   padding-top: 2px;
+  min-width: 0;
 }
 
+/* Avatar */
 .message-avatar {
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
   flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-weight: 600;
-  font-size: 12px;
+  overflow: hidden;
+  background: var(--bg-secondary);
 }
 
 .message-avatar.assistant {
-  background: var(--accent);
-  color: #fff;
+  padding: 4px;
 }
 
+.message-avatar.assistant img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.message-avatar.user-avatar {
+  background: rgba(255, 255, 255, 0.15);
+  font-size: 12px;
+  font-weight: 600;
+  border-radius: 50%;
+}
+
+/* Message content */
 .message-content {
   color: var(--text-primary);
   font-size: 15px;
-  line-height: 1.7;
+  line-height: 1.65;
   word-break: break-word;
+  overflow-wrap: break-word;
 }
 
 .message-content > *:first-child {
@@ -100,6 +142,29 @@
 
 .message-content > *:last-child {
   margin-bottom: 0;
+}
+
+/* Inner scrollbar for code blocks, etc */
+.message-content pre,
+.message-content .code-block {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
+}
+
+.message-content pre::-webkit-scrollbar,
+.message-content .code-block::-webkit-scrollbar {
+  height: 6px;
+}
+
+.message-content pre::-webkit-scrollbar-track,
+.message-content .code-block::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.message-content pre::-webkit-scrollbar-thumb,
+.message-content .code-block::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 3px;
 }
 
 .message-content h1,
@@ -145,29 +210,31 @@
 }
 
 .message-content code {
-  background: #1f1e1d;
+  background: rgba(255, 255, 255, 0.08);
   padding: 2px 6px;
   border-radius: 4px;
   font-size: 13px;
-  font-family: 'SF Mono', Menlo, Monaco, Consolas, monospace;
+  font-family: 'SF Mono', 'Fira Code', Menlo, Monaco, Consolas, monospace;
   color: #f5c16e;
 }
 
 .message-content pre {
   background: #1a1918;
-  border: 1px solid var(--border-color);
-  padding: 12px 14px;
-  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 14px 16px;
+  border-radius: 12px;
   overflow-x: auto;
-  margin: 10px 0;
+  margin: 12px 0;
+  position: relative;
 }
 
 .message-content pre code {
   background: transparent;
   padding: 0;
-  color: var(--text-primary);
+  color: #e8e6e3;
   font-size: 13px;
-  line-height: 1.5;
+  line-height: 1.6;
+  font-family: 'SF Mono', 'Fira Code', Menlo, Monaco, Consolas, monospace;
 }
 
 .message-content hr {
@@ -212,23 +279,24 @@
 
 .message-actions {
   display: flex;
-  gap: 6px;
+  gap: 4px;
   margin-top: 8px;
-  opacity: 1;
+  opacity: 0;
   transition: opacity 0.15s ease;
   flex-wrap: wrap;
 }
 
-.chat-message:hover .message-actions {
+.chat-message:hover .message-actions,
+.message-actions:focus-within {
   opacity: 1;
 }
 
 .message-action-btn {
   height: 28px;
   padding: 0 10px;
-  border: 1px solid var(--border-color);
-  background: var(--bg-secondary);
-  color: var(--text-secondary);
+  border: none;
+  background: transparent;
+  color: var(--text-tertiary);
   cursor: pointer;
   border-radius: 6px;
   display: flex;
@@ -238,25 +306,23 @@
   font-size: 12px;
   gap: 4px;
   white-space: nowrap;
+  font-weight: 500;
 }
 
 .message-action-btn:hover {
-  background: var(--bg-hover);
+  background: rgba(255, 255, 255, 0.08);
   color: var(--text-primary);
-  border-color: var(--accent);
 }
 
 .export-btn {
-  background: var(--accent) !important;
-  color: white !important;
-  border-color: var(--accent) !important;
+  background: rgba(22, 186, 170, 0.15) !important;
+  color: var(--accent) !important;
   font-weight: 500;
 }
 
 .export-btn:hover {
-  opacity: 0.9;
-  background: var(--accent) !important;
-  color: white !important;
+  background: rgba(22, 186, 170, 0.25) !important;
+  color: var(--accent) !important;
 }
 
 /* Message edit mode */

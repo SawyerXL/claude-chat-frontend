@@ -72,7 +72,13 @@ function mergeSessions(local: ChatSession[], remote: ChatSession[]): ChatSession
   );
 }
 
-export async function getSessions(): Promise<ChatSession[]> {
+// 获取本地会话（快速，不走网络）
+export function getSessionsLocal(): ChatSession[] {
+  return getSessionsFromStorage();
+}
+
+// 异步刷新服务器会话（不阻塞，返回合并结果）
+export async function refreshSessionsFromServer(): Promise<ChatSession[]> {
   const userId = getUserId();
   const local = getSessionsFromStorage();
 
@@ -89,6 +95,17 @@ export async function getSessions(): Promise<ChatSession[]> {
     console.error('[session] Failed to fetch from server, using local:', err);
   }
 
+  return local;
+}
+
+// 兼容旧接口，内部使用快速版本
+export async function getSessions(): Promise<ChatSession[]> {
+  // 先返回本地数据（快速），后台再刷新服务器数据
+  const local = getSessionsFromStorage();
+  
+  // 异步刷新（不等待）
+  refreshSessionsFromServer().catch(() => {});
+  
   return local;
 }
 

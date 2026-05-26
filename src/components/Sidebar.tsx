@@ -186,64 +186,23 @@ export default function Sidebar({
   const renderConvItem = (session: ChatSession) => {
     const isActive = activeChat === session.id;
     const menuItems: MenuProps['items'] = [
-      {
-        key: 'rename',
-        icon: <EditOutlined />,
-        label: 'Rename',
-        onClick: () => {
-          const newTitle = prompt('Enter new title:', session.title);
-          if (newTitle && newTitle.trim()) {
-            onRenameChat(session.id, newTitle.trim());
-          }
-        },
-      },
-      {
-        key: 'branch',
-        icon: <HolderOutlined />,
-        label: 'Branch conversation',
-        onClick: () => onBranchChat?.(session.id),
-      },
-      { type: 'divider' },
-      {
-        key: 'delete',
-        icon: <DeleteOutlined />,
-        label: 'Delete',
-        danger: true,
-        onClick: () => onDeleteChat(session.id),
-      },
+      { key: 'star', label: '标星' },
+      { type: 'divider' as const },
+      { key: 'rename', icon: <EditOutlined />, label: '重命名', onClick: () => {
+        const newTitle = prompt('输入新标题:', session.title);
+        if (newTitle && newTitle.trim()) onRenameChat(session.id, newTitle.trim());
+      }},
+      { key: 'add-project', label: '添加到项目' },
+      { type: 'divider' as const },
+      { key: 'delete', icon: <DeleteOutlined />, label: '删除', danger: true, onClick: () => onDeleteChat(session.id) },
     ];
 
     return (
-      <Dropdown
-        key={session.id}
-        menu={{ items: menuItems }}
-        trigger={['contextMenu']}
-        placement="bottomLeft"
-      >
-        <div
-          className={`recent-item ${isActive ? 'active' : ''}`}
-          onClick={() => onSelectChat(session.id)}
-        >
+      <Dropdown key={session.id} menu={{ items: menuItems }} trigger={['contextMenu']} placement="bottomLeft">
+        <div className={`recent-item ${isActive ? 'active' : ''}`} onClick={() => onSelectChat(session.id)}>
           <div className="recent-item-content">
-            <div className="recent-icon">
-              <MessageOutlined />
-            </div>
-            <div className="recent-info">
-              <div className="recent-title">{session.title}</div>
-              <div className="recent-time">{formatTime(session.updatedAt)}</div>
-            </div>
+            <div className="recent-title">{session.title}</div>
           </div>
-          <Tooltip title="Delete">
-            <button
-              className="recent-delete"
-              onClick={(e) => {
-                e.stopPropagation();
-                onDeleteChat(session.id);
-              }}
-            >
-              <DeleteOutlined />
-            </button>
-          </Tooltip>
         </div>
       </Dropdown>
     );
@@ -261,139 +220,115 @@ export default function Sidebar({
 
   return (
     <aside className={`sidebar ${collapsed ? 'collapsed' : ''}`}>
-      <div className="sidebar-header">
-        {!collapsed && (
-          <div className="sidebar-logo">
-            <div className="sidebar-logo-icon">
-              <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <rect width="24" height="24" rx="6" fill="#1a1a1a"/>
-                <circle cx="12" cy="12" r="3" fill="#d4a574"/>
-                <path d="M12 8v1M12 15v1M8 12h1M15 12h1" stroke="#d4a574" strokeWidth="1.5" strokeLinecap="round"/>
-              </svg>
+      {!collapsed && (
+          <>
+            <div className="sidebar-header">
+              <Tooltip title="收起侧边栏" placement="right">
+                <button className="sidebar-toggle" onClick={() => setCollapsed(true)}>
+                  <MenuFoldOutlined />
+                </button>
+              </Tooltip>
+              {activeChat && (
+                <span className="sidebar-chat-title">{sessions.find(s => s.id === activeChat)?.title || '新对话'}</span>
+              )}
             </div>
-            <span>Claude</span>
+
+            <div className="sidebar-top-section">
+              <div className="sidebar-logo">
+                <img src="/favicon.svg" alt="Claude" className="sidebar-logo-icon" width="24" height="24" />
+                <span>Claude</span>
+              </div>
+            </div>
+          </>
+        )}
+
+        {collapsed && (
+          <div className="sidebar-header-collapsed">
+            <Tooltip title="展开侧边栏" placement="right">
+              <button className="sidebar-toggle" onClick={() => setCollapsed(false)}>
+                <MenuUnfoldOutlined />
+              </button>
+            </Tooltip>
           </div>
         )}
-        <Tooltip title={collapsed ? 'Expand' : 'Collapse'} placement="right">
-          <button
-            className="sidebar-toggle"
-            onClick={() => setCollapsed(!collapsed)}
-          >
-            {collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
+
+        {loggedIn && (
+          <button className="sidebar-new-chat" onClick={() => onSelectChat(null)}>
+            <EditOutlined />
+            {!collapsed && <span>New chat</span>}
           </button>
-        </Tooltip>
-      </div>
-
-      {loggedIn && (
-        <button className="sidebar-new-chat" onClick={() => onSelectChat(null)}>
-          <EditOutlined />
-          {!collapsed && <span>New chat</span>}
-        </button>
-      )}
-
-      <div className="sidebar-menu">
-        {NAV_ITEMS.map((item) => {
-          const isActive = activeTab === item.key;
-          return (
-            <div
-              key={item.key}
-              className={`sidebar-menu-item ${isActive ? 'active' : ''}`}
-              onClick={() => {
-                if (item.key === 'projects') {
-                  setShowProjects(!showProjects);
-                } else if (item.key === 'search') {
-                  onOpenSearch?.();
-                } else if (item.key === 'artifacts') {
-                  onOpenArtifacts?.();
-                } else if (item.key === 'code') {
-                  onOpenCode?.();
-                } else if (item.key === 'customize') {
-                  onOpenCustomize?.();
-                } else if (item.key === 'memory') {
-                  setShowMemory(!showMemory);
-                } else {
-                  onTabChange?.(item.key);
-                }
-              }}
-            >
-              {item.icon}
-              {!collapsed && <span>{item.label}</span>}
-            </div>
-          );
-        })}
-      </div>
-
-      {/* Main content area */}
-      <div className="sidebar-content">
-        {/* Projects panel overlay */}
-        {showProjects && (
-          <div className="projects-overlay">
-            <div className="projects-overlay-header">
-              <button onClick={() => setShowProjects(false)}>
-                <LeftOutlined /> Back
-              </button>
-            </div>
-            <ProjectsPanel
-              activeProjectId={activeProjectId}
-              onSelectProject={(projectId) => {
-                onSelectProject(projectId);
-                setShowProjects(false);
-              }}
-            />
-          </div>
         )}
 
-        {/* Memory panel overlay */}
-        {showMemory && (
-          <div className="projects-overlay">
-            <div className="projects-overlay-header">
-              <button onClick={() => setShowMemory(false)}>
-                <LeftOutlined /> Back
-              </button>
+        <div className="sidebar-menu">
+          {NAV_ITEMS.map((item) => {
+            const isActive = activeTab === item.key;
+            return (
+              <div key={item.key} className={`sidebar-menu-item ${isActive ? 'active' : ''}`} onClick={() => {
+                if (item.key === 'projects') setShowProjects(!showProjects);
+                else if (item.key === 'search') onOpenSearch?.();
+                else if (item.key === 'artifacts') onOpenArtifacts?.();
+                else if (item.key === 'code') onOpenCode?.();
+                else if (item.key === 'customize') onOpenCustomize?.();
+                else if (item.key === 'memory') setShowMemory(!showMemory);
+                else onTabChange?.(item.key);
+              }}>
+                {item.icon}
+                {!collapsed && <span>{item.label}</span>}
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Main content area */}
+        <div className="sidebar-content">
+          {/* Projects panel overlay */}
+          {showProjects && (
+            <div className="projects-overlay">
+              <div className="projects-overlay-header">
+                <button onClick={() => setShowProjects(false)}><LeftOutlined /> Back</button>
+              </div>
+              <ProjectsPanel activeProjectId={activeProjectId} onSelectProject={(projectId) => { onSelectProject(projectId); setShowProjects(false); }} />
             </div>
-            <MemoryPanel
-              open={showMemory}
-            />
-          </div>
-        )}
+          )}
 
-        {/* Conversations list */}
-        {!showProjects && !showMemory && (
-          <div className="sidebar-conversations">
-            {renderGroup('Today', groups.today)}
-            {renderGroup('Yesterday', groups.yesterday)}
-            {renderGroup('Previous 7 Days', groups.prev7Days)}
-            {renderGroup('Previous 30 Days', groups.older)}
-          </div>
-        )}
-      </div>
+          {/* Memory panel overlay */}
+          {showMemory && (
+            <div className="projects-overlay">
+              <div className="projects-overlay-header">
+                <button onClick={() => setShowMemory(false)}><LeftOutlined /> Back</button>
+              </div>
+              <MemoryPanel open={showMemory} />
+            </div>
+          )}
 
-      <div className="sidebar-footer">
-        <Dropdown
-          menu={{ items: userMenuItems }}
-          trigger={['click']}
-          open={showUserMenu}
-          onOpenChange={setShowUserMenu}
-          placement="topLeft"
-        >
-          <div className="sidebar-user" onClick={(e) => e.preventDefault()}>
-            <div className="user-avatar">{initials}</div>
-            {!collapsed && (
-              <>
-                <div className="user-info">
-                  <div className="user-name">{displayName}</div>
-                  <div className="user-plan">
-                    <span style={{ color: 'var(--accent-purple)', fontSize: '12px' }}>
-                      💰 ¥{userBalance.toFixed(2)}
-                    </span>
+          {/* Conversations list */}
+          {!showProjects && !showMemory && (
+            <div className="sidebar-conversations">
+              {filteredSessions.length === 0 ? (
+                <div className="empty-conversations">暂无会话记录</div>
+              ) : (
+                filteredSessions.map(renderConvItem)
+              )}
+            </div>
+          )}
+        </div>
+
+        <div className="sidebar-footer">
+          <Dropdown menu={{ items: userMenuItems }} trigger={['click']} open={showUserMenu} onOpenChange={setShowUserMenu} placement="topLeft">
+            <div className="sidebar-user" onClick={(e) => e.preventDefault()}>
+              <div className="user-avatar">{initials}</div>
+              {!collapsed && (
+                <>
+                  <div className="user-info">
+                    <div className="user-name">{displayName}</div>
+                    <div className="user-plan"><span style={{ color: 'var(--accent-purple)', fontSize: '12px' }}>💰 ¥{userBalance.toFixed(2)}</span></div>
                   </div>
-                </div>
-                <MoreOutlined style={{ color: 'var(--text-tertiary)' }} />
-              </>
-            )}
-          </div>
-        </Dropdown>
-      </div>
-    </aside>
+                  <MoreOutlined style={{ color: 'var(--text-tertiary)' }} />
+                </>
+              )}
+            </div>
+          </Dropdown>
+        </div>
+      </aside>
   );
 }
