@@ -31,13 +31,6 @@ const QUICK_ACTIONS = [
   { key: 'review', icon: <EditOutlined />, label: 'Review', desc: 'Check code or documents' },
 ];
 
-const FEATURE_TIPS = [
-  { icon: '💡', text: '支持扩展思考，深入分析复杂问题' },
-  { icon: '📎', text: '上传文件或图片，Claude 会帮你分析' },
-  { icon: '🎨', text: '生成代码、文档、PPT 等多种格式' },
-  { icon: '🔊', text: '语音输入，解放双手' },
-];
-
 interface WelcomePageProps {
   onSend: (text: string, images?: string[], attachments?: Attachment[]) => void;
   model: string;
@@ -181,16 +174,6 @@ export default function WelcomePage({ onSend, model, onModelChange, user, onOpen
         {/* User Greeting - Official Claude style */}
         <div className="welcome-greeting-main">
           <span>{getGreeting()}，{displayName}</span>
-        </div>
-
-        {/* Features Tips */}
-        <div className="welcome-tips">
-          {FEATURE_TIPS.map((tip, idx) => (
-            <div key={idx} className="tip-item">
-              <span className="tip-icon">{tip.icon}</span>
-              <span className="tip-text">{tip.text}</span>
-            </div>
-          ))}
         </div>
 
         {/* Main Input Area */}

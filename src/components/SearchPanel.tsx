@@ -2,22 +2,13 @@ import { useState, useEffect } from 'react';
 import { Modal, Input } from 'antd';
 import { SearchOutlined, MessageOutlined } from '@ant-design/icons';
 import type { ChatSession } from '../types';
+import { getSessions } from '../services/session';
 import '../styles/sidebar.css';
 
 interface SearchPanelProps {
   open: boolean;
   onClose: () => void;
   onSelectChat: (id: string) => void;
-}
-
-const SESSIONS_KEY = 'claude_sessions';
-
-function loadSessions(): ChatSession[] {
-  try {
-    const stored = localStorage.getItem(SESSIONS_KEY);
-    if (stored) return JSON.parse(stored);
-  } catch {}
-  return [];
 }
 
 export default function SearchPanel({ open, onClose, onSelectChat }: SearchPanelProps) {
@@ -27,7 +18,8 @@ export default function SearchPanel({ open, onClose, onSelectChat }: SearchPanel
 
   useEffect(() => {
     if (open) {
-      setSessions(loadSessions());
+      // Load sessions from server for cross-device sync
+      getSessions().then(s => setSessions(s)).catch(() => setSessions([]));
       setQuery('');
       setResults([]);
     }

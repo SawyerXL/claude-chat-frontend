@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Modal } from 'antd';
 import { CodeOutlined } from '@ant-design/icons';
 import type { ChatSession } from '../types';
+import { getSessions } from '../services/session';
 import '../styles/sidebar.css';
 
 interface CodePanelProps {
@@ -9,27 +10,18 @@ interface CodePanelProps {
   onClose: () => void;
 }
 
-const SESSIONS_KEY = 'claude_sessions';
-
-function loadSessions(): ChatSession[] {
-  try {
-    const stored = localStorage.getItem(SESSIONS_KEY);
-    if (stored) return JSON.parse(stored);
-  } catch {}
-  return [];
-}
-
 export default function CodePanel({ open, onClose }: CodePanelProps) {
   const [sessions, setSessions] = useState<ChatSession[]>([]);
 
   useEffect(() => {
     if (open) {
-      const all = loadSessions();
-      // Filter sessions with code content
-      const codeSessions = all.filter(s =>
-        s.messages.some(m => m.content.includes('```'))
-      );
-      setSessions(codeSessions);
+      // Load sessions from server for cross-device sync
+      getSessions().then(all => {
+        const codeSessions = all.filter(s =>
+          s.messages.some(m => (m.content || '').includes('```'))
+        );
+        setSessions(codeSessions);
+      }).catch(() => setSessions([]));
     }
   }, [open]);
 

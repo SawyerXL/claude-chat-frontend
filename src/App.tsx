@@ -20,19 +20,19 @@ import LoginDialog from './components/LoginDialog';
 // TODO: Enable login before production
 // import LoginPage from './components/LoginPage';
 import Settings from './components/Settings';
-import { canSendMessage, recordMessageSent, getTrialInfo } from './utils/trialManager';
+import { canSendMessage, recordMessageSent } from './utils/trialManager';
 import SkillPanel from './components/SkillPanel';
 import { SKILLS_REGISTRY } from './skills/registry';
 import type { ChatMessage, ChatSession } from './types';
 import { MODELS } from './constants';
 import { sendChatMessageStream } from './services/api';
-import { getSessions, saveSession, deleteSession } from './services/session';
+import { getSessions, saveSession, deleteSession, startSessionSync, subscribeToSessionChanges } from './services/session';
 import { isAuthenticated } from './services/auth';
 import { initTheme, toggleTheme as toggleThemeService } from './services/theme';
 import type { User } from './services/auth';
 import { useKeyboardShortcuts, DEFAULT_SHORTCUTS } from './hooks/useKeyboardShortcuts';
 import './App.css';
-import './styles/mobile.css';
+import './styles/responsive.css';
 
 const MODEL_ID_MAP: Record<string, string> = {
   'opus-4-7': 'claude-opus-4-7',
@@ -193,6 +193,23 @@ export default function App() {
     refreshSessions();
   }, [isReady, refreshSessions]);
 
+  // Session sync polling for cross-device and cross-tab sync
+  useEffect(() => {
+    if (!isReady || !isAuthenticated()) return;
+
+    console.log('[App] Starting session sync...');
+    const stopSync = startSessionSync(refreshSessions);
+
+    // Also subscribe to storage events from other tabs
+    const unsubscribe = subscribeToSessionChanges(refreshSessions);
+
+    return () => {
+      console.log('[App] Stopping session sync...');
+      stopSync();
+      unsubscribe();
+    };
+  }, [isReady, refreshSessions]);
+
   // Keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -219,6 +236,20 @@ export default function App() {
   const persistSession = useCallback(
     async (sessionId: string, nextMessages: ChatMessage[], sessionModel: string) => {
       if (nextMessages.length === 0) return;
+
+      const userId = (() => {
+        const userData = localStorage.getItem('claude_user');
+        if (userData) {
+          try {
+            const user = JSON.parse(userData);
+            if (user?.id) return 'user_' + user.id;
+          } catch {}
+        }
+        return '';
+      })();
+
+      console.log('[persistSession] Saving session:', sessionId, 'userId:', userId, 'messages:', nextMessages.length);
+
       const existing = sessions.find((s) => s.id === sessionId);
       const now = Date.now();
       const session: ChatSession = {
@@ -229,10 +260,10 @@ export default function App() {
         createdAt: existing?.createdAt ?? now,
         updatedAt: now,
       };
-      console.log('[persistSession] Saving session:', session.title, 'messages:', nextMessages.length);
+
       try {
         await saveSession(session);
-        console.log('[persistSession] Session saved successfully');
+        console.log('[persistSession] Session saved, now refreshing...');
         await refreshSessions();
         console.log('[persistSession] Sessions refreshed');
       } catch (err) {
@@ -292,6 +323,19 @@ export default function App() {
     // Create abort controller for this request
     abortControllerRef.current = new AbortController();
 
+    // Immediately save user message (for session persistence)
+    const tempSessionId = sessionId;
+    const tempNextMessages = nextMessages;
+    const tempModel = model;
+    saveSession({
+      id: tempSessionId,
+      title: text.slice(0, 40),
+      messages: tempNextMessages,
+      model: tempModel,
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+    }).catch(err => console.error('[handleSend] Initial save failed:', err));
+
     try {
       const apiModel = MODEL_ID_MAP[model] || 'claude-sonnet-4-6';
 
@@ -349,17 +393,21 @@ export default function App() {
         return;
       }
       antMessage.error(`请求失败: ${msg}`);
+      
+      // Update message with error and save session
+      const errorMsg = `请求失败: ${msg}`;
       setMessages((prev) => {
         const updated = [...prev];
         const lastIndex = updated.length - 1;
         if (lastIndex >= 0 && updated[lastIndex].role === 'assistant') {
-          updated[lastIndex] = { ...updated[lastIndex], content: `请求失败: ${msg}` };
+          updated[lastIndex] = { ...updated[lastIndex], content: errorMsg };
         }
         return updated;
       });
-      if (activeChat) {
-        await persistSession(activeChat, messages, model);
-      }
+
+      // Save session even on error (with error message included)
+      const messagesWithError = [...nextMessages, { ...assistantMsg, content: errorMsg, thinking: fullThinking || undefined }];
+      await persistSession(sessionId, messagesWithError, model);
     } finally {
       setLoading(false);
       abortControllerRef.current = null;
@@ -580,6 +628,8 @@ ${promptOrSystemPrompt ? `\n用户需求：${promptOrSystemPrompt}` : ''}
 
   return (
     <div className="app-layout">
+      {sidebarOpen && <div className="sidebar-overlay active" onClick={() => setSidebarOpen(false)} />}
+      
       <Sidebar
         activeChat={activeChat}
         onSelectChat={handleSelectChat}
