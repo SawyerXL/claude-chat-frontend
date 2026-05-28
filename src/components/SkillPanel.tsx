@@ -1,7 +1,8 @@
 import { useState, useMemo } from 'react';
-import { Modal, Input, message, Empty } from 'antd';
+import { Modal, Input, Empty } from 'antd';
 import { SearchOutlined, BookOutlined } from '@ant-design/icons';
-import { SKILLS_REGISTRY, getSkillsByCategory, type Skill } from '../skills/registry';
+import { SKILLS_REGISTRY } from '../skills/registry';
+import type { Skill } from '../types';
 import '../styles/skills.css';
 
 interface SkillPanelProps {
@@ -22,8 +23,6 @@ export default function SkillPanel({ open, onClose, onUseSkill }: SkillPanelProp
   const [search, setSearch] = useState('');
   const [selectedSkill, setSelectedSkill] = useState<Skill | null>(null);
   const [skillInput, setSkillInput] = useState('');
-
-  const skillsByCategory = useMemo(() => getSkillsByCategory(), []);
 
   const filteredSkills = useMemo(() => {
     if (!search.trim()) return SKILLS_REGISTRY;
@@ -141,7 +140,7 @@ export default function SkillPanel({ open, onClose, onUseSkill }: SkillPanelProp
               <div>
                 <div className="skill-name">{selectedSkill.name}</div>
                 <div className="skill-capabilities">
-                  {selectedSkill.capabilities.map((cap, i) => (
+                  {selectedSkill.capabilities.map((cap: string, i: number) => (
                     <span key={i} className="capability-tag">{cap}</span>
                   ))}
                 </div>

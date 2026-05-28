@@ -5,7 +5,6 @@ export const SESSIONS_KEY = 'claude_sessions';
 
 // File cache configuration
 const FILE_CACHE_THRESHOLD = 10 * 1024; // 10KB - cache files larger than this
-const MAX_MESSAGES_FOR_API = 50; // Max messages to return for API call
 
 // Sync Manager - handles cross-device and cross-tab synchronization
 class SessionSyncManager {

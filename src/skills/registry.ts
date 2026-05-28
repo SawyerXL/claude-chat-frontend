@@ -68,19 +68,6 @@ const FILE_GENERATION_SKILL = `
 - 完整数据可分多个 artifact 展示
 `;
 
-export interface Skill {
-  id: string;
-  name: string;
-  description: string;
-  icon: string;
-  category: 'document' | 'coding' | 'design' | 'analysis' | 'tools';
-  activationKeywords: string[];
-  systemPrompt: string;
-  capabilities: string[];
-  requiresFileUpload?: boolean;
-  isOfficial?: boolean;
-}
-
 export const SKILLS_REGISTRY: Skill[] = [
   // ==================== 文件生成器 ====================
   {

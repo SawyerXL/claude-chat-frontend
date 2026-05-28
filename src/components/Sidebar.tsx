@@ -14,11 +14,10 @@ import {
   UserOutlined,
   LogoutOutlined,
   LeftOutlined,
-  HolderOutlined,
   BulbOutlined,
   StarOutlined,
-  CheckOutlined,
   SwapOutlined,
+  FileTextOutlined,
 } from '@ant-design/icons';
 import { Tooltip, Dropdown, type MenuProps, Modal, Input } from 'antd';
 import type { ChatSession } from '../types';
@@ -26,6 +25,7 @@ import type { User } from '../services/auth';
 import { logout } from '../services/auth';
 import ProjectsPanel from './ProjectsPanel';
 import MemoryPanel from './MemoryPanel';
+import PromptTemplatesPanel from './PromptTemplatesPanel';
 import '../styles/sidebar.css';
 
 interface SidebarProps {
@@ -45,6 +45,7 @@ interface SidebarProps {
   onOpenCode?: () => void;
   onOpenCustomize?: () => void;
   onOpenMemory?: () => void;
+  onUsePromptTemplate?: (content: string) => void;
   loggedIn?: boolean;
   mobileOpen?: boolean;
   onMobileClose?: () => void;
@@ -54,6 +55,7 @@ const NAV_ITEMS = [
   { key: 'search', icon: <SearchOutlined />, label: 'Search' },
   { key: 'chats', icon: <MessageOutlined />, label: 'Chats' },
   { key: 'projects', icon: <FolderOutlined />, label: 'Projects' },
+  { key: 'templates', icon: <FileTextOutlined />, label: 'Templates' },
   { key: 'memory', icon: <BulbOutlined />, label: 'Memory' },
   { key: 'artifacts', icon: <AppstoreOutlined />, label: 'Artifacts' },
   { key: 'code', icon: <CodeOutlined />, label: 'Code' },
@@ -85,23 +87,6 @@ function groupConversations(sessions: ChatSession[]) {
   return { today, yesterday, prev7Days, older };
 }
 
-// Format timestamp to display time
-function formatTime(timestamp: number): string {
-  const date = new Date(timestamp);
-  const now = new Date();
-  const dayDiff = Math.floor((now.getTime() - date.getTime()) / (24 * 60 * 60 * 1000));
-
-  if (dayDiff === 0) {
-    return date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
-  } else if (dayDiff === 1) {
-    return 'Yesterday';
-  } else if (dayDiff < 7) {
-    return date.toLocaleDateString('en-US', { weekday: 'long' });
-  } else {
-    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-  }
-}
-
 export default function Sidebar({
   activeChat,
   onSelectChat,
@@ -118,6 +103,7 @@ export default function Sidebar({
   onOpenArtifacts,
   onOpenCode,
   onOpenCustomize,
+  onUsePromptTemplate,
   loggedIn = false,
   mobileOpen = false,
   onMobileClose,
@@ -126,6 +112,7 @@ export default function Sidebar({
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showProjects, setShowProjects] = useState(false);
   const [showMemory, setShowMemory] = useState(false);
+  const [showTemplates, setShowTemplates] = useState(false);
   const [hoveredSession, setHoveredSession] = useState<string | null>(null);
   const [renamingSession, setRenamingSession] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState('');
@@ -137,6 +124,9 @@ export default function Sidebar({
     : sessions;
 
   const groups = groupConversations(filteredSessions);
+
+  // unused: const renderGroup = (title: string, items: ChatSession[]) => { ... }
+  void groups;
 
   // Get display name - prefer username, fallback to email
   const displayName = user?.username || user?.email?.split('@')[0] || 'User';
@@ -170,7 +160,10 @@ export default function Sidebar({
           navigator.clipboard.writeText(apiKey);
           alert(`API Key 已复制到剪贴板:\n${apiKey}`);
         } else {
-          alert('暂无 API Key，请联系管理员获取\n\n调试信息:\n所有存储: ' + JSON.stringify(Object.keys(localStorage).reduce((acc, k) => { if (k.includes('claude') || k.includes('token') || k.includes('key')) acc[k] = localStorage.getItem(k); return acc; }, {})));
+          const debugInfo = Object.keys(localStorage)
+            .filter(k => k.includes('claude') || k.includes('token') || k.includes('key'))
+            .reduce((acc: Record<string, string | null>, k) => { acc[k] = localStorage.getItem(k); return acc; }, {});
+          alert('暂无 API Key，请联系管理员获取\n\n调试信息:\n所有存储: ' + JSON.stringify(debugInfo));
         }
       },
     },
@@ -221,12 +214,6 @@ export default function Sidebar({
       if (renameValue.trim() && renamingSession) {
         onRenameChat(renamingSession, renameValue.trim());
       }
-      setRenamingSession(null);
-      setRenameValue('');
-    };
-
-    // Handle rename cancel
-    const handleRenameCancel = () => {
       setRenamingSession(null);
       setRenameValue('');
     };
@@ -291,16 +278,6 @@ export default function Sidebar({
     );
   };
 
-  const renderGroup = (title: string, items: ChatSession[]) => {
-    if (items.length === 0) return null;
-    return (
-      <div className="sidebar-group">
-        <div className="sidebar-section">{title}</div>
-        <div className="sidebar-recents">{items.map(renderConvItem)}</div>
-      </div>
-    );
-  };
-
   return (
     <>
       {/* Mobile overlay */}
@@ -360,6 +337,7 @@ export default function Sidebar({
                 else if (item.key === 'code') onOpenCode?.();
                 else if (item.key === 'customize') onOpenCustomize?.();
                 else if (item.key === 'memory') setShowMemory(!showMemory);
+                else if (item.key === 'templates') setShowTemplates(!showTemplates);
                 else onTabChange?.(item.key);
               }}>
                 {item.icon}
@@ -391,8 +369,21 @@ export default function Sidebar({
             </div>
           )}
 
+          {/* Templates panel overlay */}
+          {showTemplates && (
+            <div className="projects-overlay">
+              <div className="projects-overlay-header">
+                <button onClick={() => setShowTemplates(false)}><LeftOutlined /> Back</button>
+              </div>
+              <PromptTemplatesPanel onUseTemplate={(content) => {
+                onUsePromptTemplate?.(content);
+                setShowTemplates(false);
+              }} />
+            </div>
+          )}
+
           {/* Conversations list */}
-          {!showProjects && !showMemory && (
+          {!showProjects && !showMemory && !showTemplates && (
             <div className="sidebar-conversations">
               {filteredSessions.length === 0 ? (
                 <div className="empty-conversations">暂无会话记录</div>

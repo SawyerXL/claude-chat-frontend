@@ -132,11 +132,14 @@ function downloadFile(buffer: ArrayBuffer | Uint8Array | string, filename: strin
     }
   } else if (buffer instanceof ArrayBuffer) {
     bytes = new Uint8Array(buffer);
-  } else {
+  } else if (buffer instanceof Uint8Array) {
     bytes = buffer;
+  } else {
+    // Fallback for unknown types
+    bytes = new Uint8Array(new ArrayBuffer(0));
   }
 
-  const blob = new Blob([bytes], { type: mimeType });
+  const blob = new Blob([bytes.buffer as ArrayBuffer], { type: mimeType });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
@@ -307,7 +310,7 @@ export default function ArtifactViewer({ artifact, onClose }: ArtifactViewerProp
           });
 
           // Create professional Word document
-          const { Document, Packer, Paragraph, TextRun, HeadingLevel, Table, TableRow, TableCell, WidthType, BorderStyle, AlignmentType, ShadingType } = await import('docx');
+          const { Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell, WidthType, AlignmentType, ShadingType } = await import('docx');
 
           // Table header row
           const headerRow = new TableRow({
@@ -348,10 +351,9 @@ export default function ArtifactViewer({ artifact, onClose }: ArtifactViewerProp
                   children: [
                     new TextRun({
                       text: artifact.title || '数据文档',
-                      heading: HeadingLevel.TITLE,
+                      bold: true,
                       font: 'Arial',
                       size: 48,
-                      bold: true,
                       color: '1B3A6B',
                     }),
                   ],
@@ -428,9 +430,13 @@ export default function ArtifactViewer({ artifact, onClose }: ArtifactViewerProp
             color: '1B3A6B',
           });
 
-          // Style for table
-          const tableRows = rows.map((row, rowIdx) => {
-            return row.map((cell, colIdx) => ({
+          // Style for table (unused - using pptxgenjs native format)
+          const colWidths = rows[0].map(() => 9 / rows[0].length);
+
+          // Build pptxgenjs native table format: TableRow[]
+          interface PptxTableRow { text: string; options?: Record<string, unknown> }
+          const pptxTableRows: PptxTableRow[][] = rows.map((row, rowIdx) => {
+            return row.map((cell) => ({
               text: cell,
               options: {
                 fill: rowIdx === 0 ? '1E6091' : (rowIdx % 2 === 1 ? 'E8F4FD' : 'FFFFFF'),
@@ -438,20 +444,21 @@ export default function ArtifactViewer({ artifact, onClose }: ArtifactViewerProp
                 bold: rowIdx === 0,
                 fontFace: 'Arial',
                 fontSize: 12,
-                align: 'left',
-                valign: 'middle',
               },
             }));
           });
 
-          tableSlide.addTable(tableRows, {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          tableSlide.addTable(pptxTableRows as any, {
             x: 0.5, y: 1.2, w: 9, h: 5.5,
             border: { pt: 0.5, color: 'CCCCCC' },
-            colW: rows[0].map((_, i) => 9 / rows[0].length),
+            colW: colWidths,
+            fontFace: 'Arial',
+            fontSize: 12,
           });
 
-          const pptxBuffer = await pptx.writeFile({ fileName: 'temp.pptx' }) as ArrayBuffer;
-          downloadFile(pptxBuffer, filename, 'application/vnd.openxmlformats-officedocument.presentationml.presentation');
+          const pptxResult = await pptx.writeFile({ fileName: 'temp.pptx' });
+          downloadFile(new Uint8Array(pptxResult as unknown as ArrayBuffer), filename, 'application/vnd.openxmlformats-officedocument.presentationml.presentation');
           break;
         }
 

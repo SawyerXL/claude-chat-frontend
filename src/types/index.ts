@@ -62,3 +62,26 @@ export interface Project {
   createdAt: number;
   updatedAt: number;
 }
+
+export interface PromptTemplate {
+  id: string;
+  name: string;
+  content: string;
+  icon: string;
+  category: string;
+  createdAt: number;
+  updatedAt: number;
+}
+
+export interface Skill {
+  id: string;
+  name: string;
+  description: string;
+  icon: string;
+  category: 'document' | 'coding' | 'design' | 'analysis' | 'tools';
+  activationKeywords: string[];
+  systemPrompt: string;
+  capabilities: string[];
+  requiresFileUpload?: boolean;
+  isOfficial?: boolean;
+}

@@ -336,11 +336,12 @@ export default function App() {
       updatedAt: Date.now(),
     }).catch(err => console.error('[handleSend] Initial save failed:', err));
 
+    // Declare variables outside try block so catch can reference them
+    let fullResponse = '';
+    let fullThinking = '';
+
     try {
       const apiModel = MODEL_ID_MAP[model] || 'claude-sonnet-4-6';
-
-      let fullResponse = '';
-      let fullThinking = '';
 
       // Stream the response with abort signal
       for await (const chunk of sendChatMessageStream(nextMessages, apiModel, abortControllerRef.current.signal)) {
@@ -646,6 +647,10 @@ ${promptOrSystemPrompt ? `\n用户需求：${promptOrSystemPrompt}` : ''}
         onOpenCode={() => setCodeOpen(true)}
         onOpenCustomize={() => setSettingsOpen(true)}
         onOpenSearch={() => setSearchOpen(true)}
+        onUsePromptTemplate={(content) => {
+          // Broadcast via localStorage for cross-tab/cross-component sync
+          localStorage.setItem('claude_template_insert', JSON.stringify({ content }));
+        }}
         loggedIn={loggedIn}
         mobileOpen={sidebarOpen}
         onMobileClose={() => setSidebarOpen(false)}
@@ -744,6 +749,9 @@ ${promptOrSystemPrompt ? `\n用户需求：${promptOrSystemPrompt}` : ''}
             onOpenProjects={() => setSidebarTab('projects')}
             onOpenStyle={() => setStyleOpen(true)}
             onOpenConnectors={() => setConnectorsOpen(true)}
+            onInsertTemplate={() => {
+              // Listen via storage event in ChatView
+            }}
           />
         ) : (
           <WelcomePage

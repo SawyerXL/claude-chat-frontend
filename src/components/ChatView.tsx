@@ -58,6 +58,7 @@ interface ChatViewProps {
   onOpenProjects?: () => void;
   onOpenStyle?: () => void;
   onOpenConnectors?: () => void;
+  onInsertTemplate?: (content: string) => void;
   loggedIn?: boolean;
 }
 
@@ -80,6 +81,7 @@ export default function ChatView({
   onOpenProjects,
   onOpenStyle,
   onOpenConnectors,
+  onInsertTemplate,
   loggedIn = true,
 }: ChatViewProps) {
   const [value, setValue] = useState('');
@@ -101,6 +103,28 @@ export default function ChatView({
   const messageRefs = useRef<Map<string, HTMLDivElement>>(new Map());
   const endRef = useRef<HTMLDivElement>(null);
   const recognitionRef = useRef<any>(null);
+
+  // Listen for prompt template insertion from sidebar
+  useEffect(() => {
+    if (onInsertTemplate) {
+      onInsertTemplate('');
+    }
+  }, [onInsertTemplate]);
+
+  // Listen for template via storage event (cross-component communication)
+  useEffect(() => {
+    const handler = (e: StorageEvent) => {
+      if (e.key === 'claude_template_insert' && e.newValue) {
+        try {
+          const { content } = JSON.parse(e.newValue);
+          setValue(prev => prev ? prev + '\n' + content : content);
+          localStorage.removeItem('claude_template_insert');
+        } catch {}
+      }
+    };
+    window.addEventListener('storage', handler);
+    return () => window.removeEventListener('storage', handler);
+  }, []);
 
   // 重试逻辑：优先重试失败消息前的用户消息，否则重试最后一条用户消息
   const handleRetry = () => {
