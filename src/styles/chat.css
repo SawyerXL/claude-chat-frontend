@@ -1048,15 +1048,18 @@
     justify-content: space-between !important;
     padding: 6px 8px !important;
     gap: 8px !important;
+    flex-wrap: nowrap !important;
+    overflow: hidden !important;
   }
 
   .toolbar-left {
     display: flex !important;
     align-items: center !important;
-    gap: 6px !important;
-    flex: 1 !important;
+    gap: 4px !important;
+    flex: 0 0 auto !important;
     min-width: 0 !important;
-    overflow-x: auto !important;
+    overflow: visible !important;
+    flex-shrink: 0 !important;
     -webkit-overflow-scrolling: touch !important;
   }
 
@@ -1126,66 +1129,77 @@
     display: none !important;
   }
 
-  /* Attachments */
-  .attachment-preview-container {
-    padding: 8px !important;
-    gap: 8px !important;
-    overflow-x: auto !important;
+  /* Model selector button - minimal display on mobile */
+  .model-selector {
+    padding: 6px 10px !important;
+    font-size: 11px !important;
+    gap: 4px !important;
   }
 
-  .attachment-preview {
-    flex-shrink: 0 !important;
-    padding: 8px 12px !important;
-    gap: 8px !important;
-    background: var(--bg-secondary) !important;
-    border-radius: 8px !important;
-    font-size: 12px !important;
-  }
-
-  .image-preview-container {
-    padding: 8px !important;
-    gap: 8px !important;
-    overflow-x: auto !important;
-  }
-
-  .image-preview {
-    width: 70px !important;
-    height: 70px !important;
-    flex-shrink: 0 !important;
-  }
-
-  .image-preview img {
-    width: 100% !important;
-    height: 100% !important;
-    object-fit: cover !important;
-    border-radius: 8px !important;
-  }
-
-  .chat-messages-inner {
-    padding: 16px 12px !important;
-    gap: 20px !important;
-  }
-
-  .message {
-    max-width: 92% !important;
+  .model-selector span:first-child {
+    max-width: 60px !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
   }
 }
 
+/* ============================================
+   SMALL MOBILE (< 480px)
+   ============================================ */
 @media (max-width: 480px) {
   .welcome-input {
     font-size: 16px !important;
     padding: 10px 12px !important;
   }
 
-  .tool-btn,
-  .plus-menu-btn {
-    width: 38px !important;
-    height: 38px !important;
+  /* Toolbar - ensure single row, no wrapping */
+  .welcome-toolbar {
+    flex-wrap: nowrap !important;
+    overflow: hidden !important;
   }
 
-  .model-selector-trigger {
-    padding: 6px 10px !important;
-    font-size: 11px !important;
-    max-width: 100px !important;
+  .toolbar-left,
+  .toolbar-right {
+    flex-shrink: 0 !important;
+    overflow: visible !important;
+  }
+
+  /* All buttons - smaller but keep single row */
+  .tool-btn {
+    width: 34px !important;
+    height: 34px !important;
+    min-width: 34px !important;
+    flex-shrink: 0 !important;
+  }
+
+  .tool-btn.send {
+    width: 36px !important;
+    height: 36px !important;
+  }
+
+  /* Plus menu button */
+  .ant-dropdown-trigger.tool-btn,
+  .tool-btn.tool-btn {
+    width: 34px !important;
+    height: 34px !important;
+    min-width: 34px !important;
+  }
+
+  /* Model selector - compact display */
+  .model-selector {
+    padding: 5px 8px !important;
+    font-size: 10px !important;
+    min-width: auto !important;
+    max-width: 70px !important;
+  }
+
+  .model-selector span:first-child {
+    max-width: 45px !important;
+  }
+
+  /* Voice button - hide on very small screens if needed */
+  .voice-btn {
+    display: none !important;
   }
 }
