@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { vscDarkPlus, oneLight } from 'react-syntax-highlighter/dist/esm/styles/prism';
-import { CopyOutlined, CheckOutlined } from '@ant-design/icons';
+import { CopyIcon, CheckIcon } from './icons/ClaudeIcons';
 import './CodeBlock.css';
 
 interface CodeBlockProps {
@@ -65,7 +65,7 @@ export default function CodeBlock({ language, code, inline = false }: CodeBlockP
             onClick={handleCopy}
             title="Copy"
           >
-            {copied ? <CheckOutlined /> : <CopyOutlined />}
+            {copied ? <CheckIcon /> : <CopyIcon />}
           </button>
         </div>
       </div>

@@ -20,6 +20,8 @@ import LoginDialog from './components/LoginDialog';
 // TODO: Enable login before production
 // import LoginPage from './components/LoginPage';
 import Settings from './components/Settings';
+import UsageStatsPanel from './components/UsageStatsPanel';
+import TemplatesPanel from './components/TemplatesPanel';
 import { canSendMessage, recordMessageSent } from './utils/trialManager';
 import SkillPanel from './components/SkillPanel';
 import { SKILLS_REGISTRY } from './skills/registry';
@@ -32,6 +34,8 @@ import { initTheme, toggleTheme as toggleThemeService } from './services/theme';
 import { onSessionDeleted } from './services/collection';
 import type { User } from './services/auth';
 import { useKeyboardShortcuts, DEFAULT_SHORTCUTS } from './hooks/useKeyboardShortcuts';
+import { usageManager } from './services/usageStats';
+import { notificationService } from './services/notifications';
 import './App.css';
 import './styles/responsive.css';
 
@@ -84,6 +88,8 @@ export default function App() {
   const [searchOpen, setSearchOpen] = useState(false);
   const [styleOpen, setStyleOpen] = useState(false);
   const [connectorsOpen, setConnectorsOpen] = useState(false);
+  const [usageStatsOpen, setUsageStatsOpen] = useState(false);
+  const [templatesOpen, setTemplatesOpen] = useState(false);
   const abortControllerRef = useRef<AbortController | null>(null);
 
   // Initialize theme and check auth status from backend
@@ -190,6 +196,17 @@ export default function App() {
     }
   }, []);
 
+  const refreshSessionsWithCurrent = useCallback(async (currentSessions: ChatSession[]) => {
+    try {
+      console.log('[refreshSessionsWithCurrent] Getting sessions...');
+      const list = await getSessions(currentSessions);
+      console.log('[refreshSessionsWithCurrent] Got', list.length, 'sessions');
+      setSessions(list);
+    } catch (err) {
+      console.error('Failed to load sessions:', err);
+    }
+  }, []);
+
   useEffect(() => {
     if (!isReady) return;
     refreshSessions();
@@ -268,13 +285,19 @@ export default function App() {
         console.log('[persistSession] Session saved, now refreshing...');
         
         // Optimistically update local state to move this session to top
+        // Keep the existing session data (messages) from local state
         setSessions(prev => {
+          const existing = prev.find(s => s.id === sessionId);
+          const updated = existing ? { ...existing, title: session.title, updatedAt: session.updatedAt } : session;
           const others = prev.filter(s => s.id !== sessionId);
-          const updated = { ...session };
           return [updated, ...others];
         });
         
-        await refreshSessions();
+        // Pass current sessions with the new messages to preserve messages during refresh
+        const sessionsWithNewMsg = sessions.map(s => 
+          s.id === sessionId ? { ...s, title: session.title, updatedAt: session.updatedAt, messages: nextMessages } : s
+        );
+        await refreshSessionsWithCurrent(sessionsWithNewMsg);
         console.log('[persistSession] Sessions refreshed');
       } catch (err) {
         console.error('[persistSession] Failed to save session:', err);
@@ -388,6 +411,16 @@ export default function App() {
       // Record message sent for trial tracking
       recordMessageSent();
 
+      // Estimate and record usage stats
+      const inputTokens = usageManager.estimateTokens(text);
+      const outputTokens = usageManager.estimateTokens(fullResponse);
+      usageManager.recordUsage(sessionId, inputTokens, outputTokens, 0, 0, apiModel);
+
+      // Show notification for long responses
+      if (fullResponse.length > 500 && notificationService.isEnabled()) {
+        notificationService.notifyResponseComplete(model, fullResponse);
+      }
+
       await persistSession(sessionId, [...nextMessages, { ...assistantMsg, content: fullResponse, thinking: fullThinking || undefined }], model);
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
@@ -454,8 +487,9 @@ export default function App() {
       // Fetch full session with messages from server
       console.log('[handleSelectChat] Loading session from server:', id);
       const session = await getSessionById(id);
+      console.log('[handleSelectChat] Session loaded:', session?.id, 'messages:', session?.messages?.length);
       if (session) {
-        console.log('[handleSelectChat] Loaded session:', session.id, 'messages:', session.messages?.length);
+        console.log('[handleSelectChat] Setting messages:', session.messages?.length);
         setActiveChat(session.id);
         setMessages(session.messages || []);
         setModel(session.model || MODELS[1].id);
@@ -722,6 +756,16 @@ ${promptOrSystemPrompt ? `\n用户需求：${promptOrSystemPrompt}` : ''}
               <ShareAltOutlined />
               <span>Share</span>
             </button>
+            <Tooltip title="Usage Stats">
+              <button className="header-btn" onClick={() => setUsageStatsOpen(true)}>
+                <span>📊</span>
+              </button>
+            </Tooltip>
+            <Tooltip title="Templates">
+              <button className="header-btn" onClick={() => setTemplatesOpen(true)}>
+                <span>📝</span>
+              </button>
+            </Tooltip>
           </div>
         </header>
 
@@ -799,6 +843,19 @@ ${promptOrSystemPrompt ? `\n用户需求：${promptOrSystemPrompt}` : ''}
       <SearchPanel open={searchOpen} onClose={() => setSearchOpen(false)} onSelectChat={handleSelectChat} />
       <StylePanel open={styleOpen} onClose={() => setStyleOpen(false)} />
       <ConnectorsPanel open={connectorsOpen} onClose={() => setConnectorsOpen(false)} />
+      <UsageStatsPanel open={usageStatsOpen} onClose={() => setUsageStatsOpen(false)} />
+      <TemplatesPanel
+        open={templatesOpen}
+        onClose={() => setTemplatesOpen(false)}
+        onInsertTemplate={(content) => {
+          // Insert template content into input
+          const input = document.querySelector('.chat-input-area textarea') as HTMLTextAreaElement;
+          if (input) {
+            input.value = content;
+            input.focus();
+          }
+        }}
+      />
       <LoginDialog
         open={showLogin}
         onCancel={() => setShowLogin(false)}

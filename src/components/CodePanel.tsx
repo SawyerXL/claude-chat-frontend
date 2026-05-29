@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Modal } from 'antd';
-import { CodeOutlined } from '@ant-design/icons';
+import { CodeIcon } from './icons/ClaudeIcons';
 import type { ChatSession } from '../types';
 import { getSessions } from '../services/session';
 import '../styles/sidebar.css';
@@ -34,7 +34,7 @@ export default function CodePanel({ open, onClose }: CodePanelProps) {
       footer={null}
       title={
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <CodeOutlined />
+          <CodeIcon />
           <span>Code</span>
         </div>
       }

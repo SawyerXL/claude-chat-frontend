@@ -3,22 +3,21 @@ import { message as antMessage } from 'antd';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { vscDarkPlus, oneLight } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import {
-  CloseOutlined,
-  CopyOutlined,
-  CheckOutlined,
-  FullscreenOutlined,
-  CompressOutlined,
-  CodeOutlined,
-  FileWordOutlined,
-  FilePdfOutlined,
-  FileExcelOutlined,
-  FilePptOutlined,
-  DownOutlined,
-  LoadingOutlined,
-  PlayCircleOutlined,
-  BgColorsOutlined,
-  ClearOutlined,
-} from '@ant-design/icons';
+  CopyIcon,
+  CheckIcon,
+  CodeIcon,
+  DocumentIcon,
+  CloudDownloadIcon,
+  SpreadsheetIcon,
+  PresentationIcon,
+  ChevronDownIcon,
+  SpinnerIcon,
+  PlayCircleIcon,
+  PaletteIcon,
+  RefreshIcon,
+  CloseIcon,
+} from './icons/ClaudeIcons';
+import CanvasEditor from './CanvasEditor';
 import type { Artifact } from '../types';
 import './ArtifactViewer.css';
 import * as XLSX from 'xlsx';
@@ -53,7 +52,7 @@ const GENERATION_OPTIONS: GenerationOption[] = [
   {
     format: 'docx',
     label: 'Word 文档',
-    icon: <FileWordOutlined />,
+    icon: <DocumentIcon />,
     description: '生成 .docx 格式的 Word 文档',
     generateCode: (content) => `
 const { Document, Packer, Paragraph, TextRun, HeadingLevel } = docx;
@@ -71,7 +70,7 @@ sandbox.result = await Packer.toBuffer(doc);
   {
     format: 'xlsx',
     label: 'Excel 表格',
-    icon: <FileExcelOutlined />,
+    icon: <SpreadsheetIcon />,
     description: '生成 .xlsx 格式的 Excel 表格',
     generateCode: (content) => `
 const raw = ${JSON.stringify(content)};
@@ -92,7 +91,7 @@ sandbox.result = XLSX.write(wb, { bookType: "xlsx", type: "buffer" });
   {
     format: 'pptx',
     label: 'PPT 演示文稿',
-    icon: <FilePptOutlined />,
+    icon: <PresentationIcon />,
     description: '生成 .pptx 格式的 PowerPoint 演示文稿',
     generateCode: (content) => `
 const p = new pptxgen();
@@ -107,7 +106,7 @@ await p.writeFile("output.pptx");
   {
     format: 'pdf',
     label: 'PDF 文档',
-    icon: <FilePdfOutlined />,
+    icon: <CloudDownloadIcon />,
     description: '生成 .pdf 格式的 PDF 文档',
     generateCode: (content) => `
 const p = new pptxgen();
@@ -151,7 +150,6 @@ function downloadFile(buffer: ArrayBuffer | Uint8Array | string, filename: strin
 export default function ArtifactViewer({ artifact, onClose }: ArtifactViewerProps) {
   const [copied, setCopied] = useState(false);
   const [fullscreen, setFullscreen] = useState(false);
-  const [activeTab, setActiveTab] = useState<'code' | 'preview'>('code');
   const [theme, setTheme] = useState<'dark' | 'light'>('dark');
   const [generating, setGenerating] = useState<string | null>(null);
 
@@ -567,9 +565,10 @@ export default function ArtifactViewer({ artifact, onClose }: ArtifactViewerProp
     return artifact.code || artifact.content;
   };
 
-  const tabs: { key: 'code' | 'preview'; label: string; show: boolean }[] = [
+  const tabs: { key: 'code' | 'preview' | 'canvas'; label: string; show: boolean }[] = [
     { key: 'code', label: 'Code', show: true },
     { key: 'preview', label: 'Preview', show: !isPython && !isReact && !isTable },
+    { key: 'canvas', label: 'Canvas', show: (isReact || artifact.type === 'html' || language === 'javascript') && !isTable },
   ];
 
   const [showDownloadMenu, setShowDownloadMenu] = useState(false);
@@ -577,6 +576,7 @@ export default function ArtifactViewer({ artifact, onClose }: ArtifactViewerProp
   const [canvasHistory, setCanvasHistory] = useState<string[]>([]);
   const [historyIndex, setHistoryIndex] = useState(-1);
   const editAreaRef = useRef<HTMLDivElement>(null);
+  const [activeTab, setActiveTab] = useState<'code' | 'preview' | 'canvas'>('code');
 
   // Canvas editing functions
   const saveToHistory = (content: string) => {
@@ -599,7 +599,7 @@ export default function ArtifactViewer({ artifact, onClose }: ArtifactViewerProp
   };
 
   const downloadMenuItems = [
-    { key: 'code', icon: <CodeOutlined />, label: '下载代码', onClick: handleDownloadCode },
+    { key: 'code', icon: <CodeIcon />, label: '下载代码', onClick: handleDownloadCode },
     ...GENERATION_OPTIONS.map(opt => ({
       key: opt.format,
       icon: opt.icon,
@@ -613,7 +613,7 @@ export default function ArtifactViewer({ artifact, onClose }: ArtifactViewerProp
     <div className={`artifact-viewer ${fullscreen ? 'fullscreen' : ''}`}>
       <div className="artifact-header">
         <div className="artifact-title">
-          <CodeOutlined />
+          <CodeIcon />
           <span>{artifact.title}</span>
           <span className="artifact-type-tag">{artifact.type.toUpperCase()}</span>
         </div>
@@ -634,16 +634,21 @@ export default function ArtifactViewer({ artifact, onClose }: ArtifactViewerProp
           {!isPython && (
             <button
               className={`artifact-action-btn ${canvasMode ? 'active' : ''}`}
-              onClick={() => setCanvasMode(!canvasMode)}
+              onClick={() => {
+                if (!canvasMode) {
+                  setActiveTab('canvas');
+                }
+                setCanvasMode(!canvasMode);
+              }}
               title={canvasMode ? 'Exit Canvas Mode' : 'Canvas Mode'}
             >
-              <BgColorsOutlined />
+              <PaletteIcon />
             </button>
           )}
           {canvasMode && (
             <>
               <button className="artifact-action-btn" onClick={undoCanvas} title="Undo" disabled={historyIndex <= 0}>
-                <ClearOutlined />
+                <RefreshIcon />
               </button>
               <button className="artifact-action-btn" onClick={handleCanvasEdit} title="Save State">
                 <span>💾</span>
@@ -651,7 +656,7 @@ export default function ArtifactViewer({ artifact, onClose }: ArtifactViewerProp
             </>
           )}
           <button className="artifact-action-btn" onClick={handleCopy} title="复制代码">
-            {copied ? <CheckOutlined /> : <CopyOutlined />}
+            {copied ? <CheckIcon /> : <CopyIcon />}
           </button>
           <div className="download-dropdown">
             <button
@@ -659,15 +664,15 @@ export default function ArtifactViewer({ artifact, onClose }: ArtifactViewerProp
               onClick={() => setShowDownloadMenu(!showDownloadMenu)}
               title="生成文件"
             >
-              {generating ? <LoadingOutlined /> : <PlayCircleOutlined />}
+              {generating ? <SpinnerIcon /> : <PlayCircleIcon />}
               <span>生成文件</span>
-              <DownOutlined style={{ fontSize: 10, marginLeft: 2 }} />
+              <ChevronDownIcon style={{ fontSize: 10, marginLeft: 2 }} />
             </button>
             {showDownloadMenu && (
               <div className="download-menu">
                 {downloadMenuItems.map(item => (
                   <div key={item.key} className="download-menu-item" onClick={item.onClick as any}>
-                    {(item as any).loading ? <LoadingOutlined /> : item.icon}
+                    {(item as any).loading ? <SpinnerIcon /> : item.icon}
                     <span>{(item as any).loading ? '生成中...' : item.label}</span>
                   </div>
                 ))}
@@ -675,10 +680,10 @@ export default function ArtifactViewer({ artifact, onClose }: ArtifactViewerProp
             )}
           </div>
           <button className="artifact-action-btn" onClick={() => setFullscreen(!fullscreen)} title={fullscreen ? '退出全屏' : '全屏'}>
-            {fullscreen ? <CompressOutlined /> : <FullscreenOutlined />}
+            {fullscreen ? <span>⬜</span> : <span>⛶</span>}
           </button>
           <button className="artifact-action-btn" onClick={onClose} title="关闭">
-            <CloseOutlined />
+            <CloseIcon />
           </button>
         </div>
       </div>
@@ -724,6 +729,21 @@ export default function ArtifactViewer({ artifact, onClose }: ArtifactViewerProp
                 ))}
               </tbody>
             </table>
+          </div>
+        ) : activeTab === 'canvas' ? (
+          <div className="canvas-container">
+            <CanvasEditor
+              initialCode={artifact.code || artifact.content}
+              language={language === 'tsx' ? 'javascript' : language === 'html' ? 'html' : 'javascript'}
+              onCodeChange={(code) => {
+                // Update artifact code when user modifies in canvas
+                console.log('Code changed:', code.substring(0, 50));
+              }}
+              onClose={() => {
+                setActiveTab('code');
+                setCanvasMode(false);
+              }}
+            />
           </div>
         ) : activeTab === 'code' ? (
           <div className="code-container">

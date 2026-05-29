@@ -1,11 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Input, Modal, Button, message as antMessage, Empty, Dropdown, type MenuProps } from 'antd';
-import {
-  PlusOutlined,
-  DeleteOutlined,
-  EditOutlined,
-  FileTextOutlined,
-} from '@ant-design/icons';
+import { PlusIcon, TrashIcon, EditIcon, DocumentIcon } from './icons/ClaudeIcons';
 import type { PromptTemplate } from '../types';
 import {
   getTemplates,
@@ -133,26 +128,26 @@ export default function PromptTemplatesPanel({ onUseTemplate }: PromptTemplatesP
   const getMenuItems = (template: PromptTemplate): MenuProps['items'] => [
     {
       key: 'use',
-      icon: <FileTextOutlined />,
+      icon: <DocumentIcon />,
       label: '使用此模板',
       onClick: () => handleUse(template),
     },
     {
       key: 'copy',
-      icon: <FileTextOutlined />,
+      icon: <DocumentIcon />,
       label: '复制内容',
       onClick: () => handleCopy(template),
     },
     { type: 'divider' },
     {
       key: 'edit',
-      icon: <EditOutlined />,
+      icon: <EditIcon />,
       label: '编辑',
       onClick: () => openEditModal(template),
     },
     {
       key: 'delete',
-      icon: <DeleteOutlined />,
+      icon: <TrashIcon />,
       label: '删除',
       danger: true,
       onClick: () => handleDeleteTemplate(template.id),
@@ -164,14 +159,14 @@ export default function PromptTemplatesPanel({ onUseTemplate }: PromptTemplatesP
       <div className="pt-header">
         <Input
           placeholder="搜索模板..."
-          prefix={<FileTextOutlined />}
+          prefix={<DocumentIcon />}
           value={searchValue}
           onChange={(e) => setSearchValue(e.target.value)}
           allowClear
         />
         <Button
           type="primary"
-          icon={<PlusOutlined />}
+          icon={<PlusIcon />}
           onClick={() => {
             resetModal();
             setCreateModalOpen(true);
@@ -208,7 +203,7 @@ export default function PromptTemplatesPanel({ onUseTemplate }: PromptTemplatesP
                         <Button
                           size="small"
                           type="text"
-                          icon={<EditOutlined />}
+                          icon={<EditIcon />}
                           onClick={(e) => { e.stopPropagation(); openEditModal(template); }}
                           title="编辑"
                         />
@@ -216,7 +211,7 @@ export default function PromptTemplatesPanel({ onUseTemplate }: PromptTemplatesP
                           size="small"
                           type="text"
                           danger
-                          icon={<DeleteOutlined />}
+                          icon={<TrashIcon />}
                           onClick={(e) => { e.stopPropagation(); handleDeleteTemplate(template.id); }}
                           title="删除"
                         />

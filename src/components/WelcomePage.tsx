@@ -1,17 +1,17 @@
 import { useState, useEffect, useRef } from 'react';
 import { Input, message as antMessage } from 'antd';
 import {
-  AudioOutlined,
-  ArrowUpOutlined,
-  BulbOutlined,
-  CodeOutlined,
-  EditOutlined,
-  ThunderboltOutlined,
-  CloseOutlined,
-  FileOutlined,
-  LoadingOutlined,
-  SearchOutlined,
-} from '@ant-design/icons';
+  MicIcon,
+  SendIcon,
+  LightbulbIcon,
+  CodeIcon,
+  EditIcon,
+  LightningIcon,
+  CloseIcon,
+  FileIcon,
+  SpinnerIcon,
+  SearchIcon,
+} from './icons/ClaudeIcons';
 import mammoth from 'mammoth';
 import ModelSelector from './ModelSelector';
 import PlusMenu from './PlusMenu';
@@ -21,14 +21,14 @@ import '../styles/welcome.css';
 const { TextArea } = Input;
 
 const QUICK_ACTIONS = [
-  { key: 'code', icon: <CodeOutlined />, label: 'Write code', desc: 'Debug or create new features' },
-  { key: 'create', icon: <ThunderboltOutlined />, label: 'Create', desc: 'Start a new project' },
-  { key: 'write', icon: <EditOutlined />, label: 'Write', desc: 'Articles, emails, docs' },
-  { key: 'learn', icon: <BulbOutlined />, label: 'Analyze', desc: 'Review and explain data' },
-  { key: 'think', icon: <BulbOutlined />, label: 'Think', desc: 'Brainstorm and plan' },
-  { key: 'art', icon: <EditOutlined />, label: 'Create art', desc: 'Generate images or designs' },
-  { key: 'research', icon: <SearchOutlined />, label: 'Research', desc: 'Explore topics deeply' },
-  { key: 'review', icon: <EditOutlined />, label: 'Review', desc: 'Check code or documents' },
+  { key: 'code', icon: <CodeIcon />, label: 'Write code', desc: 'Debug or create new features' },
+  { key: 'create', icon: <LightningIcon />, label: 'Create', desc: 'Start a new project' },
+  { key: 'write', icon: <EditIcon />, label: 'Write', desc: 'Articles, emails, docs' },
+  { key: 'learn', icon: <LightbulbIcon />, label: 'Analyze', desc: 'Review and explain data' },
+  { key: 'think', icon: <LightbulbIcon />, label: 'Think', desc: 'Brainstorm and plan' },
+  { key: 'art', icon: <EditIcon />, label: 'Create art', desc: 'Generate images or designs' },
+  { key: 'research', icon: <SearchIcon />, label: 'Research', desc: 'Explore topics deeply' },
+  { key: 'review', icon: <EditIcon />, label: 'Review', desc: 'Check code or documents' },
 ];
 
 interface WelcomePageProps {
@@ -187,7 +187,7 @@ export default function WelcomePage({ onSend, model, onModelChange, user, onOpen
                     className="image-remove-btn"
                     onClick={() => handleRemoveImage(idx)}
                   >
-                    <CloseOutlined />
+                    <CloseIcon />
                   </button>
                 </div>
               ))}
@@ -198,13 +198,13 @@ export default function WelcomePage({ onSend, model, onModelChange, user, onOpen
             <div className="attachment-preview-container">
               {attachments.map((att, idx) => (
                 <div key={idx} className="attachment-preview">
-                  <FileOutlined />
+                  <FileIcon />
                   <span className="attachment-name">{att.name}</span>
                   <button
                     className="attachment-remove-btn"
                     onClick={() => handleRemoveAttachment(idx)}
                   >
-                    <CloseOutlined />
+                    <CloseIcon />
                   </button>
                 </div>
               ))}
@@ -232,7 +232,7 @@ export default function WelcomePage({ onSend, model, onModelChange, user, onOpen
                 title={isListening ? '点击停止语音' : '点击开始语音输入'}
                 onClick={toggleVoice}
               >
-                {isListening ? <LoadingOutlined /> : <AudioOutlined />}
+                {isListening ? <SpinnerIcon /> : <MicIcon />}
               </button>
               <button
                 className="tool-btn send"
@@ -240,7 +240,7 @@ export default function WelcomePage({ onSend, model, onModelChange, user, onOpen
                 onClick={handleSend}
                 disabled={!value.trim() && images.length === 0 && attachments.length === 0}
               >
-                <ArrowUpOutlined />
+                <SendIcon />
               </button>
             </div>
           </div>

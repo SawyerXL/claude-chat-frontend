@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
 import { Modal, Input } from 'antd';
-import { SearchOutlined, MessageOutlined } from '@ant-design/icons';
+import { SearchIcon, MessageIcon } from './icons/ClaudeIcons';
 import type { ChatSession } from '../types';
 import { getSessions } from '../services/session';
 import '../styles/sidebar.css';
+import '../styles/search.css';
 
 interface SearchPanelProps {
   open: boolean;
@@ -13,7 +14,7 @@ interface SearchPanelProps {
 
 export default function SearchPanel({ open, onClose, onSelectChat }: SearchPanelProps) {
   const [query, setQuery] = useState('');
-  const [results, setResults] = useState<ChatSession[]>([]);
+  const [results, setResults] = useState<Array<{ session: ChatSession; matchedMessage: string; matchedIndex: number }>>([]);
   const [sessions, setSessions] = useState<ChatSession[]>([]);
 
   useEffect(() => {
@@ -28,15 +29,45 @@ export default function SearchPanel({ open, onClose, onSelectChat }: SearchPanel
   useEffect(() => {
     if (query.trim()) {
       const q = query.toLowerCase();
-      const filtered = sessions.filter(s =>
-        s.title.toLowerCase().includes(q) ||
-        s.messages.some(m => (m.content || '').toLowerCase().includes(q))
-      ).slice(0, 20);
-      setResults(filtered);
+      const matched: Array<{ session: ChatSession; matchedMessage: string; matchedIndex: number }> = [];
+      
+      for (const session of sessions) {
+        // Search in title
+        if (session.title.toLowerCase().includes(q)) {
+          matched.push({ session, matchedMessage: session.title, matchedIndex: -1 });
+          if (matched.length >= 20) break;
+        }
+        
+        // Search in messages
+        for (let i = 0; i < session.messages.length; i++) {
+          const msg = session.messages[i];
+          if ((msg.content || '').toLowerCase().includes(q)) {
+            matched.push({ 
+              session, 
+              matchedMessage: msg.content.slice(0, 150) + (msg.content.length > 150 ? '...' : ''), 
+              matchedIndex: i 
+            });
+            if (matched.length >= 20) break;
+          }
+        }
+        if (matched.length >= 20) break;
+      }
+      
+      setResults(matched);
     } else {
       setResults([]);
     }
   }, [query, sessions]);
+
+  const highlightMatch = (text: string, query: string) => {
+    if (!query) return text;
+    const parts = text.split(new RegExp(`(${query})`, 'gi'));
+    return parts.map((part, i) => 
+      part.toLowerCase() === query.toLowerCase() 
+        ? <mark key={i} className="search-highlight">{part}</mark>
+        : part
+    );
+  };
 
   if (!open) return null;
 
@@ -47,7 +78,7 @@ export default function SearchPanel({ open, onClose, onSelectChat }: SearchPanel
       footer={null}
       title={
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <SearchOutlined />
+          <SearchIcon />
           <span>Search conversations</span>
         </div>
       }
@@ -58,7 +89,7 @@ export default function SearchPanel({ open, onClose, onSelectChat }: SearchPanel
       <div className="search-input-wrapper">
         <Input
           placeholder="Search messages..."
-          prefix={<SearchOutlined />}
+          prefix={<SearchIcon />}
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           autoFocus
@@ -72,21 +103,24 @@ export default function SearchPanel({ open, onClose, onSelectChat }: SearchPanel
         {results.length === 0 && !query && (
           <div className="search-empty">Type to search your conversations</div>
         )}
-        {results.map((session) => (
+        {results.map((result) => (
           <div
-            key={session.id}
+            key={`${result.session.id}-${result.matchedIndex}`}
             className="search-result-item"
             onClick={() => {
-              onSelectChat(session.id);
+              onSelectChat(result.session.id);
               onClose();
             }}
           >
             <div className="search-result-title">
-              <MessageOutlined />
-              <span>{session.title}</span>
+              <MessageIcon />
+              <span>{highlightMatch(result.session.title, query)}</span>
+              {result.matchedIndex >= 0 && (
+                <span className="search-result-badge">消息 #{result.matchedIndex + 1}</span>
+              )}
             </div>
             <div className="search-result-preview">
-              {session.messages.find(m => (m.content || '').toLowerCase().includes(query.toLowerCase()))?.content.slice(0, 100)}
+              {highlightMatch(result.matchedMessage, query)}
             </div>
           </div>
         ))}

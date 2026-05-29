@@ -1,10 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Input, Modal, Button, message as antMessage } from 'antd';
-import {
-  PlusOutlined,
-  DeleteOutlined,
-  EditOutlined,
-} from '@ant-design/icons';
+import { PlusIcon, TrashIcon, EditIcon } from './icons/ClaudeIcons';
 import type { Collection } from '../types';
 import {
   getCollections,
@@ -148,7 +144,7 @@ export default function CollectionsPanel({ activeCollectionId, onSelectCollectio
       <div className="collections-header">
         <span className="collections-title">Collections</span>
         <button className="collections-add-btn" onClick={() => setCreateModalOpen(true)}>
-          <PlusOutlined />
+          <PlusIcon />
         </button>
       </div>
 
@@ -172,8 +168,8 @@ export default function CollectionsPanel({ activeCollectionId, onSelectCollectio
               <span className="collection-name">{collection.name}</span>
             </button>
             <div className="collection-actions">
-              <button onClick={() => openEditModal(collection)}><EditOutlined /></button>
-              <button onClick={() => handleDeleteCollection(collection)}><DeleteOutlined /></button>
+              <button onClick={() => openEditModal(collection)}><EditIcon /></button>
+              <button onClick={() => handleDeleteCollection(collection)}><TrashIcon /></button>
             </div>
           </div>
         ))}

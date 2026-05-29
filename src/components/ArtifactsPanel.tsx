@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Modal, Input, Button, Empty, message } from 'antd';
-import { CodeOutlined, CopyOutlined, DeleteOutlined, FileOutlined, EditOutlined } from '@ant-design/icons';
+import { CodeIcon, CopyIcon, TrashIcon, FileIcon, EditIcon } from './icons/ClaudeIcons';
 import type { Artifact } from '../types';
 import '../styles/sidebar.css';
 
@@ -87,7 +87,7 @@ export default function ArtifactsPanel({ open, onClose, onSelectArtifact }: Arti
       footer={null}
       title={
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <CodeOutlined />
+          <CodeIcon />
           <span>Artifacts</span>
           <span style={{ fontSize: 12, color: '#666', marginLeft: 'auto' }}>
             {artifacts.length} items
@@ -103,7 +103,7 @@ export default function ArtifactsPanel({ open, onClose, onSelectArtifact }: Arti
         <div className="artifacts-toolbar">
           <Input
             placeholder="Search artifacts..."
-            prefix={<FileOutlined />}
+            prefix={<FileIcon />}
             value={search}
             onChange={e => setSearch(e.target.value)}
             allowClear
@@ -147,14 +147,14 @@ export default function ArtifactsPanel({ open, onClose, onSelectArtifact }: Arti
                     <Button
                       type="text"
                       size="small"
-                      icon={<CopyOutlined />}
+                      icon={<CopyIcon />}
                       onClick={() => handleCopy(artifact)}
                       title="Copy"
                     />
                     <Button
                       type="text"
                       size="small"
-                      icon={<EditOutlined />}
+                      icon={<EditIcon />}
                       onClick={() => {
                         onSelectArtifact?.(artifact);
                         onClose();
@@ -165,7 +165,7 @@ export default function ArtifactsPanel({ open, onClose, onSelectArtifact }: Arti
                       type="text"
                       size="small"
                       danger
-                      icon={<DeleteOutlined />}
+                      icon={<TrashIcon />}
                       onClick={() => handleDelete(artifact.id)}
                       title="Delete"
                     />

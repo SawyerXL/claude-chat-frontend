@@ -173,6 +173,138 @@
   line-height: 1.5;
 }
 
+/* API Key Section */
+.apikey-section {
+  padding: 0 20px 20px;
+}
+
+.apikey-header {
+  margin-bottom: 24px;
+}
+
+.apikey-header h3 {
+  font-size: 18px;
+  margin-bottom: 8px;
+  color: var(--text-primary);
+}
+
+.apikey-header p {
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+.apikey-form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.apikey-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.apikey-field label {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.apikey-input {
+  padding: 14px 16px;
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  font-size: 14px;
+  font-family: monospace;
+}
+
+.apikey-input:focus {
+  outline: none;
+  border-color: var(--accent-purple);
+}
+
+.apikey-actions {
+  display: flex;
+  gap: 12px;
+}
+
+.apikey-save-btn {
+  flex: 1;
+  padding: 12px 20px;
+  border: none;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #aa3bff 0%, #863bff 100%);
+  color: white;
+  font-weight: 500;
+  cursor: pointer;
+  transition: opacity 0.15s ease;
+}
+
+.apikey-save-btn:hover {
+  opacity: 0.9;
+}
+
+.apikey-clear-btn {
+  padding: 12px 20px;
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.apikey-clear-btn:hover {
+  background: var(--bg-hover);
+  border-color: var(--text-tertiary);
+}
+
+.apikey-info {
+  padding: 16px;
+  background: var(--bg-tertiary);
+  border-radius: 10px;
+}
+
+.apikey-info h4 {
+  font-size: 14px;
+  margin-bottom: 12px;
+  color: var(--text-primary);
+}
+
+.apikey-info ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.apikey-info li {
+  padding: 6px 0;
+  font-size: 13px;
+  color: var(--text-secondary);
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.apikey-info li::before {
+  content: '•';
+  color: var(--accent-purple);
+  font-weight: bold;
+}
+
+.apikey-info a {
+  color: var(--accent-purple);
+  text-decoration: none;
+}
+
+.apikey-info a:hover {
+  text-decoration: underline;
+}
+
 /* Shortcuts list */
 .shortcuts-list {
   display: flex;

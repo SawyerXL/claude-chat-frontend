@@ -1,16 +1,6 @@
 import { useRef } from 'react';
 import { Dropdown, message as antMessage } from 'antd';
-import {
-  PlusOutlined,
-  PictureOutlined,
-  CameraOutlined,
-  FolderAddOutlined,
-  ThunderboltOutlined,
-  ApiOutlined,
-  GlobalOutlined,
-  BgColorsOutlined,
-  FileTextOutlined,
-} from '@ant-design/icons';
+import { PlusIcon, PictureIcon, CameraIcon, FolderIcon, LightningIcon, ApiIcon, GlobeIcon, PaletteIcon, DocumentIcon } from './icons/ClaudeIcons';
 import type { MenuProps } from 'antd';
 
 const TEMPLATES = [
@@ -125,20 +115,20 @@ export default function PlusMenu({ onImageUpload, onFileUpload, onTemplateSelect
   const items: MenuProps['items'] = [
     {
       key: 'files',
-      icon: <PictureOutlined />,
+      icon: <PictureIcon />,
       label: 'Add files (images, Word, PDF)',
       onClick: handleUploadClick,
     },
     {
       key: 'screenshot',
-      icon: <CameraOutlined />,
+      icon: <CameraIcon />,
       label: 'Take a screenshot',
       onClick: handleScreenshot,
     },
     { type: 'divider' },
     {
       key: 'templates',
-      icon: <FileTextOutlined />,
+      icon: <DocumentIcon />,
       label: 'Quick Templates',
       children: TEMPLATES.map(t => ({
         key: `template-${t.key}`,
@@ -154,7 +144,7 @@ export default function PlusMenu({ onImageUpload, onFileUpload, onTemplateSelect
     { type: 'divider' },
     {
       key: 'websearch',
-      icon: <GlobalOutlined />,
+      icon: <GlobeIcon />,
       label: 'Web search',
       onClick: async () => {
         const query = prompt('Enter search query:');
@@ -165,25 +155,25 @@ export default function PlusMenu({ onImageUpload, onFileUpload, onTemplateSelect
     },
     {
       key: 'project',
-      icon: <FolderAddOutlined />,
+      icon: <FolderIcon />,
       label: 'Add to project',
       onClick: () => onOpenProjects?.(),
     },
     {
       key: 'skills',
-      icon: <ThunderboltOutlined />,
+      icon: <LightningIcon />,
       label: 'Skills',
       onClick: () => onOpenSkills?.(),
     },
     {
       key: 'connectors',
-      icon: <ApiOutlined />,
+      icon: <ApiIcon />,
       label: 'Add connectors',
       onClick: () => onOpenConnectors?.(),
     },
     {
       key: 'style',
-      icon: <BgColorsOutlined />,
+      icon: <PaletteIcon />,
       label: 'Use style',
       onClick: () => onOpenStyle?.(),
     },
@@ -205,7 +195,7 @@ export default function PlusMenu({ onImageUpload, onFileUpload, onTemplateSelect
         placement="topLeft"
       >
         <button className="tool-btn" title="More">
-          <PlusOutlined />
+          <PlusIcon />
         </button>
       </Dropdown>
     </>

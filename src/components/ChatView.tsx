@@ -4,31 +4,29 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { getTrialInfo } from '../utils/trialManager';
 import {
-  AudioOutlined,
-  ArrowUpOutlined,
-  CopyOutlined,
-  ReloadOutlined,
-  LikeOutlined,
-  DislikeOutlined,
-  StopOutlined,
-  CloseOutlined,
-  EditOutlined,
-  FileOutlined,
-  ExportOutlined,
-  FileWordOutlined,
-  FilePdfOutlined,
-  FileExcelOutlined,
-  FilePptOutlined,
-  FileMarkdownOutlined,
-  DatabaseOutlined,
-  DownloadOutlined,
-  LoadingOutlined,
-  LinkOutlined,
-  SearchOutlined,
-  UpOutlined,
-  DownOutlined,
-  RedoOutlined,
-} from '@ant-design/icons';
+  CopyIcon,
+  RefreshIcon,
+  StopIcon,
+  CloseIcon,
+  EditIcon,
+  FileIcon,
+  ShareIcon,
+  DocumentIcon,
+  CloudDownloadIcon,
+  SpreadsheetIcon,
+  PresentationIcon,
+  DatabaseIcon,
+  DownloadIcon,
+  SpinnerIcon,
+  LinkIcon,
+  SearchIcon,
+  ChevronUpIcon,
+  ChevronDownIcon,
+  ThumbsUpIcon,
+  ThumbsDownIcon,
+  MicIcon,
+  SendIcon,
+} from './icons/ClaudeIcons';
 import PptxGenJS from 'pptxgenjs';
 import mammoth from 'mammoth';
 import * as XLSX from 'xlsx';
@@ -747,9 +745,8 @@ export default function ChatView({
     if (!content) {
       return (
         <div className="typing-indicator">
-          <span />
-          <span />
-          <span />
+          <span className="typing-orb" />
+          <span className="typing-text">Generating...</span>
         </div>
       );
     }
@@ -796,7 +793,7 @@ export default function ChatView({
       {inlineSearchOpen && (
         <div className="inline-search-bar">
           <Input
-            prefix={<SearchOutlined />}
+            prefix={<SearchIcon />}
             placeholder="在对话中搜索..."
             value={searchQuery}
             onChange={(e) => handleSearchChange(e.target.value)}
@@ -806,9 +803,9 @@ export default function ChatView({
           <span className="search-count">
             {searchQuery ? `${currentSearchIdx + 1}/${messages.filter(m => m.content?.toLowerCase().includes(searchQuery.toLowerCase())).length}` : ''}
           </span>
-          <Button icon={<UpOutlined />} onClick={() => navigateSearch('prev')} size="small" />
-          <Button icon={<DownOutlined />} onClick={() => navigateSearch('next')} size="small" />
-          <Button icon={<CloseOutlined />} onClick={closeInlineSearch} size="small" />
+          <Button icon={<ChevronUpIcon />} onClick={() => navigateSearch('prev')} size="small" />
+          <Button icon={<ChevronDownIcon />} onClick={() => navigateSearch('next')} size="small" />
+          <Button icon={<CloseIcon />} onClick={closeInlineSearch} size="small" />
         </div>
       )}
 
@@ -883,7 +880,7 @@ export default function ChatView({
                     <div className="message-attachments">
                       {m.attachments.map((att, idx) => (
                         <div key={idx} className="attachment-badge">
-                          <FileOutlined />
+                          <FileIcon />
                           <span>{att.name}</span>
                         </div>
                       ))}
@@ -897,7 +894,7 @@ export default function ChatView({
                       title="Edit"
                       onClick={() => startEditMessage(m.id, m.content)}
                     >
-                      <EditOutlined />
+                      <EditIcon />
                     </button>
                   </div>
                 )}
@@ -908,34 +905,34 @@ export default function ChatView({
                       title="Quote"
                       onClick={() => handleQuoteMessage(m)}
                     >
-                      <LinkOutlined /> 引用
+                      <LinkIcon /> 引用
                     </button>
                     <button
                       className="message-action-btn"
                       title="Copy"
                       onClick={() => handleCopy(m.content)}
                     >
-                      <CopyOutlined /> 复制
+                      <CopyIcon /> 复制
                     </button>
                     <button
                       className="message-action-btn export-btn"
                       title="Export"
                       onClick={() => handleExportMessage(m.content)}
                     >
-                      <ExportOutlined /> 导出
+                      <ShareIcon /> 导出
                     </button>
                     <button
                       className="message-action-btn"
                       title="Retry"
                       onClick={handleRetry}
                     >
-                      <RedoOutlined /> 重试
+                      <RefreshIcon /> 重试
                     </button>
                     <button className="message-action-btn" title="Good">
-                      <LikeOutlined />
+                      <ThumbsUpIcon />
                     </button>
                     <button className="message-action-btn" title="Bad">
-                      <DislikeOutlined />
+                      <ThumbsDownIcon />
                     </button>
                   </div>
                 )}
@@ -949,7 +946,7 @@ export default function ChatView({
       {!loading && lastUserMessage && (
         <div className="regenerate-bar">
           <button className="regenerate-btn" onClick={() => onSend(lastUserMessage.content)}>
-            <ReloadOutlined /> Regenerate
+            <RefreshIcon /> Regenerate
           </button>
         </div>
       )}
@@ -967,7 +964,7 @@ export default function ChatView({
                       className="image-remove-btn"
                       onClick={() => handleRemoveImage(idx)}
                     >
-                      <CloseOutlined />
+                      <CloseIcon />
                     </button>
                   </div>
                 ))}
@@ -978,9 +975,9 @@ export default function ChatView({
             {quotedMessage && (
               <div className="quoted-message">
                 <div className="quoted-header">
-                  <LinkOutlined /> 引用消息
+                  <LinkIcon /> 引用消息
                   <button className="quoted-close" onClick={() => setQuotedMessage(null)}>
-                    <CloseOutlined />
+                    <CloseIcon />
                   </button>
                 </div>
                 <div className="quoted-content">
@@ -994,13 +991,13 @@ export default function ChatView({
               <div className="attachment-preview-container">
                 {attachments.map((att, idx) => (
                   <div key={idx} className="attachment-preview">
-                    <FileOutlined />
+                    <FileIcon />
                     <span className="attachment-name">{att.name}</span>
                     <button
                       className="attachment-remove-btn"
                       onClick={() => handleRemoveAttachment(idx)}
                     >
-                      <CloseOutlined />
+                      <CloseIcon />
                     </button>
                   </div>
                 ))}
@@ -1048,11 +1045,11 @@ export default function ChatView({
                   title={isListening ? '点击停止语音' : '点击开始语音输入'}
                   onClick={toggleVoiceMode}
                 >
-                  {isListening ? <LoadingOutlined /> : <AudioOutlined />}
+                  {isListening ? <SpinnerIcon /> : <MicIcon />}
                 </button>
                 {loading && onStop ? (
                   <button className="tool-btn stop" title="Stop" onClick={onStop}>
-                    <StopOutlined />
+                    <StopIcon />
                   </button>
                 ) : (
                   <button
@@ -1061,7 +1058,7 @@ export default function ChatView({
                     onClick={handleSend}
                     disabled={!loggedIn || (!value.trim() && images.length === 0 && attachments.length === 0)}
                   >
-                    <ArrowUpOutlined />
+                    <SendIcon />
                   </button>
                 )}
               </div>
@@ -1083,26 +1080,26 @@ export default function ChatView({
           <div className="export-menu" onClick={e => e.stopPropagation()}>
             <div className="export-menu-title">📥 导出格式选择</div>
             <div className="export-menu-item primary" onClick={() => doExport('docx-real')}>
-              <FileWordOutlined /> 导出为 DOCX (推荐)
+              <DocumentIcon /> 导出为 DOCX (推荐)
             </div>
             <div className="export-menu-item" onClick={() => doExport('xlsx')}>
-              <FileExcelOutlined /> 导出为 XLSX
+              <SpreadsheetIcon /> 导出为 XLSX
             </div>
             <div className="export-menu-item" onClick={() => doExport('pptx')}>
-              <FilePptOutlined /> 导出为 PPTX
+              <PresentationIcon /> 导出为 PPTX
             </div>
             <div className="export-menu-item" onClick={() => doExport('pdf')}>
-              <FilePdfOutlined /> 导出为 PDF
+              <CloudDownloadIcon /> 导出为 PDF
             </div>
             <div className="export-menu-divider" />
             <div className="export-menu-item" onClick={() => doExport('md')}>
-              <FileMarkdownOutlined /> 导出为 Markdown
+              <DocumentIcon /> 导出为 Markdown
             </div>
             <div className="export-menu-item" onClick={() => doExport('json')}>
-              <DatabaseOutlined /> 导出为 JSON
+              <DatabaseIcon /> 导出为 JSON
             </div>
             <div className="export-menu-item" onClick={() => doExport('csv')}>
-              <DownloadOutlined /> 导出为 CSV
+              <DownloadIcon /> 导出为 CSV
             </div>
           </div>
         </div>

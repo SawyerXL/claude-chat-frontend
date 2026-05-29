@@ -307,6 +307,125 @@
   .welcome-title {
     font-size: 20px;
   }
+
+  .chat-input-area textarea {
+    min-height: 44px;
+    max-height: 120px;
+  }
+
+  .input-actions {
+    padding: 8px;
+  }
+
+  .input-actions button {
+    width: 40px;
+    height: 40px;
+  }
+
+  .attachment-preview {
+    gap: 8px;
+  }
+
+  .attachment-thumb {
+    width: 60px;
+    height: 60px;
+  }
+
+  .model-selector-trigger {
+    padding: 6px 10px;
+    font-size: 12px;
+  }
+
+  .message-actions {
+    right: 8px;
+    gap: 4px;
+  }
+
+  .message-action-btn {
+    width: 28px;
+    height: 28px;
+  }
+}
+
+/* ================================================
+   TOUCH IMPROVEMENTS
+   ================================================ */
+@media (hover: none) and (pointer: coarse) {
+  button,
+  .clickable,
+  a {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  .header-btn {
+    min-height: 36px;
+    min-width: 36px;
+  }
+
+  .sidebar-btn {
+    min-height: 44px;
+  }
+
+  input,
+  textarea,
+  select {
+    font-size: 16px !important;
+  }
+}
+
+/* ================================================
+   LANDSCAPE MOBILE
+   ================================================ */
+@media (max-height: 500px) and (orientation: landscape) {
+  .app-layout {
+    flex-direction: row;
+  }
+
+  .sidebar {
+    width: 180px;
+  }
+
+  .sidebar.collapsed {
+    width: 48px;
+  }
+
+  .main-header {
+    height: 40px;
+  }
+
+  .welcome-page {
+    padding: 12px;
+  }
+
+  .welcome-title {
+    font-size: 18px;
+  }
+
+  .quick-actions {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  .chat-view {
+    padding: 8px;
+  }
+
+  .message {
+    max-width: 85%;
+  }
+}
+
+/* ================================================
+   SAFE AREA INSETS (iOS)
+   ================================================ */
+@supports (padding: env(safe-area-inset-bottom)) {
+  .input-area {
+    padding-bottom: calc(12px + env(safe-area-inset-bottom));
+  }
+
+  .main-header {
+    padding-top: env(safe-area-inset-top);
+  }
 }
 
 /* ================================================
@@ -324,4 +443,45 @@ html, body {
 
 * {
   box-sizing: border-box;
+}
+
+/* ================================================
+   MOBILE PANEL BACKDROP
+   ================================================ */
+@media (max-width: 768px) {
+  .panel-backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 150;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s ease;
+  }
+
+  .panel-backdrop.active {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  .settings-modal .ant-modal-content,
+  .share-dialog .ant-modal-content,
+  .login-dialog .ant-modal-content {
+    max-height: 90vh;
+    overflow-y: auto;
+  }
+
+  .settings-tabs {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .settings-tab {
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
 }

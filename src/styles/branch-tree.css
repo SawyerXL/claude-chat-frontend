@@ -1,0 +1,251 @@
+/* Branch Tree Styles */
+.branch-tree {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.branch-tree-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 16px;
+  background: var(--bg-tertiary);
+  border-bottom: 1px solid var(--border-color);
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.branch-count {
+  margin-left: auto;
+  font-size: 12px;
+  font-weight: normal;
+  color: var(--text-tertiary);
+  padding: 2px 8px;
+  background: var(--bg-primary);
+  border-radius: 10px;
+}
+
+.branch-tree-content {
+  padding: 12px;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.branch-empty {
+  text-align: center;
+  padding: 30px 20px;
+  color: var(--text-tertiary);
+}
+
+.branch-empty p {
+  font-size: 14px;
+  margin-bottom: 6px;
+}
+
+.branch-empty span {
+  font-size: 12px;
+}
+
+.branch-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.branch-item {
+  border-radius: 10px;
+  overflow: hidden;
+  transition: all 0.15s ease;
+}
+
+.branch-item:hover {
+  background: var(--bg-hover);
+}
+
+.branch-item.active {
+  background: rgba(170, 59, 255, 0.1);
+  border: 1px solid var(--accent-purple);
+}
+
+.branch-item-main {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  cursor: pointer;
+}
+
+.branch-icon-wrapper {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-tertiary);
+  border-radius: 10px;
+  color: var(--accent-purple);
+}
+
+.branch-item.active .branch-icon-wrapper {
+  background: var(--accent-purple);
+  color: white;
+}
+
+.branch-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.branch-title {
+  font-weight: 500;
+  color: var(--text-primary);
+  font-size: 14px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.branch-suffix {
+  color: var(--text-tertiary);
+  font-size: 12px;
+}
+
+.branch-meta {
+  font-size: 12px;
+  color: var(--text-tertiary);
+  margin-top: 4px;
+}
+
+.branch-arrow {
+  color: var(--text-tertiary);
+  flex-shrink: 0;
+}
+
+/* Branch Modal */
+.branch-modal-content {
+  padding: 20px 0;
+}
+
+.branch-modal-info {
+  padding: 0 20px 20px;
+  border-bottom: 1px solid var(--border-color);
+  margin-bottom: 20px;
+}
+
+.branch-modal-info h4 {
+  font-size: 16px;
+  margin-bottom: 6px;
+  color: var(--text-primary);
+}
+
+.branch-modal-info p {
+  font-size: 13px;
+  color: var(--text-tertiary);
+}
+
+.branch-modal-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 0 20px;
+}
+
+.branch-action-btn {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 14px 16px;
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.branch-action-btn:hover {
+  background: var(--bg-hover);
+  border-color: var(--text-tertiary);
+}
+
+.branch-action-btn.primary {
+  background: var(--accent-purple);
+  border-color: var(--accent-purple);
+  color: white;
+}
+
+.branch-action-btn.primary:hover {
+  opacity: 0.9;
+}
+
+.branch-action-btn.danger {
+  color: #ff4d4f;
+}
+
+.branch-action-btn.danger:hover {
+  background: rgba(255, 77, 79, 0.1);
+  border-color: #ff4d4f;
+}
+
+/* Branch tree visualization (tree style) */
+.branch-visualization {
+  padding: 20px;
+}
+
+.branch-node {
+  position: relative;
+  padding-left: 30px;
+}
+
+.branch-node::before {
+  content: '';
+  position: absolute;
+  left: 12px;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: var(--border-color);
+}
+
+.branch-node-item {
+  position: relative;
+  padding: 12px;
+  margin-bottom: 8px;
+  background: var(--bg-tertiary);
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.branch-node-item::before {
+  content: '';
+  position: absolute;
+  left: -18px;
+  top: 50%;
+  width: 12px;
+  height: 2px;
+  background: var(--border-color);
+}
+
+.branch-node-item:hover {
+  background: var(--bg-hover);
+}
+
+.branch-node-item.active {
+  background: rgba(170, 59, 255, 0.1);
+  border: 1px solid var(--accent-purple);
+}
+
+.branch-connector {
+  position: absolute;
+  left: -18px;
+  top: 50%;
+  width: 6px;
+  height: 6px;
+  background: var(--border-color);
+  border-radius: 50%;
+  transform: translateY(-50%);
+}

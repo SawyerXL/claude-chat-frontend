@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Modal, Select, Slider, message } from 'antd';
-import { BgColorsOutlined } from '@ant-design/icons';
+import { PaletteIcon } from './icons/ClaudeIcons';
 import '../styles/settings.css';
 
 interface StylePanelProps {
@@ -43,7 +43,7 @@ export default function StylePanel({ open, onClose }: StylePanelProps) {
       onCancel={onClose}
       title={
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <BgColorsOutlined />
+          <PaletteIcon />
           <span>Response Style</span>
         </div>
       }

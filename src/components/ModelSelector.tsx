@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Dropdown, Switch, Slider, InputNumber, message } from 'antd';
-import { CheckOutlined, DownOutlined, SettingOutlined } from '@ant-design/icons';
+import { CheckIcon, ChevronDownIcon, SettingsIcon } from './icons/ClaudeIcons';
 import { MODELS } from '../constants';
 import type { ModelOption, ModelSettings } from '../types';
 
@@ -129,7 +129,7 @@ export default function ModelSelector({ value, onChange, settings, onSettingsCha
             <div className="model-option-desc">{m.description}</div>
           </div>
           {m.id === value && (
-            <CheckOutlined style={{ color: 'var(--accent)' }} />
+            <CheckIcon style={{ color: 'var(--accent)' }} />
           )}
         </div>
       ))}
@@ -150,7 +150,7 @@ export default function ModelSelector({ value, onChange, settings, onSettingsCha
         className="model-settings-trigger"
         onClick={() => setShowSettings(true)}
       >
-        <SettingOutlined /> Advanced Settings
+        <SettingsIcon /> Advanced Settings
       </div>
     </div>
   );
@@ -163,7 +163,7 @@ export default function ModelSelector({ value, onChange, settings, onSettingsCha
     >
       <button className="model-selector">
         <span>{current.name.replace('Claude ', '')}</span>
-        <DownOutlined style={{ fontSize: 10 }} />
+        <ChevronDownIcon style={{ fontSize: 10 }} />
       </button>
     </Dropdown>
   );

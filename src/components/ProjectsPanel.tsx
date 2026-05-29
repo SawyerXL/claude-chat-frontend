@@ -1,10 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Input, Modal, Button, message as antMessage } from 'antd';
-import {
-  PlusOutlined,
-  DeleteOutlined,
-  EditOutlined,
-} from '@ant-design/icons';
+import { PlusIcon, TrashIcon, EditIcon } from './icons/ClaudeIcons';
 import type { Project } from '../types';
 import {
   getProjects,
@@ -157,7 +153,7 @@ export default function ProjectsPanel({ activeProjectId, onSelectProject }: Proj
       <div className="projects-header">
         <span className="projects-title">Projects</span>
         <button className="projects-add-btn" onClick={() => setCreateModalOpen(true)}>
-          <PlusOutlined />
+          <PlusIcon />
         </button>
       </div>
 
@@ -183,8 +179,8 @@ export default function ProjectsPanel({ activeProjectId, onSelectProject }: Proj
               <span className="project-name">{project.name}</span>
             </button>
             <div className="project-actions">
-              <button onClick={() => openEditModal(project)}><EditOutlined /></button>
-              <button onClick={() => handleDeleteProject(project)}><DeleteOutlined /></button>
+              <button onClick={() => openEditModal(project)}><EditIcon /></button>
+              <button onClick={() => handleDeleteProject(project)}><TrashIcon /></button>
             </div>
           </div>
         ))}

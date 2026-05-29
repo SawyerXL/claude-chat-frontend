@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Modal, List, Button, Input, message, Tag } from 'antd';
-import { ApiOutlined, PlusOutlined, DeleteOutlined } from '@ant-design/icons';
+import { ApiIcon, PlusIcon, TrashIcon } from './icons/ClaudeIcons';
 import '../styles/settings.css';
 
 interface StylePanelProps {
@@ -81,7 +81,7 @@ export default function ConnectorsPanel({ open, onClose }: StylePanelProps) {
       onCancel={onClose}
       title={
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <ApiOutlined />
+          <ApiIcon />
           <span>MCP Connectors</span>
         </div>
       }
@@ -94,7 +94,7 @@ export default function ConnectorsPanel({ open, onClose }: StylePanelProps) {
           <p style={{ margin: 0, color: '#666', fontSize: 13 }}>
             Connect external tools and data sources via Model Context Protocol
           </p>
-          <Button type="primary" icon={<PlusOutlined />} onClick={() => setShowAdd(!showAdd)}>
+          <Button type="primary" icon={<PlusIcon />} onClick={() => setShowAdd(!showAdd)}>
             Add Connector
           </Button>
         </div>
@@ -126,11 +126,11 @@ export default function ConnectorsPanel({ open, onClose }: StylePanelProps) {
           renderItem={(item) => (
             <List.Item
               actions={[
-                <Button key="delete" type="text" danger icon={<DeleteOutlined />} onClick={() => handleDelete(item.id)} />
+                <Button key="delete" type="text" danger icon={<TrashIcon />} onClick={() => handleDelete(item.id)} />
               ]}
             >
               <List.Item.Meta
-                avatar={<ApiOutlined style={{ fontSize: 24, color: '#16baaa' }} />}
+                avatar={<ApiIcon style={{ fontSize: 24, color: '#16baaa' }} />}
                 title={item.name}
                 description={
                   <div>

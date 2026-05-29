@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { Modal, Input, Empty } from 'antd';
-import { SearchOutlined, BookOutlined } from '@ant-design/icons';
+import { SearchIcon, BookIcon } from './icons/ClaudeIcons';
 import { SKILLS_REGISTRY } from '../skills/registry';
 import type { Skill } from '../types';
 import '../styles/skills.css';
@@ -71,7 +71,7 @@ export default function SkillPanel({ open, onClose, onUseSkill }: SkillPanelProp
       footer={null}
       title={
         <div className="skills-modal-title">
-          <BookOutlined />
+          <BookIcon />
           <span>Claude Skills</span>
         </div>
       }
@@ -82,7 +82,7 @@ export default function SkillPanel({ open, onClose, onUseSkill }: SkillPanelProp
       <div className="skill-panel">
         {/* Search */}
         <div className="skills-search">
-          <SearchOutlined className="search-icon" />
+          <SearchIcon className="search-icon" />
           <input
             type="text"
             placeholder="搜索技能..."

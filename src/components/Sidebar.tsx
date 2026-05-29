@@ -1,25 +1,24 @@
 import { useState } from 'react';
-import {
-  EditOutlined,
-  SearchOutlined,
-  MessageOutlined,
-  FolderOutlined,
-  AppstoreOutlined,
-  CodeOutlined,
-  SettingOutlined,
-  MenuFoldOutlined,
-  MenuUnfoldOutlined,
-  MoreOutlined,
-  DeleteOutlined,
-  UserOutlined,
-  LogoutOutlined,
-  LeftOutlined,
-  BulbOutlined,
-  StarOutlined,
-  SwapOutlined,
-  FileTextOutlined,
-} from '@ant-design/icons';
 import { Tooltip, Dropdown, type MenuProps, Modal, Input } from 'antd';
+import {
+  EditIcon,
+  SearchIcon,
+  MessageIcon,
+  FolderIcon,
+  AppGridIcon,
+  CodeIcon,
+  SettingsIcon,
+  MenuIcon,
+  TrashIcon,
+  UserIcon,
+  LogOutIcon,
+  ChevronLeftIcon,
+  LightbulbIcon,
+  StarIcon,
+  BranchIcon,
+  DocumentIcon,
+  MoreHorizontalIcon,
+} from './icons/ClaudeIcons';
 import type { ChatSession } from '../types';
 import type { User } from '../services/auth';
 import { logout } from '../services/auth';
@@ -56,15 +55,15 @@ interface SidebarProps {
 }
 
 const NAV_ITEMS = [
-  { key: 'search', icon: <SearchOutlined />, label: 'Search' },
-  { key: 'chats', icon: <MessageOutlined />, label: 'Chats' },
-  { key: 'collections', icon: <FolderOutlined />, label: 'Collections' },
-  { key: 'projects', icon: <AppstoreOutlined />, label: 'Projects' },
-  { key: 'templates', icon: <FileTextOutlined />, label: 'Templates' },
-  { key: 'memory', icon: <BulbOutlined />, label: 'Memory' },
-  { key: 'artifacts', icon: <AppstoreOutlined />, label: 'Artifacts' },
-  { key: 'code', icon: <CodeOutlined />, label: 'Code' },
-  { key: 'customize', icon: <SettingOutlined />, label: 'Customize' },
+  { key: 'search', icon: <SearchIcon />, label: 'Search' },
+  { key: 'chats', icon: <MessageIcon />, label: 'Chats' },
+  { key: 'collections', icon: <FolderIcon />, label: 'Collections' },
+  { key: 'projects', icon: <AppGridIcon />, label: 'Projects' },
+  { key: 'templates', icon: <DocumentIcon />, label: 'Templates' },
+  { key: 'memory', icon: <LightbulbIcon />, label: 'Memory' },
+  { key: 'artifacts', icon: <AppGridIcon />, label: 'Artifacts' },
+  { key: 'code', icon: <CodeIcon />, label: 'Code' },
+  { key: 'customize', icon: <SettingsIcon />, label: 'Customize' },
 ];
 
 // Group conversations by time
@@ -157,7 +156,7 @@ export default function Sidebar({
     { type: 'divider' },
     {
       key: 'profile',
-      icon: <UserOutlined />,
+      icon: <UserIcon />,
       label: user?.email || 'Profile',
       disabled: true,
     },
@@ -191,7 +190,7 @@ export default function Sidebar({
     { type: 'divider' },
     {
       key: 'signout',
-      icon: <LogoutOutlined />,
+      icon: <LogOutIcon />,
       label: '退出登录',
       danger: true,
       onClick: () => {
@@ -212,11 +211,11 @@ export default function Sidebar({
 
     // Context menu items with icons
     const menuItems: MenuProps['items'] = [
-      { key: 'star', icon: <StarOutlined />, label: '标星', onClick: () => console.log('Star:', session.id) },
+      { key: 'star', icon: <StarIcon />, label: '标星', onClick: () => console.log('Star:', session.id) },
       { type: 'divider' as const },
       {
         key: 'add-to-collection',
-        icon: <FolderOutlined />,
+        icon: <FolderIcon />,
         label: '添加到收藏夹',
         children: collections.length > 0 ? collections.map(col => ({
           key: `col-${col.id}`,
@@ -224,13 +223,13 @@ export default function Sidebar({
           onClick: () => { addSessionToCollection(col.id, session.id); },
         })) : [{ key: 'no-collections', label: '暂无收藏夹', disabled: true }],
       },
-      { key: 'rename', icon: <EditOutlined />, label: '重命名', onClick: () => {
+      { key: 'rename', icon: <EditIcon />, label: '重命名', onClick: () => {
         setRenamingSession(session.id);
         setRenameValue(session.title);
       }},
-      { key: 'branch', icon: <SwapOutlined />, label: '分支对话', onClick: () => onBranchChat?.(session.id) },
+      { key: 'branch', icon: <BranchIcon />, label: '分支对话', onClick: () => onBranchChat?.(session.id) },
       { type: 'divider' as const },
-      { key: 'delete', icon: <DeleteOutlined />, label: '删除', danger: true, onClick: () => {
+      { key: 'delete', icon: <TrashIcon />, label: '删除', danger: true, onClick: () => {
         setDeleteTarget(session);
       }},
     ];
@@ -279,7 +278,7 @@ export default function Sidebar({
                             setRenameValue(session.title);
                           }}
                         >
-                          <EditOutlined />
+                          <EditIcon />
                         </button>
                       </Tooltip>
                       <Tooltip title="删除">
@@ -290,7 +289,7 @@ export default function Sidebar({
                             setDeleteTarget(session);
                           }}
                         >
-                          <DeleteOutlined />
+                          <TrashIcon />
                         </button>
                       </Tooltip>
                     </div>
@@ -318,7 +317,7 @@ export default function Sidebar({
             <div className="sidebar-header">
               <Tooltip title="收起侧边栏" placement="right">
                 <button className="sidebar-toggle" onClick={() => setCollapsed(true)}>
-                  <MenuFoldOutlined />
+                  <MenuIcon />
                 </button>
               </Tooltip>
               {activeChat && (
@@ -339,7 +338,7 @@ export default function Sidebar({
           <div className="sidebar-header-collapsed">
             <Tooltip title="展开侧边栏" placement="right">
               <button className="sidebar-toggle" onClick={() => setCollapsed(false)}>
-                <MenuUnfoldOutlined />
+                <MenuIcon />
               </button>
             </Tooltip>
           </div>
@@ -347,7 +346,7 @@ export default function Sidebar({
 
         {loggedIn && (
           <button className="sidebar-new-chat" onClick={() => onSelectChat(null)}>
-            <EditOutlined />
+            <EditIcon />
             {!collapsed && <span>New chat</span>}
           </button>
         )}
@@ -380,7 +379,7 @@ export default function Sidebar({
           {showProjects && (
             <div className="projects-overlay">
               <div className="projects-overlay-header">
-                <button onClick={() => setShowProjects(false)}><LeftOutlined /> Back</button>
+                <button onClick={() => setShowProjects(false)}><ChevronLeftIcon /> Back</button>
               </div>
               <ProjectsPanel activeProjectId={activeProjectId} onSelectProject={(projectId) => { onSelectProject(projectId); setShowProjects(false); }} />
             </div>
@@ -390,7 +389,7 @@ export default function Sidebar({
           {showMemory && (
             <div className="projects-overlay">
               <div className="projects-overlay-header">
-                <button onClick={() => setShowMemory(false)}><LeftOutlined /> Back</button>
+                <button onClick={() => setShowMemory(false)}><ChevronLeftIcon /> Back</button>
               </div>
               <MemoryPanel open={showMemory} />
             </div>
@@ -400,7 +399,7 @@ export default function Sidebar({
           {showTemplates && (
             <div className="projects-overlay">
               <div className="projects-overlay-header">
-                <button onClick={() => setShowTemplates(false)}><LeftOutlined /> Back</button>
+                <button onClick={() => setShowTemplates(false)}><ChevronLeftIcon /> Back</button>
               </div>
               <PromptTemplatesPanel onUseTemplate={(content) => {
                 onUsePromptTemplate?.(content);
@@ -413,7 +412,7 @@ export default function Sidebar({
           {showCollections && (
             <div className="projects-overlay">
               <div className="projects-overlay-header">
-                <button onClick={() => setShowCollections(false)}><LeftOutlined /> Back</button>
+                <button onClick={() => setShowCollections(false)}><ChevronLeftIcon /> Back</button>
               </div>
               <CollectionsPanel activeCollectionId={activeCollectionId} onSelectCollection={(collectionId) => { onSelectCollection(collectionId); setShowCollections(false); }} />
             </div>
@@ -441,7 +440,7 @@ export default function Sidebar({
                     <div className="user-name">{displayName}</div>
                     <div className="user-plan"><span style={{ color: 'var(--accent-purple)', fontSize: '12px' }}>💰 ¥{userBalance.toFixed(2)}</span></div>
                   </div>
-                  <MoreOutlined style={{ color: 'var(--text-tertiary)' }} />
+                  <MoreHorizontalIcon style={{ color: 'var(--text-tertiary)' }} />
                 </>
               )}
             </div>

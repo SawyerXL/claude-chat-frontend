@@ -195,11 +195,16 @@ export async function* sendChatMessageStream(
     }
   }
 
+  // Check for user-provided API key first, then fall back to system key
+  const userApiKey = localStorage.getItem('user_api_key');
+  const systemApiKey = localStorage.getItem('claude_api_key') || '';
+  const apiKeyToUse = userApiKey || systemApiKey;
+
   const response = await fetch('/api/chat', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'x-api-key': localStorage.getItem('claude_api_key') || '',
+      'x-api-key': apiKeyToUse,
     },
     body: JSON.stringify(requestBody),
     signal,

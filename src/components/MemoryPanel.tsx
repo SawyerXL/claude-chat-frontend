@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Input, Button, Modal, message, Empty } from 'antd';
-import { PlusOutlined, DeleteOutlined, EditOutlined, BulbOutlined, SearchOutlined } from '@ant-design/icons';
+import { PlusIcon, TrashIcon, EditIcon, LightbulbIcon, SearchIcon } from './icons/ClaudeIcons';
 import { getMemory, addMemory, updateMemory, deleteMemory, clearMemory, type MemoryEntry } from '../services/memory';
 import './MemoryPanel.css';
 
@@ -82,10 +82,10 @@ export default function MemoryPanel({ open }: { open: boolean }) {
     <div className="memory-panel">
       <div className="memory-header">
         <div className="memory-title">
-          <BulbOutlined /> 记忆
+          <LightbulbIcon /> 记忆
         </div>
         <div className="memory-actions">
-          <Button size="small" icon={<PlusOutlined />} onClick={() => setAddModalOpen(true)}>
+          <Button size="small" icon={<PlusIcon />} onClick={() => setAddModalOpen(true)}>
             添加
           </Button>
           {entries.length > 0 && (
@@ -99,7 +99,7 @@ export default function MemoryPanel({ open }: { open: boolean }) {
       <div className="memory-search">
         <Input
           placeholder="搜索记忆..."
-          prefix={<SearchOutlined />}
+          prefix={<SearchIcon />}
           value={search}
           onChange={e => setSearch(e.target.value)}
           allowClear
@@ -123,7 +123,7 @@ export default function MemoryPanel({ open }: { open: boolean }) {
                     <Button
                       type="text"
                       size="small"
-                      icon={<EditOutlined />}
+                      icon={<EditIcon />}
                       onClick={() => {
                         setEditingEntry(entry);
                         setFactInput(entry.fact);
@@ -135,7 +135,7 @@ export default function MemoryPanel({ open }: { open: boolean }) {
                       type="text"
                       size="small"
                       danger
-                      icon={<DeleteOutlined />}
+                      icon={<TrashIcon />}
                       onClick={() => handleDelete(entry.id)}
                     />
                   </div>

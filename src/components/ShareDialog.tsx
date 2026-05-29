@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Modal, Button, message, Tabs, Input, Space } from 'antd';
-import { LockOutlined, TeamOutlined, LinkOutlined, CheckOutlined, CopyOutlined, DownloadOutlined, QrcodeOutlined, ShareAltOutlined } from '@ant-design/icons';
+import { LockIcon, TeamIcon, LinkIcon, CheckIcon, CopyIcon, DownloadIcon, QrcodeIcon, ShareIcon } from './icons/ClaudeIcons';
 import type { ChatSession } from '../types';
 
 interface ShareDialogProps {
@@ -141,9 +141,9 @@ export default function ShareDialog({ open, onClose, conversationId: _conversati
   };
 
   const shareOptions = [
-    { key: 'private', icon: <LockOutlined />, title: '保持私密', desc: '只有你可以查看此对话' },
-    { key: 'team', icon: <TeamOutlined />, title: '团队分享', desc: '团队成员可以查看' },
-    { key: 'public', icon: <LinkOutlined />, title: '公开链接', desc: '生成可分享的链接' },
+    { key: 'private', icon: <LockIcon />, title: '保持私密', desc: '只有你可以查看此对话' },
+    { key: 'team', icon: <TeamIcon />, title: '团队分享', desc: '团队成员可以查看' },
+    { key: 'public', icon: <LinkIcon />, title: '公开链接', desc: '生成可分享的链接' },
   ];
 
   return (
@@ -151,7 +151,7 @@ export default function ShareDialog({ open, onClose, conversationId: _conversati
       open={open}
       onCancel={handleClose}
       footer={null}
-      title={<span><ShareAltOutlined style={{ marginRight: 8 }} />分享对话</span>}
+      title={<span><ShareIcon style={{ marginRight: 8 }} />分享对话</span>}
       width={520}
       centered
     >
@@ -186,7 +186,7 @@ export default function ShareDialog({ open, onClose, conversationId: _conversati
                         <div style={{ fontWeight: 500 }}>{opt.title}</div>
                         <div style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>{opt.desc}</div>
                       </div>
-                      {selected === opt.key && <CheckOutlined style={{ color: 'var(--accent)' }} />}
+                      {selected === opt.key && <CheckIcon style={{ color: 'var(--accent)' }} />}
                     </div>
                   ))}
                 </div>
@@ -199,11 +199,11 @@ export default function ShareDialog({ open, onClose, conversationId: _conversati
                           value={publicLink}
                           readOnly
                           onSearch={handleCopyLink}
-                          enterButton={<CopyOutlined />}
+                          enterButton={<CopyIcon />}
                         />
                         <div style={{ marginTop: 12, display: 'flex', gap: 8 }}>
-                          <Button icon={<QrcodeOutlined />} onClick={() => message.info('二维码功能开发中')}>生成二维码</Button>
-                          <Button icon={<ShareAltOutlined />} onClick={handleShareNative}>分享</Button>
+                          <Button icon={<QrcodeIcon />} onClick={() => message.info('二维码功能开发中')}>生成二维码</Button>
+                          <Button icon={<ShareIcon />} onClick={handleShareNative}>分享</Button>
                         </div>
                       </>
                     ) : (
@@ -215,7 +215,7 @@ export default function ShareDialog({ open, onClose, conversationId: _conversati
                 )}
 
                 {selected !== 'public' && (
-                  <Button type="primary" block onClick={handleShareNative} icon={<ShareAltOutlined />}>
+                  <Button type="primary" block onClick={handleShareNative} icon={<ShareIcon />}>
                     分享
                   </Button>
                 )}
@@ -256,8 +256,8 @@ export default function ShareDialog({ open, onClose, conversationId: _conversati
                 )}
 
                 <Space>
-                  <Button icon={<CopyOutlined />} onClick={handleCopyMarkdown}>复制 Markdown</Button>
-                  <Button type="primary" icon={<DownloadOutlined />} onClick={handleDownload}>下载文件</Button>
+                  <Button icon={<CopyIcon />} onClick={handleCopyMarkdown}>复制 Markdown</Button>
+                  <Button type="primary" icon={<DownloadIcon />} onClick={handleDownload}>下载文件</Button>
                 </Space>
               </div>
             ),

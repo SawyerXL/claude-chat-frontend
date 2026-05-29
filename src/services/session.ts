@@ -13,6 +13,7 @@ class SessionSyncManager {
   private listeners: Set<() => void> = new Set();
   private lastKnownSessions: string = '';
   private recentlyDeletedIds: Set<string> = new Set();
+  private localSessions: ChatSession[] = [];
 
   constructor() {
     this.setupStorageListener();
@@ -21,6 +22,16 @@ class SessionSyncManager {
   markDeleted(sessionId: string): void {
     this.recentlyDeletedIds.add(sessionId);
     setTimeout(() => this.recentlyDeletedIds.delete(sessionId), 30000);
+  }
+
+  // Get local sessions (for preserving messages during refresh)
+  getLocalSessions(): ChatSession[] {
+    return this.localSessions;
+  }
+
+  // Update local sessions cache
+  updateLocalSessions(sessions: ChatSession[]): void {
+    this.localSessions = sessions;
   }
 
   private setupStorageListener(): void {
@@ -70,7 +81,8 @@ class SessionSyncManager {
     const userId = this.getUserId();
     if (!userId) return null;
 
-    const size = Buffer.byteLength(content, 'utf8');
+    // Use TextEncoder for browser compatibility
+    const size = new TextEncoder().encode(content).length;
     if (size < FILE_CACHE_THRESHOLD) {
       // File is small, don't cache
       return null;
@@ -151,7 +163,7 @@ class SessionSyncManager {
     return processedMessages;
   }
 
-  async fetchSessions(): Promise<ChatSession[]> {
+  async fetchSessions(currentSessions?: ChatSession[]): Promise<ChatSession[]> {
     const userId = this.getUserId();
     if (!userId) return [];
 
@@ -161,15 +173,25 @@ class SessionSyncManager {
       const json = await res.json();
 
       if (json.code === 0 && Array.isArray(json.data)) {
-        const sessions = json.data.map((s: any) => ({
-          id: s.id,
-          title: s.title || 'New Chat',
-          messages: s.messages || [],
-          model: s.model,
-          messageCount: s.message_count,
-          createdAt: s.created_at,
-          updatedAt: s.updated_at,
-        }));
+        // Use provided sessions or local cache for preserving messages
+        const existingMap = new Map((currentSessions || this.localSessions).map(s => [s.id, s]));
+        
+        const sessions = json.data.map((s: any) => {
+          const existing = existingMap.get(s.id);
+          return {
+            id: s.id,
+            title: s.title || 'New Chat',
+            // Preserve messages from local state, use empty if not available
+            messages: existing?.messages || [],
+            model: s.model,
+            messageCount: s.message_count,
+            createdAt: s.created_at,
+            updatedAt: s.updated_at,
+          };
+        });
+
+        // Update local cache
+        this.localSessions = sessions;
 
         return sessions.filter((s: ChatSession) => !this.recentlyDeletedIds.has(s.id));
       }
@@ -296,8 +318,8 @@ function getUserId(): string {
   return syncManager.getUserId();
 }
 
-export async function getSessions(): Promise<ChatSession[]> {
-  return syncManager.fetchSessions();
+export async function getSessions(currentSessions?: ChatSession[]): Promise<ChatSession[]> {
+  return syncManager.fetchSessions(currentSessions);
 }
 
 export async function saveSession(session: ChatSession): Promise<void> {
@@ -325,8 +347,10 @@ export async function getSessionById(sessionId: string): Promise<ChatSession | n
 
   try {
     const url = `/session-api/api/sessions/${sessionId}?user_id=${encodeURIComponent(userId)}`;
+    console.log('[getSessionById] Fetching from:', url);
     const res = await fetch(url);
     const json = await res.json();
+    console.log('[getSessionById] Response:', json.code, json.data?.messages?.length);
 
     if (json.code === 0 && json.data) {
       return {

@@ -1,16 +1,19 @@
 import { useState, useEffect } from 'react';
 import { Modal, message } from 'antd';
 import {
-  SettingOutlined,
-  InfoCircleOutlined,
-  MessageOutlined,
-  DeleteOutlined,
-  PlusOutlined,
-  BankOutlined,
-  ApiOutlined,
-} from '@ant-design/icons';
+  SettingsIcon,
+  InfoIcon,
+  MessageIcon,
+  TrashIcon,
+  PlusIcon,
+  LightbulbIcon,
+  ApiIcon,
+} from './icons/ClaudeIcons';
 import '../styles/settings.css';
 import { getMemory, addMemory, deleteMemory, clearMemory } from '../services/memory';
+import { notificationService } from '../services/notifications';
+import KeyboardShortcuts from './KeyboardShortcuts';
+import '../styles/keyboard-shortcuts.css';
 import type { MemoryEntry } from '../services/memory';
 
 interface SettingsProps {
@@ -44,6 +47,7 @@ export default function Settings({ open, onClose, onThemeChange }: SettingsProps
   const [theme, setTheme] = useState<'dark' | 'light'>('dark');
   const [memoryEntries, setMemoryEntries] = useState<MemoryEntry[]>([]);
   const [newMemory, setNewMemory] = useState('');
+  const [notificationEnabled, setNotificationEnabled] = useState(notificationService.isEnabled());
 
   useEffect(() => {
     const saved = localStorage.getItem('claude_theme');
@@ -97,12 +101,13 @@ export default function Settings({ open, onClose, onThemeChange }: SettingsProps
   };
 
   const tabs = [
-    { key: 'general', icon: <SettingOutlined />, label: 'General' },
-    { key: 'instructions', icon: <MessageOutlined />, label: 'Custom Instructions' },
-    { key: 'memory', icon: <BankOutlined />, label: 'Memory' },
-    { key: 'mcp', icon: <ApiOutlined />, label: 'MCP Servers' },
+    { key: 'general', icon: <SettingsIcon />, label: 'General' },
+    { key: 'apikey', icon: <ApiIcon />, label: 'API Key' },
+    { key: 'instructions', icon: <MessageIcon />, label: 'Custom Instructions' },
+    { key: 'memory', icon: <LightbulbIcon />, label: 'Memory' },
+    { key: 'mcp', icon: <span>🔌</span>, label: 'MCP Servers' },
     { key: 'keyboard', icon: <span>⌨️</span>, label: 'Keyboard' },
-    { key: 'about', icon: <InfoCircleOutlined />, label: 'About' },
+    { key: 'about', icon: <InfoIcon />, label: 'About' },
   ];
 
   return (
@@ -180,6 +185,88 @@ export default function Settings({ open, onClose, onThemeChange }: SettingsProps
                   <span className="toggle-slider" />
                 </label>
               </div>
+
+              <div className="settings-item">
+                <div className="settings-item-info">
+                  <div className="settings-item-label">Browser Notifications</div>
+                  <div className="settings-item-desc">Get notified when responses complete</div>
+                </div>
+                <label className="settings-toggle">
+                  <input
+                    type="checkbox"
+                    checked={notificationEnabled}
+                    onChange={async (e) => {
+                      if (e.target.checked) {
+                        const granted = await notificationService.requestPermission();
+                        setNotificationEnabled(granted);
+                        if (!granted) {
+                          message.warning('Notification permission denied');
+                        }
+                      } else {
+                        notificationService.disable();
+                        setNotificationEnabled(false);
+                      }
+                    }}
+                  />
+                  <span className="toggle-slider" />
+                </label>
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'apikey' && (
+            <div className="settings-section apikey-section">
+              <div className="apikey-header">
+                <h3>Your API Key</h3>
+                <p>Use your own Anthropic API key to have full control over your account's usage and billing.</p>
+              </div>
+              
+              <div className="apikey-form">
+                <div className="apikey-field">
+                  <label>Anthropic API Key</label>
+                  <input
+                    type="password"
+                    id="user-api-key"
+                    placeholder="sk-ant-api03-..."
+                    defaultValue={localStorage.getItem('user_api_key') || ''}
+                    className="apikey-input"
+                  />
+                  <span className="field-hint">Your API key is stored locally and never sent to our servers.</span>
+                </div>
+                
+                <div className="apikey-actions">
+                  <button className="apikey-save-btn" onClick={() => {
+                    const input = document.getElementById('user-api-key') as HTMLInputElement;
+                    if (input && input.value.trim()) {
+                      localStorage.setItem('user_api_key', input.value.trim());
+                      message.success('API Key saved! It will be used for future requests.');
+                    } else {
+                      localStorage.removeItem('user_api_key');
+                      message.info('Using shared API key.');
+                    }
+                  }}>
+                    Save API Key
+                  </button>
+                  <button className="apikey-clear-btn" onClick={() => {
+                    localStorage.removeItem('user_api_key');
+                    const input = document.getElementById('user-api-key') as HTMLInputElement;
+                    if (input) input.value = '';
+                    message.info('Cleared. Using shared API key.');
+                  }}>
+                    Clear
+                  </button>
+                </div>
+                
+                <div className="apikey-info">
+                  <h4>Usage Notes</h4>
+                  <ul>
+                    <li>Using your own API key means you pay Anthropic directly for usage</li>
+                    <li>Your key is stored in your browser only, not on our servers</li>
+                    <li>When set, your key will be used instead of the shared account</li>
+                    <li>Get your API key from <a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener">Anthropic Console</a></li>
+                  </ul>
+                </div>
+              </div>
             </div>
           )}
 
@@ -231,7 +318,7 @@ export default function Settings({ open, onClose, onThemeChange }: SettingsProps
                   onChange={(e) => setNewMemory(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && handleAddMemory()}
                 />
-                <button onClick={handleAddMemory}><PlusOutlined /> Add</button>
+                <button onClick={handleAddMemory}><PlusIcon /> Add</button>
               </div>
 
               <div className="memory-list">
@@ -246,7 +333,7 @@ export default function Settings({ open, onClose, onThemeChange }: SettingsProps
                         onClick={() => handleDeleteMemory(entry.id)}
                         title="Delete"
                       >
-                        <DeleteOutlined />
+                        <TrashIcon />
                       </button>
                     </div>
                   ))
@@ -269,7 +356,7 @@ export default function Settings({ open, onClose, onThemeChange }: SettingsProps
               </div>
 
               <div className="mcp-coming-soon">
-                <div className="coming-soon-icon"><ApiOutlined /></div>
+                <div className="coming-soon-icon"><ApiIcon /></div>
                 <h4>MCP Integration Coming Soon</h4>
                 <p>This feature requires server-side MCP support. MCP allows Claude to:</p>
                 <ul>
@@ -283,38 +370,7 @@ export default function Settings({ open, onClose, onThemeChange }: SettingsProps
           )}
 
           {activeTab === 'keyboard' && (
-            <div className="settings-section">
-              <div className="shortcuts-list">
-                <div className="shortcut-item">
-                  <span className="shortcut-desc">New conversation</span>
-                  <span className="shortcut-keys"><kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>N</kbd></span>
-                </div>
-                <div className="shortcut-item">
-                  <span className="shortcut-desc">Send message</span>
-                  <span className="shortcut-keys"><kbd>Enter</kbd></span>
-                </div>
-                <div className="shortcut-item">
-                  <span className="shortcut-desc">Multi-line input</span>
-                  <span className="shortcut-keys"><kbd>Shift</kbd> + <kbd>Enter</kbd></span>
-                </div>
-                <div className="shortcut-item">
-                  <span className="shortcut-desc">Stop generation</span>
-                  <span className="shortcut-keys"><kbd>Esc</kbd></span>
-                </div>
-                <div className="shortcut-item">
-                  <span className="shortcut-desc">Toggle sidebar</span>
-                  <span className="shortcut-keys"><kbd>Ctrl</kbd> + <kbd>B</kbd></span>
-                </div>
-                <div className="shortcut-item">
-                  <span className="shortcut-desc">Clear conversation</span>
-                  <span className="shortcut-keys"><kbd>Ctrl</kbd> + <kbd>K</kbd></span>
-                </div>
-                <div className="shortcut-item">
-                  <span className="shortcut-desc">Input history (up/down)</span>
-                  <span className="shortcut-keys"><kbd>↑</kbd> / <kbd>↓</kbd></span>
-                </div>
-              </div>
-            </div>
+            <KeyboardShortcuts />
           )}
 
           {activeTab === 'about' && (

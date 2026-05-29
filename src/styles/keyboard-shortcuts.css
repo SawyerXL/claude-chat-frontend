@@ -1,0 +1,255 @@
+.keyboard-section {
+  padding: 0 20px 20px;
+}
+
+.keyboard-header {
+  margin-bottom: 24px;
+}
+
+.keyboard-header h3 {
+  font-size: 18px;
+  margin-bottom: 8px;
+  color: var(--text-primary);
+}
+
+.keyboard-header p {
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+.keyboard-list {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.keyboard-category {
+  border-bottom: 1px solid var(--border-color);
+  padding-bottom: 16px;
+}
+
+.keyboard-category:last-child {
+  border-bottom: none;
+}
+
+.keyboard-category h4 {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin: 0 0 12px;
+}
+
+.keyboard-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--bg-tertiary);
+}
+
+.keyboard-item:last-child {
+  border-bottom: none;
+}
+
+.keyboard-item-info {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.keyboard-name {
+  font-size: 14px;
+  color: var(--text-primary);
+}
+
+.keyboard-keys-display {
+  display: flex;
+  gap: 4px;
+}
+
+.keyboard-key {
+  display: inline-block;
+  padding: 4px 8px;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  font-size: 12px;
+  font-family: monospace;
+  color: var(--text-secondary);
+}
+
+.keyboard-item-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.keyboard-edit-btn {
+  background: none;
+  border: none;
+  color: var(--text-tertiary);
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 4px;
+  font-size: 14px;
+  transition: all 0.15s ease;
+}
+
+.keyboard-edit-btn:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.keyboard-recording {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.recording-indicator {
+  color: #ff4444;
+  animation: pulse 1s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+.recording-keys {
+  font-size: 12px;
+  font-family: monospace;
+  color: var(--text-secondary);
+  padding: 4px 8px;
+  background: var(--bg-tertiary);
+  border-radius: 4px;
+}
+
+.keyboard-cancel-btn {
+  background: none;
+  border: none;
+  color: var(--text-tertiary);
+  cursor: pointer;
+  font-size: 12px;
+  padding: 4px 8px;
+}
+
+.keyboard-cancel-btn:hover {
+  color: var(--text-primary);
+}
+
+.keyboard-footer {
+  margin-top: 24px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border-color);
+}
+
+.keyboard-reset-btn {
+  padding: 10px 20px;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-size: 13px;
+  transition: all 0.15s ease;
+}
+
+.keyboard-reset-btn:hover {
+  background: var(--bg-hover);
+  border-color: var(--text-tertiary);
+  color: var(--text-primary);
+}
+
+/* Recording overlay */
+.keyboard-recording-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  backdrop-filter: blur(4px);
+}
+
+.keyboard-recording-dialog {
+  background: var(--bg-secondary);
+  border-radius: 16px;
+  padding: 32px;
+  text-align: center;
+  max-width: 400px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+}
+
+.keyboard-recording-dialog h4 {
+  font-size: 18px;
+  margin: 0 0 12px;
+  color: var(--text-primary);
+}
+
+.keyboard-recording-dialog p {
+  font-size: 14px;
+  color: var(--text-secondary);
+  margin: 0 0 24px;
+}
+
+.recording-preview {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 24px;
+  min-height: 48px;
+  align-items: center;
+}
+
+.recording-preview kbd {
+  display: inline-block;
+  padding: 8px 16px;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  font-size: 16px;
+  font-family: monospace;
+  color: var(--text-primary);
+}
+
+.waiting-keys {
+  color: var(--text-tertiary);
+  font-size: 14px;
+}
+
+.keyboard-recording-dialog button {
+  padding: 10px 24px;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-size: 14px;
+  transition: all 0.15s ease;
+}
+
+.keyboard-recording-dialog button:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+@media (max-width: 768px) {
+  .keyboard-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .keyboard-item-actions {
+    width: 100%;
+    justify-content: space-between;
+  }
+}
