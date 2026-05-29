@@ -35,7 +35,9 @@ export default function LoginDialog({ open, onCancel, onSuccess }: LoginDialogPr
     setError('');
 
     try {
+      console.log('[Login] Attempting login for:', email);
       const result = await login(email, password);
+      console.log('[Login] Result:', result);
 
       if (result.ok) {
         message.success('登录成功！');
@@ -44,6 +46,7 @@ export default function LoginDialog({ open, onCancel, onSuccess }: LoginDialogPr
         setError(result.error || '登录失败');
       }
     } catch (err) {
+      console.error('[Login] Error:', err);
       setError(err instanceof Error ? err.message : '网络错误，请重试');
     } finally {
       setLoading(false);

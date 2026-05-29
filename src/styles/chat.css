@@ -400,7 +400,51 @@
 }
 
 .thinking-icon {
-  font-size: 14px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #d4a574 0%, #aa3bff 50%, #6b4fff 100%);
+  animation: thinking-pulse 1.5s ease-in-out infinite;
+  flex-shrink: 0;
+}
+
+@keyframes thinking-pulse {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.1);
+    opacity: 0.8;
+  }
+}
+
+/* Claude typing indicator - animated dots */
+.typing-indicator {
+  display: flex;
+  gap: 4px;
+  padding: 4px 0;
+}
+
+.typing-indicator span {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--text-tertiary);
+  animation: typing-bounce 1.4s ease-in-out infinite;
+}
+
+.typing-indicator span:nth-child(1) { animation-delay: 0s; }
+.typing-indicator span:nth-child(2) { animation-delay: 0.2s; }
+.typing-indicator span:nth-child(3) { animation-delay: 0.4s; }
+
+@keyframes typing-bounce {
+  0%, 60%, 100% {
+    transform: translateY(0);
+  }
+  30% {
+    transform: translateY(-6px);
+  }
 }
 
 .thinking-content {

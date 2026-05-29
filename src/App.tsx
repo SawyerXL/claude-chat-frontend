@@ -26,7 +26,7 @@ import { SKILLS_REGISTRY } from './skills/registry';
 import type { ChatMessage, ChatSession } from './types';
 import { MODELS } from './constants';
 import { sendChatMessageStream } from './services/api';
-import { getSessions, saveSession, deleteSession, startSessionSync, subscribeToSessionChanges } from './services/session';
+import { getSessions, getSessionById, saveSession, deleteSession, startSessionSync, subscribeToSessionChanges } from './services/session';
 import { isAuthenticated } from './services/auth';
 import { initTheme, toggleTheme as toggleThemeService } from './services/theme';
 import { onSessionDeleted } from './services/collection';
@@ -266,6 +266,14 @@ export default function App() {
       try {
         await saveSession(session);
         console.log('[persistSession] Session saved, now refreshing...');
+        
+        // Optimistically update local state to move this session to top
+        setSessions(prev => {
+          const others = prev.filter(s => s.id !== sessionId);
+          const updated = { ...session };
+          return [updated, ...others];
+        });
+        
         await refreshSessions();
         console.log('[persistSession] Sessions refreshed');
       } catch (err) {
@@ -443,9 +451,11 @@ export default function App() {
       setMessages([]);
       setModel(MODELS[1].id);
     } else {
-      const session = sessions.find((s) => s.id === id);
-      console.log('[handleSelectChat] Found session:', session?.id, 'messages:', session?.messages?.length);
+      // Fetch full session with messages from server
+      console.log('[handleSelectChat] Loading session from server:', id);
+      const session = await getSessionById(id);
       if (session) {
+        console.log('[handleSelectChat] Loaded session:', session.id, 'messages:', session.messages?.length);
         setActiveChat(session.id);
         setMessages(session.messages || []);
         setModel(session.model || MODELS[1].id);

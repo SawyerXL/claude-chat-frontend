@@ -318,6 +318,33 @@ export async function refreshSessionsFromServer(): Promise<ChatSession[]> {
   return getSessions();
 }
 
+// Fetch full session by ID (for loading chat history)
+export async function getSessionById(sessionId: string): Promise<ChatSession | null> {
+  const userId = getUserId();
+  if (!userId) return null;
+
+  try {
+    const url = `/session-api/api/sessions/${sessionId}?user_id=${encodeURIComponent(userId)}`;
+    const res = await fetch(url);
+    const json = await res.json();
+
+    if (json.code === 0 && json.data) {
+      return {
+        id: json.data.id,
+        title: json.data.title || 'New Chat',
+        messages: json.data.messages || [],
+        model: json.data.model,
+        createdAt: json.data.created_at,
+        updatedAt: json.data.updated_at,
+      };
+    }
+  } catch (err) {
+    console.error('[session] Failed to get session:', err);
+  }
+
+  return null;
+}
+
 export function startSessionSync(callback: () => void): () => void {
   syncManager.startPolling(callback);
   return () => syncManager.stopPolling();

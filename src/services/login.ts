@@ -20,6 +20,9 @@ export interface LogoutResponse {
 }
 
 export async function login(username: string, password: string): Promise<LoginResponse> {
+  console.log('[LoginService] Starting login for:', username);
+  console.log('[LoginService] URL:', '/api/v1/auth/login');
+  
   try {
     const res = await fetch('/api/v1/auth/login', {
       method: 'POST',
@@ -29,7 +32,11 @@ export async function login(username: string, password: string): Promise<LoginRe
       body: JSON.stringify({ email: username, password }),
     });
 
+    console.log('[LoginService] Response status:', res.status);
+    console.log('[LoginService] Response ok:', res.ok);
+    
     const data = await res.json();
+    console.log('[LoginService] Response data:', JSON.stringify(data).substring(0, 200));
 
     if (data.code === 0 && data.data?.access_token) {
       const token = data.data.access_token;

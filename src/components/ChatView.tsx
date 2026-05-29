@@ -867,7 +867,7 @@ export default function ChatView({
                       {m.thinking && (
                         <div className="thinking-block">
                           <div className="thinking-header">
-                            <span className="thinking-icon">🤔</span>
+                            <span className="thinking-icon"></span>
                             <span>Thinking</span>
                           </div>
                           <div className="thinking-content">{m.thinking}</div>
