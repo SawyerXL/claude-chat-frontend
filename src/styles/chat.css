@@ -1012,3 +1012,180 @@
     font-size: 12px;
   }
 }
+
+/* ============================================
+   MOBILE CHAT STYLES (< 768px)
+   ============================================ */
+@media (max-width: 768px) {
+  /* Chat input container */
+  .chat-input-container {
+    padding: 8px 12px 12px !important;
+  }
+
+  .chat-input-inner {
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+
+  .welcome-input-area {
+    background: var(--bg-tertiary) !important;
+    border-radius: 16px !important;
+    padding: 8px !important;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
+  }
+
+  .welcome-input {
+    font-size: 15px !important;
+    min-height: 44px !important;
+    max-height: 150px !important;
+    padding: 10px 14px !important;
+    background: transparent !important;
+  }
+
+  .welcome-toolbar {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    padding: 6px 8px !important;
+    gap: 8px !important;
+  }
+
+  .toolbar-left {
+    display: flex !important;
+    align-items: center !important;
+    gap: 6px !important;
+    flex: 1 !important;
+    min-width: 0 !important;
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+  }
+
+  .toolbar-right {
+    display: flex !important;
+    align-items: center !important;
+    gap: 6px !important;
+    flex-shrink: 0 !important;
+  }
+
+  .tool-btn {
+    width: 42px !important;
+    height: 42px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    border: none !important;
+    border-radius: 12px !important;
+    cursor: pointer !important;
+    transition: all 0.15s ease !important;
+  }
+
+  .tool-btn.send {
+    background: var(--accent) !important;
+    color: white !important;
+  }
+
+  .tool-btn.send:disabled {
+    opacity: 0.4 !important;
+    cursor: not-allowed !important;
+  }
+
+  .tool-btn.voice-btn {
+    background: var(--bg-secondary) !important;
+    color: var(--text-secondary) !important;
+  }
+
+  .tool-btn.voice-btn.listening {
+    background: var(--accent) !important;
+    color: white !important;
+  }
+
+  .plus-menu-btn {
+    width: 42px !important;
+    height: 42px !important;
+    padding: 0 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    border: none !important;
+    border-radius: 12px !important;
+    background: var(--bg-secondary) !important;
+    color: var(--text-secondary) !important;
+    cursor: pointer !important;
+  }
+
+  .model-selector-trigger {
+    padding: 8px 12px !important;
+    font-size: 12px !important;
+    max-width: 130px !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+  }
+
+  .trial-indicator {
+    display: none !important;
+  }
+
+  /* Attachments */
+  .attachment-preview-container {
+    padding: 8px !important;
+    gap: 8px !important;
+    overflow-x: auto !important;
+  }
+
+  .attachment-preview {
+    flex-shrink: 0 !important;
+    padding: 8px 12px !important;
+    gap: 8px !important;
+    background: var(--bg-secondary) !important;
+    border-radius: 8px !important;
+    font-size: 12px !important;
+  }
+
+  .image-preview-container {
+    padding: 8px !important;
+    gap: 8px !important;
+    overflow-x: auto !important;
+  }
+
+  .image-preview {
+    width: 70px !important;
+    height: 70px !important;
+    flex-shrink: 0 !important;
+  }
+
+  .image-preview img {
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: cover !important;
+    border-radius: 8px !important;
+  }
+
+  .chat-messages-inner {
+    padding: 16px 12px !important;
+    gap: 20px !important;
+  }
+
+  .message {
+    max-width: 92% !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .welcome-input {
+    font-size: 16px !important;
+    padding: 10px 12px !important;
+  }
+
+  .tool-btn,
+  .plus-menu-btn {
+    width: 38px !important;
+    height: 38px !important;
+  }
+
+  .model-selector-trigger {
+    padding: 6px 10px !important;
+    font-size: 11px !important;
+    max-width: 100px !important;
+  }
+}
