@@ -26,6 +26,8 @@ import { logout } from '../services/auth';
 import ProjectsPanel from './ProjectsPanel';
 import MemoryPanel from './MemoryPanel';
 import PromptTemplatesPanel from './PromptTemplatesPanel';
+import CollectionsPanel from './CollectionsPanel';
+import { getCollections, getSessionsInCollection, addSessionToCollection } from '../services/collection';
 import '../styles/sidebar.css';
 
 interface SidebarProps {
@@ -38,6 +40,8 @@ interface SidebarProps {
   user?: User | null;
   activeProjectId: string | null;
   onSelectProject: (projectId: string | null) => void;
+  activeCollectionId: string | null;
+  onSelectCollection: (collectionId: string | null) => void;
   activeTab?: string;
   onTabChange?: (tab: string) => void;
   onOpenSearch?: () => void;
@@ -54,7 +58,8 @@ interface SidebarProps {
 const NAV_ITEMS = [
   { key: 'search', icon: <SearchOutlined />, label: 'Search' },
   { key: 'chats', icon: <MessageOutlined />, label: 'Chats' },
-  { key: 'projects', icon: <FolderOutlined />, label: 'Projects' },
+  { key: 'collections', icon: <FolderOutlined />, label: 'Collections' },
+  { key: 'projects', icon: <AppstoreOutlined />, label: 'Projects' },
   { key: 'templates', icon: <FileTextOutlined />, label: 'Templates' },
   { key: 'memory', icon: <BulbOutlined />, label: 'Memory' },
   { key: 'artifacts', icon: <AppstoreOutlined />, label: 'Artifacts' },
@@ -97,6 +102,8 @@ export default function Sidebar({
   user,
   activeProjectId,
   onSelectProject,
+  activeCollectionId,
+  onSelectCollection,
   activeTab = 'chats',
   onTabChange,
   onOpenSearch,
@@ -113,15 +120,21 @@ export default function Sidebar({
   const [showProjects, setShowProjects] = useState(false);
   const [showMemory, setShowMemory] = useState(false);
   const [showTemplates, setShowTemplates] = useState(false);
+  const [showCollections, setShowCollections] = useState(false);
   const [hoveredSession, setHoveredSession] = useState<string | null>(null);
   const [renamingSession, setRenamingSession] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState('');
   const [deleteTarget, setDeleteTarget] = useState<ChatSession | null>(null);
 
-  // Filter sessions by project
-  const filteredSessions = activeProjectId
-    ? sessions.filter(s => s.projectId === activeProjectId)
-    : sessions;
+  // Filter sessions by project and collection
+  let filteredSessions = sessions;
+  if (activeProjectId) {
+    filteredSessions = filteredSessions.filter(s => s.projectId === activeProjectId);
+  }
+  if (activeCollectionId) {
+    const collectionSessionIds = getSessionsInCollection(activeCollectionId);
+    filteredSessions = filteredSessions.filter(s => collectionSessionIds.includes(s.id));
+  }
 
   const groups = groupConversations(filteredSessions);
 
@@ -194,10 +207,23 @@ export default function Sidebar({
     const isHovered = hoveredSession === session.id;
     const isRenaming = renamingSession === session.id;
 
+    // Get collections for context menu
+    const collections = getCollections();
+
     // Context menu items with icons
     const menuItems: MenuProps['items'] = [
       { key: 'star', icon: <StarOutlined />, label: '标星', onClick: () => console.log('Star:', session.id) },
       { type: 'divider' as const },
+      {
+        key: 'add-to-collection',
+        icon: <FolderOutlined />,
+        label: '添加到收藏夹',
+        children: collections.length > 0 ? collections.map(col => ({
+          key: `col-${col.id}`,
+          label: <span>{col.icon} {col.name}</span>,
+          onClick: () => { addSessionToCollection(col.id, session.id); },
+        })) : [{ key: 'no-collections', label: '暂无收藏夹', disabled: true }],
+      },
       { key: 'rename', icon: <EditOutlined />, label: '重命名', onClick: () => {
         setRenamingSession(session.id);
         setRenameValue(session.title);
@@ -332,6 +358,7 @@ export default function Sidebar({
             return (
               <div key={item.key} className={`sidebar-menu-item ${isActive ? 'active' : ''}`} onClick={() => {
                 if (item.key === 'projects') setShowProjects(!showProjects);
+                else if (item.key === 'collections') setShowCollections(!showCollections);
                 else if (item.key === 'search') onOpenSearch?.();
                 else if (item.key === 'artifacts') onOpenArtifacts?.();
                 else if (item.key === 'code') onOpenCode?.();
@@ -382,8 +409,18 @@ export default function Sidebar({
             </div>
           )}
 
+          {/* Collections panel overlay */}
+          {showCollections && (
+            <div className="projects-overlay">
+              <div className="projects-overlay-header">
+                <button onClick={() => setShowCollections(false)}><LeftOutlined /> Back</button>
+              </div>
+              <CollectionsPanel activeCollectionId={activeCollectionId} onSelectCollection={(collectionId) => { onSelectCollection(collectionId); setShowCollections(false); }} />
+            </div>
+          )}
+
           {/* Conversations list */}
-          {!showProjects && !showMemory && !showTemplates && (
+          {!showProjects && !showMemory && !showTemplates && !showCollections && (
             <div className="sidebar-conversations">
               {filteredSessions.length === 0 ? (
                 <div className="empty-conversations">暂无会话记录</div>

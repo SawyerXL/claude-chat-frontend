@@ -29,6 +29,7 @@ import { sendChatMessageStream } from './services/api';
 import { getSessions, saveSession, deleteSession, startSessionSync, subscribeToSessionChanges } from './services/session';
 import { isAuthenticated } from './services/auth';
 import { initTheme, toggleTheme as toggleThemeService } from './services/theme';
+import { onSessionDeleted } from './services/collection';
 import type { User } from './services/auth';
 import { useKeyboardShortcuts, DEFAULT_SHORTCUTS } from './hooks/useKeyboardShortcuts';
 import './App.css';
@@ -71,6 +72,7 @@ export default function App() {
   // TODO: Enable auth before production
   // const [needsAuth, setNeedsAuth] = useState(false);
   const [activeProjectId, setActiveProjectId] = useState<string | null>(null);
+  const [activeCollectionId, setActiveCollectionId] = useState<string | null>(null);
   const [theme, setTheme] = useState<'dark' | 'light'>('dark');
   const [isReady, setIsReady] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -455,6 +457,7 @@ export default function App() {
 
   const handleDeleteChat = async (id: string) => {
     try {
+      onSessionDeleted(id); // Clean up collection mapping
       await deleteSession(id);
       await refreshSessions();
       if (activeChat === id) {
@@ -641,6 +644,8 @@ ${promptOrSystemPrompt ? `\n用户需求：${promptOrSystemPrompt}` : ''}
         user={user}
         activeProjectId={activeProjectId}
         onSelectProject={setActiveProjectId}
+        activeCollectionId={activeCollectionId}
+        onSelectCollection={setActiveCollectionId}
         activeTab={sidebarTab}
         onTabChange={setSidebarTab}
         onOpenArtifacts={() => setArtifactsOpen(true)}

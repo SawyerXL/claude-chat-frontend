@@ -85,3 +85,12 @@ export interface Skill {
   requiresFileUpload?: boolean;
   isOfficial?: boolean;
 }
+
+export interface Collection {
+  id: string;
+  name: string;
+  icon: string;
+  color: string;
+  createdAt: number;
+  updatedAt: number;
+}
