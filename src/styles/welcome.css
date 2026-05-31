@@ -466,28 +466,3 @@
   color: var(--text-tertiary) !important;
 }
 
-/* Responsive */
-@media (max-width: 768px) {
-  .welcome-header {
-    flex-direction: column;
-    gap: 12px;
-    align-items: flex-start;
-  }
-
-  .welcome-tips {
-    flex-direction: column;
-  }
-
-  .tip-item {
-    width: 100%;
-  }
-
-  .quick-actions {
-    flex-direction: column;
-  }
-
-  .quick-action {
-    width: 100%;
-    justify-content: center;
-  }
-}

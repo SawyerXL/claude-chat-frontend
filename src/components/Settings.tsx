@@ -9,10 +9,12 @@ import {
   LightbulbIcon,
   ApiIcon,
 } from './icons/ClaudeIcons';
+import KeyboardShortcuts from './KeyboardShortcuts';
+import ConnectorsPanel from './ConnectorsPanel';
 import '../styles/settings.css';
 import { getMemory, addMemory, deleteMemory, clearMemory } from '../services/memory';
 import { notificationService } from '../services/notifications';
-import KeyboardShortcuts from './KeyboardShortcuts';
+import ImportExportPanel from './ImportExportPanel';
 import '../styles/keyboard-shortcuts.css';
 import type { MemoryEntry } from '../services/memory';
 
@@ -48,6 +50,7 @@ export default function Settings({ open, onClose, onThemeChange }: SettingsProps
   const [memoryEntries, setMemoryEntries] = useState<MemoryEntry[]>([]);
   const [newMemory, setNewMemory] = useState('');
   const [notificationEnabled, setNotificationEnabled] = useState(notificationService.isEnabled());
+  const [connectorsOpen, setConnectorsOpen] = useState(false);
 
   useEffect(() => {
     const saved = localStorage.getItem('claude_theme');
@@ -114,6 +117,7 @@ export default function Settings({ open, onClose, onThemeChange }: SettingsProps
     { key: 'apikey', icon: <ApiIcon />, label: 'API Key' },
     { key: 'instructions', icon: <MessageIcon />, label: 'Custom Instructions' },
     { key: 'memory', icon: <LightbulbIcon />, label: 'Memory' },
+    { key: 'import-export', icon: <span>📥</span>, label: 'Import/Export' },
     { key: 'mcp', icon: <span>🔌</span>, label: 'MCP Servers' },
     { key: 'keyboard', icon: <span>⌨️</span>, label: 'Keyboard' },
     { key: 'about', icon: <InfoIcon />, label: 'About' },
@@ -358,25 +362,12 @@ export default function Settings({ open, onClose, onThemeChange }: SettingsProps
             </div>
           )}
 
-          {activeTab === 'mcp' && (
-            <div className="settings-section mcp-section">
-              <div className="mcp-header">
-                <h3>MCP Servers</h3>
-                <p>Configure Model Context Protocol servers to extend Claude's capabilities with external tools and data sources.</p>
-              </div>
+          {activeTab === 'import-export' && (
+            <ImportExportPanel />
+          )}
 
-              <div className="mcp-coming-soon">
-                <div className="coming-soon-icon"><ApiIcon /></div>
-                <h4>MCP Integration Coming Soon</h4>
-                <p>This feature requires server-side MCP support. MCP allows Claude to:</p>
-                <ul>
-                  <li>Access real-time data from external APIs</li>
-                  <li>Use specialized tools (browsers, databases, etc.)</li>
-                  <li>Connect to enterprise data sources</li>
-                </ul>
-                <p className="coming-soon-note">Server configuration will be available in a future update.</p>
-              </div>
-            </div>
+          {activeTab === 'mcp' && (
+            <ConnectorsPanel open={connectorsOpen} onClose={() => setConnectorsOpen(false)} />
           )}
 
           {activeTab === 'keyboard' && (

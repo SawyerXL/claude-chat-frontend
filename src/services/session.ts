@@ -423,6 +423,144 @@ export function subscribeToSessionChanges(callback: () => void): () => void {
   return syncManager.subscribe(callback);
 }
 
+// ============================================
+// Import/Export Sessions
+// ============================================
+
+export interface ExportedData {
+  version: string;
+  exportedAt: number;
+  sessions: ChatSession[];
+  memories?: Array<{ id: string; fact: string; createdAt: number; updatedAt: number; category?: string }>;
+}
+
+export async function exportAllData(): Promise<string> {
+  const sessions = await getSessions();
+  const memoriesData = localStorage.getItem('claude_memory');
+  const memories = memoriesData ? JSON.parse(memoriesData) : null;
+
+  const exportData: ExportedData = {
+    version: '1.0',
+    exportedAt: Date.now(),
+    sessions,
+    memories: memories?.entries || null,
+  };
+
+  return JSON.stringify(exportData, null, 2);
+}
+
+export async function exportSession(sessionId: string): Promise<string | null> {
+  const sessions = await getSessions();
+  const session = sessions.find(s => s.id === sessionId);
+  if (!session) return null;
+
+  const exportData: ExportedData = {
+    version: '1.0',
+    exportedAt: Date.now(),
+    sessions: [session],
+  };
+
+  return JSON.stringify(exportData, null, 2);
+}
+
+export async function importData(jsonString: string, merge = true): Promise<{ imported: number; errors: string[] }> {
+  const errors: string[] = [];
+  let imported = 0;
+
+  try {
+    const data = JSON.parse(jsonString) as ExportedData;
+
+    if (!data.sessions || !Array.isArray(data.sessions)) {
+      return { imported: 0, errors: ['Invalid export file format'] };
+    }
+
+    for (const session of data.sessions) {
+      try {
+        // Validate session structure
+        if (!session.id || !session.title) {
+          errors.push(`Session missing required fields: ${session.id || 'unknown'}`);
+          continue;
+        }
+
+        if (merge) {
+          // Check if session already exists
+          const existing = await getSessionById(session.id);
+          if (existing) {
+            // Update existing session
+            const updatedSession = {
+              ...session,
+              updatedAt: Date.now(),
+            };
+            await syncManager.saveSessionToServer(updatedSession);
+          } else {
+            // Create new session with new ID
+            const newSession = {
+              ...session,
+              id: `s-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+              createdAt: session.createdAt || Date.now(),
+              updatedAt: Date.now(),
+            };
+            await syncManager.saveSessionToServer(newSession);
+          }
+        } else {
+          // Overwrite with new ID
+          const newSession = {
+            ...session,
+            id: `s-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+            createdAt: session.createdAt || Date.now(),
+            updatedAt: Date.now(),
+          };
+          await syncManager.saveSessionToServer(newSession);
+        }
+
+        imported++;
+      } catch (err) {
+        errors.push(`Failed to import session: ${session.id} - ${err}`);
+      }
+    }
+
+    // Import memories if present
+    if (data.memories && Array.isArray(data.memories)) {
+      try {
+        const existingMemories = JSON.parse(localStorage.getItem('claude_memory') || '{"entries":[]}');
+        for (const mem of data.memories) {
+          if (!existingMemories.entries.find((e: any) => e.fact === mem.fact)) {
+            existingMemories.entries.push({
+              id: `mem-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+              fact: mem.fact,
+              createdAt: mem.createdAt || Date.now(),
+              updatedAt: mem.updatedAt || Date.now(),
+              category: mem.category,
+            });
+          }
+        }
+        localStorage.setItem('claude_memory', JSON.stringify(existingMemories));
+      } catch (err) {
+        errors.push(`Failed to import memories: ${err}`);
+      }
+    }
+
+    // Notify UI to refresh
+    window.dispatchEvent(new CustomEvent('sessions-updated'));
+  } catch (err) {
+    errors.push(`Failed to parse import file: ${err}`);
+  }
+
+  return { imported, errors };
+}
+
+export function downloadFile(content: string, filename: string, mimeType = 'application/json'): void {
+  const blob = new Blob([content], { type: mimeType });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
 // Fetch session for API call (with truncation)
 export async function fetchSessionForApi(sessionId: string): Promise<ChatSession | null> {
   return syncManager.fetchSessionForApi(sessionId);
