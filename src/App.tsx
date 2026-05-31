@@ -42,15 +42,18 @@ import './App.css';
 import './styles/responsive.css';
 
 const MODEL_ID_MAP: Record<string, string> = {
-  // Claude 4 models (2026)
-  'claude-4-opus': 'claude-4-opus',
-  'claude-4-sonnet': 'claude-4-sonnet',
-  'claude-4-haiku': 'claude-4-haiku',
-  // Claude 3.7
-  'claude-3-7-sonnet': 'claude-3-7-sonnet-20250219',
-  // Claude 3.5
-  'claude-3-5-haiku': 'claude-3-5-haiku-20241022',
+  // Claude Opus 4.8
+  'claude-opus-4-8': 'claude-opus-4-8',
+  // Claude Sonnet 4.7
+  'claude-sonnet-4-7': 'claude-sonnet-4-7',
+  // Claude Haiku 4.6
+  'claude-haiku-4-6': 'claude-haiku-4-6',
   // Legacy models
+  'claude-opus-4': 'claude-opus-4-20250514',
+  'claude-sonnet-4': 'claude-sonnet-4-20250514',
+  'claude-haiku-4': 'claude-haiku-4-20250514',
+  'claude-3-7-sonnet': 'claude-3-7-sonnet-20250219',
+  'claude-3-5-haiku': 'claude-3-5-haiku-20241022',
   'claude-3-opus': 'claude-3-opus',
   'claude-3-sonnet': 'claude-3-sonnet-20240229',
 };
@@ -73,7 +76,7 @@ export default function App() {
   const [activeChat, setActiveChat] = useState<string | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [loading, setLoading] = useState(false);
-  const [model, setModel] = useState(MODELS[0].id); // Default to first model (Claude 4 Sonnet)
+  const [model, setModel] = useState(MODELS[1].id); // Default to Claude Sonnet 4.7
   const [shareOpen, setShareOpen] = useState(false);
   const [sessions, setSessions] = useState<ChatSession[]>([]);
   const [editingTitle, setEditingTitle] = useState(false);
@@ -384,7 +387,7 @@ export default function App() {
     let fullThinking = '';
 
     try {
-      const apiModel = MODEL_ID_MAP[model] || 'claude-4-sonnet';
+      const apiModel = MODEL_ID_MAP[model] || 'claude-sonnet-4-7';
 
       // Stream the response with abort signal
       for await (const chunk of sendChatMessageStream(nextMessages, apiModel, abortControllerRef.current.signal)) {

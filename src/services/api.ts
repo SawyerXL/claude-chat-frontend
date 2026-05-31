@@ -161,13 +161,12 @@ export async function* sendChatMessageStream(
   // Load settings from localStorage if not provided
   const modelSettings: ModelSettings = settings || JSON.parse(localStorage.getItem('claude_model_settings') || '{"temperature":0.7,"topP":0.9,"topK":40,"maxTokens":4096}');
 
-  // Claude 4 models don't support temperature parameter
-  const modelsNoTemp = ['claude-4-opus', 'claude-4-sonnet', 'claude-4-haiku'];
+  // Claude 4 models (Opus 4.8, Sonnet 4.7, Haiku 4.6) don't support temperature parameter
+  const modelsNoTemp = ['claude-opus-4-8', 'claude-sonnet-4-7', 'claude-haiku-4-6', 'claude-opus-4', 'claude-sonnet-4', 'claude-haiku-4'];
   const useTempParams = !modelsNoTemp.includes(model);
 
-  // Build request body
-  // opus requires thinking.type: "enabled" with budget, sonnet/haiku use standard thinking
-  const thinkingEnabled = model.includes('4-opus') ? {
+  // Build request body - enable extended thinking
+  const thinkingEnabled = model.includes('opus') ? {
     type: 'enabled' as const,
     budget_tokens: 8000,
   } : { type: 'enabled' as const, budget_tokens: 4000 };
@@ -175,10 +174,8 @@ export async function* sendChatMessageStream(
   const requestBody: ChatRequest & { stream?: boolean; thinking?: { type: string; budget_tokens?: number }; output_config?: { effort?: string } } = {
     model,
     messages: apiMessages,
-    // max_tokens must be > thinking.budget_tokens
     max_tokens: Math.max(modelSettings.maxTokens || 16000, 10000),
     stream: true,
-    // Enable extended thinking
     thinking: thinkingEnabled,
   };
 
