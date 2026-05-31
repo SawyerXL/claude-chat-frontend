@@ -110,6 +110,8 @@ export default function ChatView({
     localStorage.getItem('claude_show_thinking') !== 'false'
   );
   const [messageRatings, setMessageRatings] = useState<Record<string, 'up' | 'down'>>({});
+  const [messageReactions, setMessageReactions] = useState<Record<string, string[]>>({});
+  const [showReactionPicker, setShowReactionPicker] = useState<string | null>(null);
   const [webSearchOpen, setWebSearchOpen] = useState(false);
   const [speakingMessageId, setSpeakingMessageId] = useState<string | null>(null);
   const messageRefs = useRef<Map<string, HTMLDivElement>>(new Map());
@@ -409,6 +411,18 @@ export default function ChatView({
       }
       return { ...prev, [messageId]: rating };
     });
+  };
+
+  const handleAddReaction = (messageId: string, emoji: string) => {
+    setMessageReactions(prev => {
+      const current = prev[messageId] || [];
+      if (current.includes(emoji)) {
+        // Remove if already exists
+        return { ...prev, [messageId]: current.filter(e => e !== emoji) };
+      }
+      return { ...prev, [messageId]: [...current, emoji] };
+    });
+    setShowReactionPicker(null);
   };
 
   const handleImageUpload = (newImages: string[]) => {
@@ -1055,6 +1069,35 @@ export default function ChatView({
                     >
                       <ShareIcon />
                     </button>
+                    <div style={{ position: 'relative' }}>
+                      <button
+                        className="message-action-btn"
+                        title="添加表情"
+                        onClick={() => setShowReactionPicker(showReactionPicker === m.id ? null : m.id)}
+                      >
+                        😊
+                      </button>
+                      {showReactionPicker === m.id && (
+                        <div className="reaction-picker">
+                          {['👍', '👎', '❤️', '😂', '🎉', '😮', '😢', '🙏'].map(emoji => (
+                            <button
+                              key={emoji}
+                              className="reaction-emoji"
+                              onClick={() => handleAddReaction(m.id, emoji)}
+                            >
+                              {emoji}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                    {(messageReactions[m.id]?.length ?? 0) > 0 && (
+                      <div className="message-reactions">
+                        {messageReactions[m.id].map((emoji, idx) => (
+                          <span key={idx} className="reaction-badge">{emoji}</span>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
