@@ -44,14 +44,14 @@ function saveInstructions(inst: CustomInstructions) {
 export default function Settings({ open, onClose, onThemeChange }: SettingsProps) {
   const [activeTab, setActiveTab] = useState('general');
   const [instructions, setInstructions] = useState<CustomInstructions>(loadInstructions);
-  const [theme, setTheme] = useState<'dark' | 'light'>('dark');
+  const [theme, setTheme] = useState<'dark' | 'light' | 'system'>('dark');
   const [memoryEntries, setMemoryEntries] = useState<MemoryEntry[]>([]);
   const [newMemory, setNewMemory] = useState('');
   const [notificationEnabled, setNotificationEnabled] = useState(notificationService.isEnabled());
 
   useEffect(() => {
     const saved = localStorage.getItem('claude_theme');
-    if (saved === 'light' || saved === 'dark') {
+    if (saved === 'light' || saved === 'dark' || saved === 'system') {
       setTheme(saved);
     }
   }, [open]);
@@ -85,11 +85,20 @@ export default function Settings({ open, onClose, onThemeChange }: SettingsProps
     }
   };
 
-  const handleThemeChange = (newTheme: 'dark' | 'light') => {
+  const handleThemeChange = (newTheme: 'dark' | 'light' | 'system') => {
     setTheme(newTheme);
     localStorage.setItem('claude_theme', newTheme);
-    onThemeChange?.(newTheme);
-    document.documentElement.setAttribute('data-theme', newTheme);
+    // Import and use applyTheme directly for immediate response
+    import('../services/theme').then(m => {
+      m.applyTheme(newTheme);
+      if (newTheme === 'system') {
+        onThemeChange?.(m.getSystemTheme() as 'dark' | 'light');
+        document.documentElement.setAttribute('data-theme', m.getSystemTheme());
+      } else {
+        onThemeChange?.(newTheme as 'dark' | 'light');
+        document.documentElement.setAttribute('data-theme', newTheme);
+      }
+    });
     message.success('Theme changed');
   };
 
@@ -140,13 +149,14 @@ export default function Settings({ open, onClose, onThemeChange }: SettingsProps
               <div className="settings-item">
                 <div className="settings-item-info">
                   <div className="settings-item-label">Theme</div>
-                  <div className="settings-item-desc">Choose your preferred color theme</div>
+                  <div className="settings-item-desc">Choose your preferred color theme or follow system</div>
                 </div>
                 <select
                   className="settings-select"
                   value={theme}
-                  onChange={(e) => handleThemeChange(e.target.value as 'dark' | 'light')}
+                  onChange={(e) => handleThemeChange(e.target.value as 'dark' | 'light' | 'system')}
                 >
+                  <option value="system">System</option>
                   <option value="dark">Dark</option>
                   <option value="light">Light</option>
                 </select>

@@ -77,7 +77,7 @@ export default function App() {
   // const [needsAuth, setNeedsAuth] = useState(false);
   const [activeProjectId, setActiveProjectId] = useState<string | null>(null);
   const [activeCollectionId, setActiveCollectionId] = useState<string | null>(null);
-  const [theme, setTheme] = useState<'dark' | 'light'>('dark');
+  const [theme, setTheme] = useState<'dark' | 'light' | 'system'>('dark');
   const [isReady, setIsReady] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [skillPanelOpen, setSkillPanelOpen] = useState(false);
