@@ -17,6 +17,7 @@ import SearchPanel from './components/SearchPanel';
 import StylePanel from './components/StylePanel';
 import ConnectorsPanel from './components/ConnectorsPanel';
 import WebSearchPanel from './components/WebSearchPanel';
+import NotificationsPanel from './components/NotificationsPanel';
 import LoginDialog from './components/LoginDialog';
 // TODO: Enable login before production
 // import LoginPage from './components/LoginPage';
@@ -90,6 +91,7 @@ export default function App() {
   const [styleOpen, setStyleOpen] = useState(false);
   const [connectorsOpen, setConnectorsOpen] = useState(false);
   const [webSearchOpen, setWebSearchOpen] = useState(false);
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [usageStatsOpen, setUsageStatsOpen] = useState(false);
   const [templatesOpen, setTemplatesOpen] = useState(false);
   const abortControllerRef = useRef<AbortController | null>(null);
@@ -768,6 +770,11 @@ ${promptOrSystemPrompt ? `\n用户需求：${promptOrSystemPrompt}` : ''}
                 <span>📝</span>
               </button>
             </Tooltip>
+            <Tooltip title="Notifications">
+              <button className="header-btn" onClick={() => setNotificationsOpen(true)}>
+                <span>🔔</span>
+              </button>
+            </Tooltip>
           </div>
         </header>
 
@@ -877,9 +884,12 @@ ${promptOrSystemPrompt ? `\n用户需求：${promptOrSystemPrompt}` : ''}
         onSuccess={() => {
           setLoggedIn(true);
           setShowLogin(false);
-          // Refresh sessions after login
           refreshSessions();
         }}
+      />
+      <NotificationsPanel
+        open={notificationsOpen}
+        onClose={() => setNotificationsOpen(false)}
       />
     </div>
   );

@@ -4,6 +4,17 @@
  */
 
 const NOTIFICATION_KEY = 'notifications_enabled';
+const HISTORY_KEY = 'notifications_history';
+const MAX_HISTORY = 50;
+
+export interface NotificationEntry {
+  id: string;
+  title: string;
+  body: string;
+  timestamp: number;
+  read: boolean;
+  type: 'success' | 'error' | 'info';
+}
 
 class NotificationService {
   private permission: NotificationPermission = 'default';
@@ -62,9 +73,61 @@ class NotificationService {
   }
 
   /**
+   * Get notification history from localStorage
+   */
+  getHistory(): NotificationEntry[] {
+    try {
+      const stored = localStorage.getItem(HISTORY_KEY);
+      if (stored) return JSON.parse(stored);
+    } catch {}
+    return [];
+  }
+
+  /**
+   * Add entry to history
+   */
+  private addToHistory(title: string, body: string, type: NotificationEntry['type'] = 'info') {
+    const history = this.getHistory();
+    const entry: NotificationEntry = {
+      id: `notif-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      title,
+      body,
+      timestamp: Date.now(),
+      read: false,
+      type,
+    };
+    history.unshift(entry);
+    if (history.length > MAX_HISTORY) history.splice(MAX_HISTORY);
+    localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
+  }
+
+  /**
+   * Mark all as read
+   */
+  markAllRead() {
+    const history = this.getHistory().map(e => ({ ...e, read: true }));
+    localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
+  }
+
+  /**
+   * Clear all history
+   */
+  clearHistory() {
+    localStorage.setItem(HISTORY_KEY, JSON.stringify([]));
+  }
+
+  /**
+   * Get unread count
+   */
+  getUnreadCount(): number {
+    return this.getHistory().filter(e => !e.read).length;
+  }
+
+  /**
    * Show a notification
    */
   show(title: string, options?: NotificationOptions): Notification | null {
+    this.addToHistory(title, options?.body || '', 'info');
     if (!this.isSupported() || !this.isEnabled() || this.permission !== 'granted') {
       return null;
     }
@@ -91,6 +154,7 @@ class NotificationService {
    */
   notifyResponseComplete(model: string, preview: string) {
     const truncated = preview.length > 50 ? preview.slice(0, 50) + '...' : preview;
+    this.addToHistory('Response Complete', `${model}: ${truncated}`, 'success');
     this.show('Response Complete', {
       body: `${model}: ${truncated}`,
       tag: 'response-complete',
@@ -102,6 +166,7 @@ class NotificationService {
    * Notify on error
    */
   notifyError(message: string) {
+    this.addToHistory('Request Failed', message, 'error');
     this.show('Request Failed', {
       body: message,
       tag: 'request-error',
