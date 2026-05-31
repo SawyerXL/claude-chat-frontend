@@ -19,6 +19,7 @@ import {
   DownloadIcon,
   SpinnerIcon,
   LinkIcon,
+  GlobeIcon,
   SearchIcon,
   ChevronUpIcon,
   ChevronDownIcon,
@@ -35,11 +36,11 @@ import ModelSelector from './ModelSelector';
 import PlusMenu from './PlusMenu';
 import CodeBlock from './CodeBlock';
 import ArtifactViewer from './ArtifactViewer';
+import WebSearchPanel from './WebSearchPanel';
 import type { ChatMessage } from '../types';
 import type { Artifact } from '../types';
 import { hasArtifacts, parseArtifacts } from '../utils/artifactParser';
 import '../styles/chat.css';
-import { searchWeb } from '../services/session';
 
 const { TextArea } = Input;
 
@@ -59,6 +60,7 @@ interface ChatViewProps {
   onInsertTemplate?: (content: string) => void;
   loggedIn?: boolean;
   activeChat?: string | null;
+  onOpenWebSearch?: () => void;
 }
 
 interface Attachment {
@@ -83,6 +85,7 @@ export default function ChatView({
   onInsertTemplate,
   loggedIn = true,
   activeChat,
+  onOpenWebSearch,
 }: ChatViewProps) {
   const [value, setValue] = useState('');
   const [images, setImages] = useState<string[]>([]);
@@ -104,6 +107,7 @@ export default function ChatView({
     localStorage.getItem('claude_show_thinking') !== 'false'
   );
   const [messageRatings, setMessageRatings] = useState<Record<string, 'up' | 'down'>>({});
+  const [webSearchOpen, setWebSearchOpen] = useState(false);
   const messageRefs = useRef<Map<string, HTMLDivElement>>(new Map());
   const endRef = useRef<HTMLDivElement>(null);
   const recognitionRef = useRef<any>(null);
@@ -252,24 +256,6 @@ export default function ChatView({
     const targetMsg = matches[newIdx];
     const targetEl = messageRefs.current.get(targetMsg.id);
     targetEl?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-  };
-
-  const handleWebSearch = async (query: string) => {
-    try {
-      const data = await searchWeb(query);
-      if (data && data.results.length > 0) {
-        // Insert search context as a user message with citations
-        const citationText = data.results.map((r, i) =>
-          `[${i + 1}] ${r.title}: ${r.url}\n${r.snippet || ''}`
-        ).join('\n\n');
-
-        onSend(`请根据以下搜索结果回答问题：\n\n搜索词：${query}\n\n搜索结果：\n${citationText}\n\n请提供总结和引用来源。`);
-      } else {
-        message.warning('No search results found');
-      }
-    } catch (err) {
-      message.error('Search failed');
-    }
   };
 
   const handleTemplateSelect = (template: string) => {
@@ -1040,7 +1026,15 @@ export default function ChatView({
             />
             <div className="welcome-toolbar">
               <div className="toolbar-left">
-                <PlusMenu onImageUpload={handleImageUpload} onFileUpload={handleFileUpload} onTemplateSelect={handleTemplateSelect} onWebSearch={handleWebSearch} onOpenSkills={onOpenSkills} onOpenProjects={onOpenProjects} onOpenStyle={onOpenStyle} onOpenConnectors={onOpenConnectors} />
+                <PlusMenu onImageUpload={handleImageUpload} onFileUpload={handleFileUpload} onTemplateSelect={handleTemplateSelect} onOpenSkills={onOpenSkills} onOpenProjects={onOpenProjects} onOpenStyle={onOpenStyle} onOpenConnectors={onOpenConnectors} onOpenWebSearch={onOpenWebSearch} />
+                <button
+                  className="tool-btn"
+                  style={{ color: 'var(--text-secondary)' }}
+                  onClick={() => onOpenWebSearch?.()}
+                  title="Web Search"
+                >
+                  <GlobeIcon />
+                </button>
                 <ModelSelector value={model} onChange={onModelChange} />
                 {(() => {
                   const trialInfo = getTrialInfo();
@@ -1096,6 +1090,18 @@ export default function ChatView({
         <ArtifactViewer
           artifact={activeArtifact}
           onClose={() => setActiveArtifact(null)}
+        />
+      )}
+
+      {webSearchOpen && (
+        <WebSearchPanel
+          onInsertSources={(results) => {
+            const citationText = results.map((r, i) =>
+              `[${i + 1}] ${r.title}: ${r.url}\n${r.snippet || ''}`
+            ).join('\n\n');
+            setValue(prev => prev + `\n\n搜索结果：\n${citationText}`);
+          }}
+          onClose={() => setWebSearchOpen(false)}
         />
       )}
 

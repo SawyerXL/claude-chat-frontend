@@ -16,6 +16,7 @@ import CodePanel from './components/CodePanel';
 import SearchPanel from './components/SearchPanel';
 import StylePanel from './components/StylePanel';
 import ConnectorsPanel from './components/ConnectorsPanel';
+import WebSearchPanel from './components/WebSearchPanel';
 import LoginDialog from './components/LoginDialog';
 // TODO: Enable login before production
 // import LoginPage from './components/LoginPage';
@@ -88,6 +89,7 @@ export default function App() {
   const [searchOpen, setSearchOpen] = useState(false);
   const [styleOpen, setStyleOpen] = useState(false);
   const [connectorsOpen, setConnectorsOpen] = useState(false);
+  const [webSearchOpen, setWebSearchOpen] = useState(false);
   const [usageStatsOpen, setUsageStatsOpen] = useState(false);
   const [templatesOpen, setTemplatesOpen] = useState(false);
   const abortControllerRef = useRef<AbortController | null>(null);
@@ -809,6 +811,7 @@ ${promptOrSystemPrompt ? `\n用户需求：${promptOrSystemPrompt}` : ''}
             onOpenProjects={() => setSidebarTab('projects')}
             onOpenStyle={() => setStyleOpen(true)}
             onOpenConnectors={() => setConnectorsOpen(true)}
+            onOpenWebSearch={() => setWebSearchOpen(true)}
             onInsertTemplate={() => {
               // Listen via storage event in ChatView
             }}
@@ -823,6 +826,7 @@ ${promptOrSystemPrompt ? `\n用户需求：${promptOrSystemPrompt}` : ''}
             onOpenProjects={() => setSidebarTab('projects')}
             onOpenStyle={() => setStyleOpen(true)}
             onOpenConnectors={() => setConnectorsOpen(true)}
+            onOpenWebSearch={() => setWebSearchOpen(true)}
           />
         )}
       </main>
@@ -844,6 +848,16 @@ ${promptOrSystemPrompt ? `\n用户需求：${promptOrSystemPrompt}` : ''}
       <SearchPanel open={searchOpen} onClose={() => setSearchOpen(false)} onSelectChat={handleSelectChat} />
       <StylePanel open={styleOpen} onClose={() => setStyleOpen(false)} />
       <ConnectorsPanel open={connectorsOpen} onClose={() => setConnectorsOpen(false)} />
+      <WebSearchPanel
+        open={webSearchOpen}
+        onClose={() => setWebSearchOpen(false)}
+        onInsertSources={(results) => {
+          const citationText = results.map((r, i) =>
+            `[${i + 1}] ${r.title}: ${r.url}\n${r.snippet || ''}`
+          ).join('\n\n');
+          handleSend(`请根据以下搜索结果回答问题：\n\n搜索结果：\n${citationText}\n\n请提供总结和引用来源。`);
+        }}
+      />
       <UsageStatsPanel open={usageStatsOpen} onClose={() => setUsageStatsOpen(false)} />
       <TemplatesPanel
         open={templatesOpen}

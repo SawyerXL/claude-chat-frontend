@@ -11,6 +11,7 @@ import {
   FileIcon,
   SpinnerIcon,
   SearchIcon,
+  GlobeIcon,
 } from './icons/ClaudeIcons';
 import mammoth from 'mammoth';
 import ModelSelector from './ModelSelector';
@@ -40,6 +41,7 @@ interface WelcomePageProps {
   onOpenProjects?: () => void;
   onOpenStyle?: () => void;
   onOpenConnectors?: () => void;
+  onOpenWebSearch?: () => void;
 }
 
 interface Attachment {
@@ -48,7 +50,7 @@ interface Attachment {
   content: string;
 }
 
-export default function WelcomePage({ onSend, model, onModelChange, user, onOpenSkills, onOpenProjects, onOpenStyle, onOpenConnectors }: WelcomePageProps) {
+export default function WelcomePage({ onSend, model, onModelChange, user, onOpenSkills, onOpenProjects, onOpenStyle, onOpenConnectors, onOpenWebSearch }: WelcomePageProps) {
   const [value, setValue] = useState('');
   const [images, setImages] = useState<string[]>([]);
   const [attachments, setAttachments] = useState<Attachment[]>([]);
@@ -223,7 +225,15 @@ export default function WelcomePage({ onSend, model, onModelChange, user, onOpen
 
           <div className="welcome-toolbar">
             <div className="toolbar-left">
-              <PlusMenu onImageUpload={handleImageUpload} onFileUpload={handleFileUpload} onOpenSkills={onOpenSkills} onOpenProjects={onOpenProjects} onOpenStyle={onOpenStyle} onOpenConnectors={onOpenConnectors} />
+              <PlusMenu onImageUpload={handleImageUpload} onFileUpload={handleFileUpload} onOpenSkills={onOpenSkills} onOpenProjects={onOpenProjects} onOpenStyle={onOpenStyle} onOpenConnectors={onOpenConnectors} onOpenWebSearch={onOpenWebSearch} />
+              <button
+                className="tool-btn"
+                style={{ color: 'var(--text-secondary)' }}
+                onClick={() => onOpenWebSearch?.()}
+                title="Web Search"
+              >
+                <GlobeIcon />
+              </button>
               <ModelSelector value={model} onChange={onModelChange} />
             </div>
             <div className="toolbar-right">

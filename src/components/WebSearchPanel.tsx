@@ -11,13 +11,16 @@ interface SearchResult {
 interface WebSearchPanelProps {
   onInsertSources?: (results: SearchResult[]) => void;
   onClose: () => void;
+  open?: boolean;
 }
 
-export default function WebSearchPanel({ onInsertSources, onClose }: WebSearchPanelProps) {
+export default function WebSearchPanel({ onInsertSources, onClose, open = true }: WebSearchPanelProps) {
   const [query, setQuery] = useState('');
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState<SearchResult[]>([]);
   const [error, setError] = useState<string | null>(null);
+
+  if (!open) return null;
 
   const handleSearch = async () => {
     if (!query.trim()) return;

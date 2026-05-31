@@ -16,14 +16,14 @@ interface PlusMenuProps {
   onImageUpload?: (images: string[]) => void;
   onFileUpload?: (files: File[]) => void;
   onTemplateSelect?: (template: string) => void;
-  onWebSearch?: (query: string) => void;
   onOpenSkills?: () => void;
   onOpenProjects?: () => void;
   onOpenStyle?: () => void;
   onOpenConnectors?: () => void;
+  onOpenWebSearch?: () => void;
 }
 
-export default function PlusMenu({ onImageUpload, onFileUpload, onTemplateSelect, onWebSearch, onOpenSkills, onOpenProjects, onOpenStyle, onOpenConnectors }: PlusMenuProps) {
+export default function PlusMenu({ onImageUpload, onFileUpload, onTemplateSelect, onOpenSkills, onOpenProjects, onOpenStyle, onOpenConnectors, onOpenWebSearch }: PlusMenuProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -146,12 +146,7 @@ export default function PlusMenu({ onImageUpload, onFileUpload, onTemplateSelect
       key: 'websearch',
       icon: <GlobeIcon />,
       label: 'Web search',
-      onClick: async () => {
-        const query = prompt('Enter search query:');
-        if (query && onWebSearch) {
-          onWebSearch(query);
-        }
-      },
+      onClick: () => onOpenWebSearch?.(),
     },
     {
       key: 'project',

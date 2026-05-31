@@ -28,6 +28,7 @@ import PromptTemplatesPanel from './PromptTemplatesPanel';
 import CollectionsPanel from './CollectionsPanel';
 import { getCollections, getSessionsInCollection, addSessionToCollection } from '../services/collection';
 import '../styles/sidebar.css';
+import BranchTree from './BranchTree';
 
 interface SidebarProps {
   activeChat: string | null;
@@ -64,6 +65,7 @@ const NAV_ITEMS = [
   { key: 'artifacts', icon: <AppGridIcon />, label: 'Artifacts' },
   { key: 'code', icon: <CodeIcon />, label: 'Code' },
   { key: 'customize', icon: <SettingsIcon />, label: 'Customize' },
+  { key: 'branches', icon: <BranchIcon />, label: 'Branches' },
 ];
 
 // Group conversations by time, with pinned sessions on top
@@ -140,6 +142,7 @@ export default function Sidebar({
   const [showMemory, setShowMemory] = useState(false);
   const [showTemplates, setShowTemplates] = useState(false);
   const [showCollections, setShowCollections] = useState(false);
+  const [showBranches, setShowBranches] = useState(false);
   const [hoveredSession, setHoveredSession] = useState<string | null>(null);
   const [renamingSession, setRenamingSession] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState('');
@@ -395,6 +398,7 @@ export default function Sidebar({
                 else if (item.key === 'customize') onOpenCustomize?.();
                 else if (item.key === 'memory') setShowMemory(!showMemory);
                 else if (item.key === 'templates') setShowTemplates(!showTemplates);
+                else if (item.key === 'branches') setShowBranches(!showBranches);
                 else onTabChange?.(item.key);
               }}>
                 {item.icon}
@@ -436,6 +440,22 @@ export default function Sidebar({
                 onUsePromptTemplate?.(content);
                 setShowTemplates(false);
               }} />
+            </div>
+          )}
+
+          {/* Branches panel overlay */}
+          {showBranches && (
+            <div className="projects-overlay">
+              <div className="projects-overlay-header">
+                <button onClick={() => setShowBranches(false)}><ChevronLeftIcon /> Back</button>
+              </div>
+              <BranchTree
+                sessions={sessions}
+                activeSessionId={activeChat}
+                onSelectBranch={(id) => { onSelectChat(id); setShowBranches(false); }}
+                onCreateBranch={(parentId) => onBranchChat?.(parentId)}
+                onDeleteBranch={(id) => onDeleteChat(id)}
+              />
             </div>
           )}
 
