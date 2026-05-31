@@ -496,18 +496,72 @@
   align-items: center;
   gap: 6px;
   padding: 8px 16px;
-  background: var(--bg-tertiary);
   border: 1px solid var(--border-color);
   border-radius: 20px;
+  background: var(--bg-secondary);
   color: var(--text-primary);
   font-size: 13px;
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: all 0.2s;
 }
 
 .regenerate-btn:hover {
   background: var(--bg-hover);
-  border-color: var(--text-tertiary);
+  border-color: var(--accent);
+}
+
+/* Message highlight animation */
+.highlight-message {
+  animation: message-highlight 1.5s ease-out;
+}
+
+@keyframes message-highlight {
+  0% {
+    background: rgba(170, 59, 255, 0.3);
+    border-radius: 8px;
+  }
+  100% {
+    background: transparent;
+  }
+}
+
+/* Failed message style */
+.chat-message.failed {
+  border-left: 3px solid #ff4d4f;
+  background: rgba(255, 77, 79, 0.05);
+}
+
+.chat-message.failed .message-content {
+  color: #ff4d4f;
+}
+
+/* Retry bar for failed messages */
+.retry-bar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 12px 24px;
+  background: rgba(255, 77, 79, 0.1);
+  border-top: 1px solid rgba(255, 77, 79, 0.2);
+}
+
+.retry-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border: 1px solid #ff4d4f;
+  border-radius: 20px;
+  background: #ff4d4f;
+  color: white;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.retry-btn:hover {
+  background: #ff7875;
 }
 
 /* Chat input at bottom */

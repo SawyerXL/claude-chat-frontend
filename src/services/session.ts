@@ -187,6 +187,9 @@ class SessionSyncManager {
             messageCount: s.message_count,
             createdAt: s.created_at,
             updatedAt: s.updated_at,
+            // Preserve pinned/archived state from local cache
+            pinned: existing?.pinned || s.pinned || false,
+            archived: existing?.archived || s.archived || false,
           };
         });
 

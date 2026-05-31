@@ -62,6 +62,7 @@ interface ChatViewProps {
   loggedIn?: boolean;
   activeChat?: string | null;
   onOpenWebSearch?: () => void;
+  setMessages?: React.Dispatch<React.SetStateAction<ChatMessage[]>>;
 }
 
 interface Attachment {
@@ -87,6 +88,7 @@ export default function ChatView({
   loggedIn = true,
   activeChat,
   onOpenWebSearch,
+  setMessages,
 }: ChatViewProps) {
   const [value, setValue] = useState('');
   const [images, setImages] = useState<string[]>([]);
@@ -271,6 +273,34 @@ export default function ChatView({
   const handleQuoteMessage = (message: ChatMessage) => {
     setQuotedMessage(message);
     setValue(prev => prev + `\n[引用: ${message.content.slice(0, 50)}...]\n`);
+  };
+
+  const scrollToMessage = (messageId: string) => {
+    const targetEl = messageRefs.current.get(messageId);
+    if (targetEl) {
+      targetEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      targetEl.classList.add('highlight-message');
+      setTimeout(() => targetEl.classList.remove('highlight-message'), 1500);
+    }
+  };
+
+  const handleRetryFailedMessage = (messageId: string) => {
+    const idx = messages.findIndex(m => m.id === messageId);
+    if (idx > 0 && messages[idx - 1].role === 'user') {
+      const userMsg = messages[idx - 1];
+      // Remove failed message and resend
+      const truncatedMessages = messages.slice(0, idx - 1);
+      if (setMessages) {
+        setMessages(truncatedMessages);
+      }
+      onSend(
+        userMsg.content || '',
+        [],
+        (userMsg.attachments as any)?.map((a: any) => ({
+          name: a.name, type: a.type, content: a.content
+        }))
+      );
+    }
   };
 
   const handleSend = () => {
@@ -828,11 +858,12 @@ export default function ChatView({
           {messages.map((m) => (
             <div
               key={m.id}
-              className={`chat-message ${m.role}`}
               ref={(el) => {
                 if (el) messageRefs.current.set(m.id, el);
                 else messageRefs.current.delete(m.id);
               }}
+              id={`msg-${m.id}`}
+              className={`chat-message ${m.role} ${m.content?.startsWith('请求失败') ? 'failed' : ''}`}
             >
               {m.role === 'assistant' && (
                 <div className="message-avatar assistant">
@@ -978,6 +1009,16 @@ export default function ChatView({
                     >
                       <SpeakerIcon />
                     </button>
+                    <button
+                      className="message-action-btn"
+                      title="Quote this message"
+                      onClick={() => {
+                        handleQuoteMessage(m);
+                        scrollToMessage(m.id);
+                      }}
+                    >
+                      <LinkIcon />
+                    </button>
                   </div>
                 )}
               </div>
@@ -986,6 +1027,22 @@ export default function ChatView({
           <div ref={endRef} />
         </div>
       </div>
+
+      {/* Failed message retry bar */}
+      {messages.some(m => m.content?.startsWith('请求失败')) && (
+        <div className="retry-bar">
+          <span style={{ color: '#ff4d4f' }}>⚠️ 请求失败</span>
+          <button
+            className="retry-btn"
+            onClick={() => {
+              const failedMsg = messages.find(m => m.content?.startsWith('请求失败'));
+              if (failedMsg) handleRetryFailedMessage(failedMsg.id);
+            }}
+          >
+            <RefreshIcon /> 重试
+          </button>
+        </div>
+      )}
 
       {!loading && lastUserMessage && (
         <div className="regenerate-bar">

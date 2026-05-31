@@ -106,6 +106,30 @@
   font-weight: 500;
 }
 
+.code-header .pyodide-status {
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 10px;
+  background: var(--bg-secondary);
+}
+
+.code-header .pyodide-status.loading {
+  color: #faad14;
+}
+
+.code-header .pyodide-status.ready {
+  color: #52c41a;
+}
+
+.code-header .pyodide-status.error {
+  color: #ff4d4f;
+}
+
+.code-header .execution-time {
+  color: var(--text-tertiary);
+  font-size: 11px;
+}
+
 .language-select {
   padding: 4px 8px;
   border: 1px solid var(--border-color);
@@ -114,6 +138,32 @@
   color: var(--text-primary);
   font-size: 12px;
   cursor: pointer;
+}
+
+/* Line numbers + code editor container */
+.code-editor-container {
+  flex: 1;
+  display: flex;
+  overflow: hidden;
+}
+
+.line-numbers {
+  flex-shrink: 0;
+  padding: 16px 0;
+  background: var(--bg-secondary);
+  border-right: 1px solid var(--border-color);
+  user-select: none;
+  overflow: hidden;
+}
+
+.line-number {
+  padding: 0 12px;
+  font-family: 'Fira Code', 'Monaco', 'Consolas', monospace;
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--text-tertiary);
+  text-align: right;
+  min-width: 40px;
 }
 
 .code-textarea {
@@ -127,6 +177,8 @@
   line-height: 1.6;
   resize: none;
   outline: none;
+  overflow: auto;
+  tab-size: 2;
 }
 
 .code-textarea::placeholder {
@@ -193,6 +245,11 @@
   border-left: 3px solid #faad14;
 }
 
+.console-entry.info {
+  background: rgba(24, 144, 255, 0.1);
+  border-left: 3px solid #1890ff;
+}
+
 .console-entry.result {
   background: rgba(82, 196, 26, 0.1);
   border-left: 3px solid #52c41a;
@@ -216,31 +273,8 @@
   color: #faad14;
 }
 
-.output-section {
-  margin-top: 16px;
-  padding: 12px;
-  background: var(--bg-tertiary);
-  border-radius: 8px;
-}
-
-.output-label {
-  font-size: 12px;
-  color: var(--text-secondary);
-  margin-bottom: 8px;
-  font-family: -apple-system, sans-serif;
-}
-
-.output-content {
-  margin: 0;
-  padding: 12px;
-  background: var(--bg-primary);
-  border-radius: 6px;
-  color: var(--text-primary);
-  white-space: pre-wrap;
-  word-break: break-all;
-  max-height: 300px;
-  overflow-y: auto;
-  font-size: 12px;
+.console-entry.info .log-content {
+  color: #1890ff;
 }
 
 .canvas-footer {
@@ -291,21 +325,39 @@
   .canvas-body {
     flex-direction: column;
   }
-  
+
   .canvas-code-area {
     flex: 1;
     min-height: 200px;
     border-right: none;
     border-bottom: 1px solid var(--border-color);
   }
-  
+
   .canvas-output-area {
     flex: 1;
     min-height: 150px;
   }
-  
+
   .canvas-footer {
     flex-direction: column;
     gap: 8px;
   }
+
+  .line-numbers {
+    display: none;
+  }
+}
+
+/* Dark mode adjustments */
+[data-theme='dark'] .canvas-editor {
+  border-color: var(--border-color);
+}
+
+[data-theme='dark'] .line-numbers {
+  background: var(--bg-secondary);
+  border-color: var(--border-color);
+}
+
+[data-theme='dark'] .code-textarea {
+  background: var(--bg-primary);
 }

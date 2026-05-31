@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Modal, Button, message, Tabs, Input, Space } from 'antd';
 import { LockIcon, TeamIcon, LinkIcon, CheckIcon, CopyIcon, DownloadIcon, QrcodeIcon, ShareIcon } from './icons/ClaudeIcons';
 import type { ChatSession } from '../types';
+import QRCode from 'qrcode';
 
 interface ShareDialogProps {
   open: boolean;
@@ -16,9 +17,39 @@ export default function ShareDialog({ open, onClose, conversationId: _conversati
   const [selected, setSelected] = useState<ShareOption>('private');
   const [publicLink, setPublicLink] = useState('');
   const [exportFormat, setExportFormat] = useState<string>('json');
+  const [qrCodeDataUrl, setQrCodeDataUrl] = useState<string>('');
 
   const generateShareId = () => {
     return `share_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
+  };
+
+  const generateQRCode = async (url: string) => {
+    try {
+      const dataUrl = await QRCode.toDataURL(url, {
+        width: 256,
+        margin: 2,
+        color: {
+          dark: '#1a1a2e',
+          light: '#ffffff',
+        },
+      });
+      setQrCodeDataUrl(dataUrl);
+    } catch (err) {
+      message.error('生成二维码失败');
+    }
+  };
+
+  const handleShowQRCode = async () => {
+    const link = publicLink || generatePublicLink();
+    await generateQRCode(link);
+  };
+
+  const handleDownloadQRCode = () => {
+    if (!qrCodeDataUrl) return;
+    const a = document.createElement('a');
+    a.href = qrCodeDataUrl;
+    a.download = `share-qrcode-${Date.now()}.png`;
+    a.click();
   };
 
   const generatePublicLink = () => {
@@ -202,9 +233,22 @@ export default function ShareDialog({ open, onClose, conversationId: _conversati
                           enterButton={<CopyIcon />}
                         />
                         <div style={{ marginTop: 12, display: 'flex', gap: 8 }}>
-                          <Button icon={<QrcodeIcon />} onClick={() => message.info('二维码功能开发中')}>生成二维码</Button>
+                          <Button icon={<QrcodeIcon />} onClick={handleShowQRCode}>生成二维码</Button>
+                          {qrCodeDataUrl && (
+                            <>
+                              <Button icon={<DownloadIcon />} onClick={handleDownloadQRCode}>下载</Button>
+                            </>
+                          )}
                           <Button icon={<ShareIcon />} onClick={handleShareNative}>分享</Button>
                         </div>
+                        {qrCodeDataUrl && (
+                          <div style={{ marginTop: 16, textAlign: 'center' }}>
+                            <img src={qrCodeDataUrl} alt="QR Code" style={{ borderRadius: 8, boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }} />
+                            <div style={{ marginTop: 8, fontSize: 12, color: 'var(--text-tertiary)' }}>
+                              扫描二维码分享对话
+                            </div>
+                          </div>
+                        )}
                       </>
                     ) : (
                       <Button type="primary" block onClick={generatePublicLink}>

@@ -1,14 +1,9 @@
-import { useState, useRef, useEffect } from 'react';
-import {
-  PlayIcon,
-  StopIcon,
-  TrashIcon,
-  CopyIcon,
-} from './icons/ClaudeIcons';
+import { useState, useRef, useEffect, useCallback } from 'react';
+import { PlayIcon, StopIcon, TrashIcon, CopyIcon, SpinnerIcon } from './icons/ClaudeIcons';
 import './CanvasEditor.css';
 
 interface ConsoleEntry {
-  type: 'log' | 'error' | 'warn' | 'result';
+  type: 'log' | 'error' | 'warn' | 'info' | 'result';
   content: string;
   timestamp: number;
 }
@@ -20,103 +15,160 @@ interface CanvasEditorProps {
   onClose?: () => void;
 }
 
-export default function CanvasEditor({ 
-  initialCode, 
+interface PyodideInstance {
+  runPythonAsync: (code: string) => Promise<any>;
+  runPython: (code: string) => string;
+  globals: any;
+}
+
+const PYODIDE_CDN = 'https://cdn.jsdelivr.net/pyodide/v0.24.1/full/pyodide.js';
+
+let cachedPyodide: PyodideInstance | null = null;
+let pyodideLoadingPromise: Promise<PyodideInstance> | null = null;
+
+async function loadPyodide(): Promise<PyodideInstance> {
+  if (cachedPyodide) return cachedPyodide;
+  
+  if (pyodideLoadingPromise) return pyodideLoadingPromise;
+
+  pyodideLoadingPromise = new Promise(async (resolve, reject) => {
+    try {
+      if (!(window as any).loadPyodide) {
+        await new Promise<void>((res, rej) => {
+          const script = document.createElement('script');
+          script.src = PYODIDE_CDN;
+          script.onload = () => res();
+          script.onerror = () => rej(new Error('Failed to load Pyodide script'));
+          document.head.appendChild(script);
+        });
+      }
+      const pyodide = await (window as any).loadPyodide();
+      cachedPyodide = pyodide;
+      resolve(pyodide);
+    } catch (err) {
+      pyodideLoadingPromise = null;
+      reject(err);
+    }
+  });
+
+  return pyodideLoadingPromise;
+}
+
+export default function CanvasEditor({
+  initialCode,
   language = 'javascript',
   onCodeChange,
-  onClose 
+  onClose
 }: CanvasEditorProps) {
   const [code, setCode] = useState(initialCode);
   const [consoleLogs, setConsoleLogs] = useState<ConsoleEntry[]>([]);
   const [isRunning, setIsRunning] = useState(false);
-  const [output, setOutput] = useState<string>('');
+  const [pyodideStatus, setPyodideStatus] = useState<'idle' | 'loading' | 'ready' | 'error'>('idle');
+  const [executionTime, setExecutionTime] = useState<number | null>(null);
   const consoleRef = useRef<HTMLDivElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const iframeRef = useRef<HTMLIFrameElement | null>(null);
+  const messageHandlerRef = useRef<((e: MessageEvent) => void) | null>(null);
+  const timeoutRef = useRef<number | null>(null);
 
-  const clearConsole = () => {
+  const clearConsole = useCallback(() => {
     setConsoleLogs([]);
-    setOutput('');
-  };
+    setExecutionTime(null);
+  }, []);
 
-  const scrollToBottom = () => {
+  const scrollToBottom = useCallback(() => {
     if (consoleRef.current) {
       consoleRef.current.scrollTop = consoleRef.current.scrollHeight;
     }
-  };
+  }, []);
 
   useEffect(() => {
     scrollToBottom();
-  }, [consoleLogs, output]);
+  }, [consoleLogs, scrollToBottom]);
 
-  const executeJavaScript = (jsCode: string) => {
+  useEffect(() => {
+    return () => {
+      if (messageHandlerRef.current) {
+        window.removeEventListener('message', messageHandlerRef.current);
+      }
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+      if (iframeRef.current) {
+        document.body.removeChild(iframeRef.current);
+      }
+    };
+  }, []);
+
+  const addLog = useCallback((type: ConsoleEntry['type'], content: string) => {
+    setConsoleLogs(prev => [...prev, { type, content, timestamp: Date.now() }]);
+  }, []);
+
+  const executeJavaScript = useCallback((jsCode: string) => {
     setIsRunning(true);
     setConsoleLogs([]);
-    setOutput('');
+    setExecutionTime(null);
+    const startTime = Date.now();
 
-    // Create a sandboxed iframe for execution
+    if (iframeRef.current) {
+      document.body.removeChild(iframeRef.current);
+    }
+    if (messageHandlerRef.current) {
+      window.removeEventListener('message', messageHandlerRef.current);
+    }
+
     const iframe = document.createElement('iframe');
     iframe.sandbox.add('allow-scripts');
     iframe.style.display = 'none';
     document.body.appendChild(iframe);
+    iframeRef.current = iframe;
 
     const iframeDoc = iframe.contentDocument || iframe.contentWindow?.document;
     if (!iframeDoc) {
-      setConsoleLogs([{ type: 'error', content: '无法创建执行环境', timestamp: Date.now() }]);
+      addLog('error', '无法创建执行环境');
       setIsRunning(false);
-      document.body.removeChild(iframe);
       return;
     }
 
-    // Override console methods to capture output
     const capturedLogs: ConsoleEntry[] = [];
-    
+
     iframeDoc.open();
     iframeDoc.write(`
       <!DOCTYPE html>
       <html>
       <head>
         <script>
-          // Override console methods
-          const originalConsole = {
-            log: console.log,
-            error: console.error,
-            warn: console.warn,
-            info: console.info
-          };
-          
           function sendToParent(type, args) {
             const message = Array.from(args).map(arg => {
               if (typeof arg === 'object') {
-                try {
-                  return JSON.stringify(arg, null, 2);
-                } catch {
-                  return String(arg);
-                }
+                try { return JSON.stringify(arg, null, 2); }
+                catch { return String(arg); }
               }
               return String(arg);
             }).join(' ');
             window.parent.postMessage({ type: 'console', consoleType: type, content: message }, '*');
           }
-          
-          console.log = function() { sendToParent('log', arguments); originalConsole.log.apply(console, arguments); };
-          console.error = function() { sendToParent('error', arguments); originalConsole.error.apply(console, arguments); };
-          console.warn = function() { sendToParent('warn', arguments); originalConsole.warn.apply(console, arguments); };
-          console.info = function() { sendToParent('info', arguments); originalConsole.info.apply(console, arguments); };
-          
-          // Listen for code execution
+
+          console.log = function() { sendToParent('log', arguments); };
+          console.error = function() { sendToParent('error', arguments); };
+          console.warn = function() { sendToParent('warn', arguments); };
+          console.info = function() { sendToParent('info', arguments); };
+
           window.addEventListener('message', function(e) {
             if (e.data.type === 'execute') {
               try {
                 const result = eval(e.data.code);
                 if (result !== undefined) {
                   window.parent.postMessage({ type: 'result', content: JSON.stringify(result, null, 2) }, '*');
+                } else {
+                  window.parent.postMessage({ type: 'result', content: '' }, '*');
                 }
               } catch (err) {
                 window.parent.postMessage({ type: 'error', content: err.message }, '*');
               }
             }
           });
-          
-          // Notify ready
+
           window.parent.postMessage({ type: 'ready' }, '*');
         </script>
       </head>
@@ -125,163 +177,174 @@ export default function CanvasEditor({
     `);
     iframeDoc.close();
 
-    // Listen for messages from iframe
     const messageHandler = (event: MessageEvent) => {
       if (event.source !== iframe.contentWindow) return;
-      
+
       const { type, consoleType, content } = event.data;
-      
+
       if (type === 'ready') {
-        // Iframe is ready, send code to execute
         iframe.contentWindow?.postMessage({ type: 'execute', code: jsCode }, '*');
       } else if (type === 'console') {
-        capturedLogs.push({
-          type: consoleType,
-          content: content,
-          timestamp: Date.now()
-        });
+        capturedLogs.push({ type: consoleType, content, timestamp: Date.now() });
         setConsoleLogs([...capturedLogs]);
       } else if (type === 'result') {
-        setOutput(content);
+        if (content) {
+          capturedLogs.push({ type: 'result', content, timestamp: Date.now() });
+          setConsoleLogs([...capturedLogs]);
+        }
+        setExecutionTime(Date.now() - startTime);
       } else if (type === 'error') {
-        capturedLogs.push({
-          type: 'error',
-          content: content,
-          timestamp: Date.now()
-        });
+        capturedLogs.push({ type: 'error', content, timestamp: Date.now() });
         setConsoleLogs([...capturedLogs]);
+        setExecutionTime(Date.now() - startTime);
       }
     };
 
+    messageHandlerRef.current = messageHandler;
     window.addEventListener('message', messageHandler);
 
-    // Timeout for execution
-    setTimeout(() => {
+    timeoutRef.current = window.setTimeout(() => {
       window.removeEventListener('message', messageHandler);
       setIsRunning(false);
-      document.body.removeChild(iframe);
+      if (capturedLogs.length === 0) {
+        addLog('error', '执行超时 (30秒)');
+      }
     }, 30000);
-  };
+  }, [addLog]);
 
-  const executePython = async (pyCode: string) => {
+  const executePython = useCallback(async (pyCode: string) => {
     setIsRunning(true);
     setConsoleLogs([]);
-    setOutput('正在执行 Python 代码...\n');
-    
+    setExecutionTime(null);
+    setPyodideStatus('loading');
+    const startTime = Date.now();
+
     try {
-      // Try to use Pyodide if available, otherwise show message
-      const hasPyodide = (window as any).loadPyodide;
-      
-      if (!hasPyodide) {
-        // Load Pyodide dynamically
-        setOutput('正在加载 Python 环境...\n');
-        
-        const script = document.createElement('script');
-        script.src = 'https://cdn.jsdelivr.net/pyodide/v0.24.1/full/pyodide.js';
-        document.head.appendChild(script);
-        
-        script.onload = async () => {
-          try {
-            const pyodide = await (window as any).loadPyodide();
-            
-            // Redirect stdout
-            await pyodide.runPythonAsync(`
+      const pyodide = await loadPyodide();
+      setPyodideStatus('ready');
+
+      await pyodide.runPythonAsync(`
 import sys
 from io import StringIO
 sys.stdout = StringIO()
 sys.stderr = StringIO()
-            `);
-            
-            // Run the code
-            setOutput('执行中...\n');
-            await pyodide.runPythonAsync(pyCode);
-            
-            // Get output
-            const stdout = pyodide.runPython('sys.stdout.getvalue()');
-            const stderr = pyodide.runPython('sys.stderr.getvalue()');
-            
-            let result = '';
-            if (stdout) result += stdout;
-            if (stderr) result += '\n[Error]\n' + stderr;
-            
-            setOutput(result || '(无输出)');
-            setIsRunning(false);
-          } catch (err: any) {
-            setConsoleLogs([{ type: 'error', content: err.message, timestamp: Date.now() }]);
-            setIsRunning(false);
-          }
-        };
-        
-        script.onerror = () => {
-          setConsoleLogs([{ 
-            type: 'error', 
-            content: '无法加载 Python 环境。请检查网络连接。', 
-            timestamp: Date.now() 
-          }]);
-          setIsRunning(false);
-        };
+      `);
+
+      try {
+        await pyodide.runPythonAsync(pyCode);
+        const stdout = pyodide.runPython('sys.stdout.getvalue()');
+        const stderr = pyodide.runPython('sys.stderr.getvalue()');
+
+        if (stdout) {
+          stdout.split('\n').filter((line: string) => line.trim()).forEach((line: string) => addLog('log', line));
+        }
+        if (stderr) {
+          stderr.split('\n').filter((line: string) => line.trim()).forEach((line: string) => addLog('error', line));
+        }
+        if (!stdout && !stderr) {
+          addLog('info', '(无输出)');
+        }
+      } catch (err: any) {
+        const errorMsg = err.message || String(err);
+        errorMsg.split('\n').forEach((line: string) => addLog('error', line));
       }
+
+      setExecutionTime(Date.now() - startTime);
     } catch (err: any) {
-      setConsoleLogs([{ type: 'error', content: err.message, timestamp: Date.now() }]);
+      setPyodideStatus('error');
+      addLog('error', `加载 Python 环境失败: ${err.message}`);
+    } finally {
       setIsRunning(false);
     }
-  };
+  }, [addLog]);
 
-  const handleRun = () => {
+  const handleRun = useCallback(() => {
+    if (isRunning) return;
+    onCodeChange?.(code);
     if (language === 'python') {
       executePython(code);
     } else {
       executeJavaScript(code);
     }
-    onCodeChange?.(code);
-  };
+  }, [code, language, isRunning, executePython, executeJavaScript, onCodeChange]);
 
-  const handleStop = () => {
+  const handleStop = useCallback(() => {
     setIsRunning(false);
-    // Note: We can't actually stop iframe execution, but we can stop the UI state
-  };
+    if (messageHandlerRef.current) {
+      window.removeEventListener('message', messageHandlerRef.current);
+    }
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+    }
+    addLog('info', '已停止执行');
+  }, [addLog]);
 
-  const handleCopyOutput = () => {
+  const handleCopyOutput = useCallback(() => {
     const allOutput = [
       ...consoleLogs.map(l => `[${l.type}] ${l.content}`),
-      output ? `\n=== Output ===\n${output}` : ''
     ].join('\n');
-    
-    navigator.clipboard.writeText(allOutput);
-  };
+    navigator.clipboard.writeText(allOutput || '(无输出)');
+  }, [consoleLogs]);
+
+  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
+    if (e.ctrlKey && e.key === 'Enter') {
+      e.preventDefault();
+      handleRun();
+    }
+    if (e.key === 'Tab') {
+      e.preventDefault();
+      const textarea = textareaRef.current;
+      if (textarea) {
+        const start = textarea.selectionStart;
+        const end = textarea.selectionEnd;
+        const newCode = code.substring(0, start) + '  ' + code.substring(end);
+        setCode(newCode);
+        setTimeout(() => {
+          textarea.selectionStart = textarea.selectionEnd = start + 2;
+        }, 0);
+        onCodeChange?.(newCode);
+      }
+    }
+  }, [code, handleRun, onCodeChange]);
 
   const getLogIcon = (type: string) => {
     switch (type) {
       case 'error': return '❌';
       case 'warn': return '⚠️';
+      case 'info': return 'ℹ️';
       case 'result': return '✅';
       default: return '📝';
     }
   };
+
+  const lineCount = code.split('\n').length;
+  const lines = Array.from({ length: lineCount }, (_, i) => i + 1);
 
   return (
     <div className="canvas-editor">
       <div className="canvas-header">
         <div className="canvas-title">
           <span className="canvas-icon">🎨</span>
-          <span>Canvas - {language === 'python' ? 'Python' : 'JavaScript'}</span>
+          <span>Canvas - {language === 'python' ? 'Python' : language === 'html' ? 'HTML' : 'JavaScript'}</span>
+          {isRunning && <SpinnerIcon style={{ marginLeft: 8, fontSize: 14 }} />}
         </div>
         <div className="canvas-actions">
-          <button 
-            className="canvas-btn run" 
+          <button
+            className="canvas-btn run"
             onClick={handleRun}
             disabled={isRunning}
-            title="运行代码"
+            title="运行代码 (Ctrl+Enter)"
           >
-            {isRunning ? <span className="spinner" /> : <PlayIcon />}
+            {isRunning ? <SpinnerIcon /> : <PlayIcon />}
             <span>{isRunning ? '运行中...' : '运行'}</span>
           </button>
           {isRunning && (
             <button className="canvas-btn stop" onClick={handleStop} title="停止">
               <StopIcon />
+              <span>停止</span>
             </button>
           )}
-          <button className="canvas-btn" onClick={clearConsole} title="清除输出">
+          <button className="canvas-btn" onClick={clearConsole} title="清除输出 (Ctrl+L)">
             <TrashIcon />
           </button>
           <button className="canvas-btn" onClick={handleCopyOutput} title="复制输出">
@@ -299,39 +362,57 @@ sys.stderr = StringIO()
         <div className="canvas-code-area">
           <div className="code-header">
             <span>代码编辑器</span>
-            <select 
-              value={language} 
-              onChange={() => {/* language change would reset code */}}
-              className="language-select"
-            >
-              <option value="javascript">JavaScript</option>
-              <option value="python">Python</option>
-            </select>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              {language === 'python' && (
+                <span className={`pyodide-status ${pyodideStatus}`}>
+                  {pyodideStatus === 'loading' && '⏳ 加载 Python...'}
+                  {pyodideStatus === 'ready' && '✅ Python 就绪'}
+                  {pyodideStatus === 'error' && '❌ Python 加载失败'}
+                </span>
+              )}
+              {executionTime !== null && (
+                <span className="execution-time">⏱ {executionTime}ms</span>
+              )}
+            </div>
           </div>
-          <textarea
-            className="code-textarea"
-            value={code}
-            onChange={(e) => {
-              setCode(e.target.value);
-              onCodeChange?.(e.target.value);
-            }}
-            placeholder={language === 'python' 
-              ? '# Python 代码\nprint("Hello, World!")' 
-              : '// JavaScript 代码\nconsole.log("Hello, World!");'
-            }
-            spellCheck={false}
-          />
+          <div className="code-editor-container">
+            <div className="line-numbers">
+              {lines.map(n => (
+                <div key={n} className="line-number">{n}</div>
+              ))}
+            </div>
+            <textarea
+              ref={textareaRef}
+              className="code-textarea"
+              value={code}
+              onChange={(e) => {
+                setCode(e.target.value);
+                onCodeChange?.(e.target.value);
+              }}
+              onKeyDown={handleKeyDown}
+              placeholder={language === 'python'
+                ? '# Python 代码\nprint("Hello, World!")'
+                : language === 'html'
+                ? '<!-- HTML 代码 -->\n<div>Hello World</div>'
+                : '// JavaScript 代码\nconsole.log("Hello, World!");'
+              }
+              spellCheck={false}
+              autoComplete="off"
+              autoCorrect="off"
+              autoCapitalize="off"
+            />
+          </div>
         </div>
 
         <div className="canvas-output-area" ref={consoleRef}>
           <div className="output-header">
             <span>控制台输出</span>
-            <span className="log-count">{consoleLogs.length} 条日志</span>
+            <span className="log-count">{consoleLogs.length} 条</span>
           </div>
           <div className="console-output">
-            {consoleLogs.length === 0 && !output && (
+            {consoleLogs.length === 0 && (
               <div className="empty-console">
-                点击"运行"按钮执行代码，结果将显示在这里
+                {isRunning ? '执行中...' : '点击"运行"按钮或按 Ctrl+Enter 执行代码'}
               </div>
             )}
             {consoleLogs.map((log, idx) => (
@@ -340,23 +421,17 @@ sys.stderr = StringIO()
                 <span className="log-content">{log.content}</span>
               </div>
             ))}
-            {output && (
-              <div className="output-section">
-                <div className="output-label">📤 输出结果:</div>
-                <pre className="output-content">{output}</pre>
-              </div>
-            )}
           </div>
         </div>
       </div>
 
       <div className="canvas-footer">
         <div className="footer-hint">
-          💡 提示: JavaScript 在浏览器沙盒中执行，Python 需要加载 Pyodide 环境
+          💡 {language === 'python' ? 'Python 首次加载 Pyodide 可能需要几秒' : 'JavaScript 在沙盒中执行'}
         </div>
         <div className="footer-shortcuts">
           <span>Ctrl+Enter: 运行</span>
-          <span>Ctrl+L: 清除</span>
+          <span>Tab: 缩进</span>
         </div>
       </div>
     </div>
