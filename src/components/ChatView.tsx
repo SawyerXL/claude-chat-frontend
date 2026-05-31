@@ -21,6 +21,7 @@ import {
   LinkIcon,
   GlobeIcon,
   SearchIcon,
+  SpeakerIcon,
   ChevronUpIcon,
   ChevronDownIcon,
   ThumbsUpIcon,
@@ -108,6 +109,7 @@ export default function ChatView({
   );
   const [messageRatings, setMessageRatings] = useState<Record<string, 'up' | 'down'>>({});
   const [webSearchOpen, setWebSearchOpen] = useState(false);
+  const [speakingMessageId, setSpeakingMessageId] = useState<string | null>(null);
   const messageRefs = useRef<Map<string, HTMLDivElement>>(new Map());
   const endRef = useRef<HTMLDivElement>(null);
   const recognitionRef = useRef<any>(null);
@@ -416,6 +418,27 @@ export default function ChatView({
   };
 
   // --- Helper functions for export ---
+
+  const speakMessage = (messageId: string, text: string) => {
+    if (!('speechSynthesis' in window)) {
+      message.warning('Text-to-speech not supported in this browser');
+      return;
+    }
+    if (speakingMessageId === messageId) {
+      speechSynthesis.cancel();
+      setSpeakingMessageId(null);
+    } else {
+      speechSynthesis.cancel();
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.lang = 'zh-CN';
+      utterance.rate = 1.1;
+      utterance.pitch = 1;
+      utterance.onend = () => setSpeakingMessageId(null);
+      utterance.onerror = () => setSpeakingMessageId(null);
+      speechSynthesis.speak(utterance);
+      setSpeakingMessageId(messageId);
+    }
+  };
 
   const downloadBlob = (blob: Blob, filename: string) => {
     const url = URL.createObjectURL(blob);
@@ -944,6 +967,16 @@ export default function ChatView({
                       onClick={() => handleRateMessage(m.id, 'down')}
                     >
                       <ThumbsDownIcon />
+                    </button>
+                    <button
+                      className={`message-action-btn ${speakingMessageId === m.id ? 'active' : ''}`}
+                      title="Read aloud"
+                      onClick={() => {
+                        const text = m.content?.replace(/<[^>]+>/g, '').replace(/\*\*/g, '').replace(/`[^`]+`/g, '') || '';
+                        speakMessage(m.id, text);
+                      }}
+                    >
+                      <SpeakerIcon />
                     </button>
                   </div>
                 )}
