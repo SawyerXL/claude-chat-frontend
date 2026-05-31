@@ -1,20 +1,26 @@
 import type { ModelOption } from './types';
 
+// Updated Claude models (2026)
 export const MODELS: ModelOption[] = [
   {
-    id: 'opus-4-7',
-    name: 'Claude Opus 4.7',
-    description: 'Most intelligent model',
+    id: 'claude-4-opus',
+    name: 'Claude Opus 4',
+    description: 'Most intelligent model for complex tasks',
     badge: 'Max',
   },
   {
-    id: 'sonnet-4-6',
-    name: 'Claude Sonnet 4.6',
+    id: 'claude-4-sonnet',
+    name: 'Claude Sonnet 4',
     description: 'Smart, efficient model for everyday use',
   },
   {
-    id: 'haiku-4-5',
-    name: 'Claude Haiku 4.5',
+    id: 'claude-3-7-sonnet',
+    name: 'Claude 3.7 Sonnet',
+    description: 'Extended thinking model',
+  },
+  {
+    id: 'claude-3-5-haiku',
+    name: 'Claude 3.5 Haiku',
     description: 'Fastest model for simple tasks',
   },
 ];

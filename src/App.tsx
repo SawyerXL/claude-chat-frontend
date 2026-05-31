@@ -42,13 +42,17 @@ import './App.css';
 import './styles/responsive.css';
 
 const MODEL_ID_MAP: Record<string, string> = {
-  'opus-4-7': 'claude-opus-4-7',
-  'sonnet-4-6': 'claude-sonnet-4-6',
-  'haiku-4-5': 'claude-haiku-4-5-20251001',
-  'claude-3-5-haiku-20241022': 'claude-3-5-haiku-20241022',
-  'claude-3-5-sonnet-20241022': 'claude-3-5-sonnet-20241022',
-  'claude-3-5-sonnet-20240620': 'claude-3-5-sonnet-20240620',
-  'claude-3-7-sonnet-20250219': 'claude-3-7-sonnet-20250219',
+  // Claude 4 models (2026)
+  'claude-4-opus': 'claude-4-opus',
+  'claude-4-sonnet': 'claude-4-sonnet',
+  'claude-4-haiku': 'claude-4-haiku',
+  // Claude 3.7
+  'claude-3-7-sonnet': 'claude-3-7-sonnet-20250219',
+  // Claude 3.5
+  'claude-3-5-haiku': 'claude-3-5-haiku-20241022',
+  // Legacy models
+  'claude-3-opus': 'claude-3-opus',
+  'claude-3-sonnet': 'claude-3-sonnet-20240229',
 };
 
 function generateSessionId(): string {
@@ -69,7 +73,7 @@ export default function App() {
   const [activeChat, setActiveChat] = useState<string | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [loading, setLoading] = useState(false);
-  const [model, setModel] = useState(MODELS[1].id);
+  const [model, setModel] = useState(MODELS[0].id); // Default to first model (Claude 4 Sonnet)
   const [shareOpen, setShareOpen] = useState(false);
   const [sessions, setSessions] = useState<ChatSession[]>([]);
   const [editingTitle, setEditingTitle] = useState(false);
@@ -380,7 +384,7 @@ export default function App() {
     let fullThinking = '';
 
     try {
-      const apiModel = MODEL_ID_MAP[model] || 'claude-sonnet-4-6';
+      const apiModel = MODEL_ID_MAP[model] || 'claude-4-sonnet';
 
       // Stream the response with abort signal
       for await (const chunk of sendChatMessageStream(nextMessages, apiModel, abortControllerRef.current.signal)) {

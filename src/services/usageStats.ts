@@ -21,48 +21,40 @@ const MODEL_PRICING: Record<string, {
   cacheCreation?: number;
   cacheRead?: number;
 }> = {
-  'claude-3-7-sonnet-20250219': {
-    input: 3e-6,
-    output: 1.5e-5,
-    cacheCreation: 3.75e-6,
-    cacheRead: 3e-7,
-  },
-  'claude-4-sonnet-20250514': {
-    input: 3e-6,
-    output: 1.5e-5,
-    cacheCreation: 3.75e-6,
-    cacheRead: 3e-7,
-  },
-  'claude-4-opus-20250514': {
+  // Claude 4 models (2026)
+  'claude-4-opus': {
     input: 1.5e-5,
     output: 7.5e-5,
     cacheCreation: 1.875e-5,
     cacheRead: 1.5e-6,
   },
-  'claude-4-haiku-20250514': {
+  'claude-4-sonnet': {
+    input: 3e-6,
+    output: 1.5e-5,
+    cacheCreation: 3.75e-6,
+    cacheRead: 3e-7,
+  },
+  'claude-4-haiku': {
     input: 8e-7,
     output: 4e-6,
     cacheCreation: 1e-7,
     cacheRead: 1e-8,
   },
-  'claude-sonnet-4-6': {
+  // Claude 3.7 Sonnet
+  'claude-3-7-sonnet': {
     input: 3e-6,
     output: 1.5e-5,
     cacheCreation: 3.75e-6,
     cacheRead: 3e-7,
   },
-  'claude-opus-4-7': {
-    input: 1.5e-5,
-    output: 7.5e-5,
-    cacheCreation: 1.875e-5,
-    cacheRead: 1.5e-6,
-  },
-  'claude-haiku-3': {
+  // Claude 3.5 Haiku
+  'claude-3-5-haiku': {
     input: 2.5e-7,
     output: 1.25e-6,
     cacheCreation: 3e-7,
     cacheRead: 3e-8,
   },
+  // Legacy models
   'claude-3-opus': {
     input: 1.5e-5,
     output: 7.5e-5,
@@ -102,14 +94,16 @@ export function getModelPricing(modelId: string): {
  */
 function normalizeModelId(modelId: string): string {
   const lower = modelId.toLowerCase();
-  if (lower.includes('sonnet-4-6') || lower.includes('claude-sonnet-4-20250514')) return 'claude-sonnet-4-6';
-  if (lower.includes('opus-4-7') || lower.includes('claude-opus-4-20250514')) return 'claude-opus-4-7';
-  if (lower.includes('opus-4-6') || lower.includes('claude-opus-4-20250514')) return 'claude-4-opus-20250514';
-  if (lower.includes('haiku-4') || lower.includes('haiku-20250514')) return 'claude-4-haiku-20250514';
-  if (lower.includes('sonnet-4')) return 'claude-4-sonnet-20250514';
-  if (lower.includes('3-7-sonnet') || lower.includes('sonnet-3-7')) return 'claude-3-7-sonnet-20250219';
-  if (lower.includes('3-haiku') || lower.includes('haiku-3')) return 'claude-haiku-3';
-  if (lower.includes('3-opus')) return 'claude-3-opus';
+  // Claude 4 models
+  if (lower.includes('4-opus') || lower.includes('opus-4') || lower.includes('claude-4-opus')) return 'claude-4-opus';
+  if (lower.includes('4-sonnet') || lower.includes('sonnet-4') || lower.includes('claude-4-sonnet')) return 'claude-4-sonnet';
+  if (lower.includes('4-haiku') || lower.includes('haiku-4') || lower.includes('claude-4-haiku')) return 'claude-4-haiku';
+  // Claude 3.7
+  if (lower.includes('3-7-sonnet') || lower.includes('sonnet-3-7')) return 'claude-3-7-sonnet';
+  // Claude 3.5
+  if (lower.includes('3-5-haiku') || lower.includes('haiku-3-5')) return 'claude-3-5-haiku';
+  // Legacy
+  if (lower.includes('3-opus') && !lower.includes('3-7')) return 'claude-3-opus';
   if (lower.includes('3-sonnet') && !lower.includes('3-7')) return 'claude-3-sonnet';
   return modelId;
 }
@@ -122,7 +116,7 @@ export function calculateCost(
   outputTokens: number,
   cacheCreationTokens = 0,
   cacheReadTokens = 0,
-  modelId = 'claude-sonnet-4-6'
+  modelId = 'claude-4-sonnet'
 ): number {
   const pricing = getModelPricing(modelId);
 
