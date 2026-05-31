@@ -205,6 +205,8 @@
 
 .sidebar-conversations {
   flex: 1;
+  min-height: 0;
+  overflow-y: auto;
   padding: 8px 12px;
 }
 
@@ -336,8 +338,7 @@
 /* Sidebar content area */
 .sidebar-content {
   flex: 1;
-  overflow-y: auto;
-  overflow-x: hidden;
+  overflow: hidden;
   position: relative;
   display: flex;
   flex-direction: column;
@@ -383,10 +384,9 @@
 
 .sidebar-conversations {
   flex: 1;
+  min-height: 0;
   overflow-y: auto;
   padding: 8px 12px;
-  min-height: 100px;
-  background: var(--bg-secondary);
 }
 
 .sidebar-conversations:empty::before {
