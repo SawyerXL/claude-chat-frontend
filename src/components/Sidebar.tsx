@@ -66,29 +66,49 @@ const NAV_ITEMS = [
   { key: 'customize', icon: <SettingsIcon />, label: 'Customize' },
 ];
 
-// Group conversations by time
+// Group conversations by time, with pinned sessions on top
 function groupConversations(sessions: ChatSession[]) {
   const now = Date.now();
   const day = 24 * 60 * 60 * 1000;
+
+  // Separate pinned, archived, and regular sessions
+  const pinned: ChatSession[] = [];
+  const archived: ChatSession[] = [];
   const today: ChatSession[] = [];
   const yesterday: ChatSession[] = [];
   const prev7Days: ChatSession[] = [];
   const older: ChatSession[] = [];
 
   for (const session of sessions) {
-    const age = now - session.updatedAt;
-    if (age < day) {
-      today.push(session);
-    } else if (age < 2 * day) {
-      yesterday.push(session);
-    } else if (age < 7 * day) {
-      prev7Days.push(session);
+    if (session.archived) {
+      archived.push(session);
+    } else if (session.pinned) {
+      pinned.push(session);
     } else {
-      older.push(session);
+      const age = now - session.updatedAt;
+      if (age < day) {
+        today.push(session);
+      } else if (age < 2 * day) {
+        yesterday.push(session);
+      } else if (age < 7 * day) {
+        prev7Days.push(session);
+      } else {
+        older.push(session);
+      }
     }
   }
 
-  return { today, yesterday, prev7Days, older };
+  // Sort each group by updatedAt descending
+  const sortByTime = (a: ChatSession, b: ChatSession) => b.updatedAt - a.updatedAt;
+
+  return {
+    pinned: pinned.sort(sortByTime),
+    archived: archived.sort(sortByTime),
+    today: today.sort(sortByTime),
+    yesterday: yesterday.sort(sortByTime),
+    prev7Days: prev7Days.sort(sortByTime),
+    older: older.sort(sortByTime),
+  };
 }
 
 export default function Sidebar({
@@ -223,6 +243,17 @@ export default function Sidebar({
           onClick: () => { addSessionToCollection(col.id, session.id); },
         })) : [{ key: 'no-collections', label: '暂无收藏夹', disabled: true }],
       },
+      { key: 'pin', icon: <StarIcon />, label: session.pinned ? '取消置顶' : '置顶会话', onClick: () => {
+        import('../services/session').then(m => {
+          session.pinned ? m.unpinSession(session.id) : m.pinSession(session.id);
+        });
+      }},
+      { key: 'archive', icon: session.archived ? <FolderIcon /> : <FolderIcon />, label: session.archived ? '取消归档' : '归档会话', onClick: () => {
+        import('../services/session').then(m => {
+          session.archived ? m.unarchiveSession(session.id) : m.archiveSession(session.id);
+        });
+      }},
+      { type: 'divider' as const },
       { key: 'rename', icon: <EditIcon />, label: '重命名', onClick: () => {
         setRenamingSession(session.id);
         setRenameValue(session.title);
@@ -247,7 +278,7 @@ export default function Sidebar({
       <>
         <Dropdown key={session.id} menu={{ items: menuItems }} trigger={['contextMenu']} placement="bottomLeft">
           <div
-            className={`recent-item ${isActive ? 'active' : ''} ${isHovered ? 'hovered' : ''}`}
+            className={`recent-item ${isActive ? 'active' : ''} ${isHovered ? 'hovered' : ''} ${session.pinned ? 'pinned' : ''} ${session.archived ? 'archived' : ''}`}
             onClick={() => !isRenaming && onSelectChat(session.id)}
             onMouseEnter={() => setHoveredSession(session.id)}
             onMouseLeave={() => setHoveredSession(null)}
@@ -424,7 +455,55 @@ export default function Sidebar({
               {filteredSessions.length === 0 ? (
                 <div className="empty-conversations">暂无会话记录</div>
               ) : (
-                filteredSessions.map(renderConvItem)
+                <>
+                  {/* Pinned sessions */}
+                  {groups.pinned.length > 0 && (
+                    <div className="sidebar-section">
+                      <div className="sidebar-section-title">📌 置顶</div>
+                      {groups.pinned.map(session => renderConvItem(session))}
+                    </div>
+                  )}
+
+                  {/* Today's conversations */}
+                  {groups.today.length > 0 && (
+                    <div className="sidebar-section">
+                      <div className="sidebar-section-title">今天</div>
+                      {groups.today.map(session => renderConvItem(session))}
+                    </div>
+                  )}
+
+                  {/* Yesterday's conversations */}
+                  {groups.yesterday.length > 0 && (
+                    <div className="sidebar-section">
+                      <div className="sidebar-section-title">昨天</div>
+                      {groups.yesterday.map(session => renderConvItem(session))}
+                    </div>
+                  )}
+
+                  {/* Previous 7 days */}
+                  {groups.prev7Days.length > 0 && (
+                    <div className="sidebar-section">
+                      <div className="sidebar-section-title">近7天</div>
+                      {groups.prev7Days.map(session => renderConvItem(session))}
+                    </div>
+                  )}
+
+                  {/* Older conversations */}
+                  {groups.older.length > 0 && (
+                    <div className="sidebar-section">
+                      <div className="sidebar-section-title">更早</div>
+                      {groups.older.map(session => renderConvItem(session))}
+                    </div>
+                  )}
+
+                  {/* Archived sessions */}
+                  {groups.archived.length > 0 && (
+                    <div className="sidebar-section archived-section">
+                      <div className="sidebar-section-title">📦 归档</div>
+                      {groups.archived.map(session => renderConvItem(session))}
+                    </div>
+                  )}
+                </>
               )}
             </div>
           )}

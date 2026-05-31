@@ -21,6 +21,8 @@ export interface ChatSession {
   createdAt: number;
   updatedAt: number;
   projectId?: string;
+  pinned?: boolean;      // 置顶会话
+  archived?: boolean;    // 归档会话
 }
 
 export interface ModelOption {

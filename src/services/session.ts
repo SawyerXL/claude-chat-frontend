@@ -327,6 +327,51 @@ export async function saveSession(session: ChatSession): Promise<void> {
   window.dispatchEvent(new CustomEvent('sessions-updated'));
 }
 
+export async function pinSession(sessionId: string): Promise<void> {
+  const sessions = await getSessions();
+  const session = sessions.find(s => s.id === sessionId);
+  if (session) {
+    session.pinned = true;
+    session.updatedAt = Date.now();
+    await syncManager.saveSessionToServer(session);
+  }
+  window.dispatchEvent(new CustomEvent('sessions-updated'));
+}
+
+export async function unpinSession(sessionId: string): Promise<void> {
+  const sessions = await getSessions();
+  const session = sessions.find(s => s.id === sessionId);
+  if (session) {
+    session.pinned = false;
+    session.updatedAt = Date.now();
+    await syncManager.saveSessionToServer(session);
+  }
+  window.dispatchEvent(new CustomEvent('sessions-updated'));
+}
+
+export async function archiveSession(sessionId: string): Promise<void> {
+  const sessions = await getSessions();
+  const session = sessions.find(s => s.id === sessionId);
+  if (session) {
+    session.archived = true;
+    session.pinned = false; // 归档时取消置顶
+    session.updatedAt = Date.now();
+    await syncManager.saveSessionToServer(session);
+  }
+  window.dispatchEvent(new CustomEvent('sessions-updated'));
+}
+
+export async function unarchiveSession(sessionId: string): Promise<void> {
+  const sessions = await getSessions();
+  const session = sessions.find(s => s.id === sessionId);
+  if (session) {
+    session.archived = false;
+    session.updatedAt = Date.now();
+    await syncManager.saveSessionToServer(session);
+  }
+  window.dispatchEvent(new CustomEvent('sessions-updated'));
+}
+
 export async function deleteSession(sessionId: string): Promise<void> {
   await syncManager.deleteSessionFromServer(sessionId);
   window.dispatchEvent(new CustomEvent('sessions-updated'));
