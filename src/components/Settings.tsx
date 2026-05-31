@@ -47,6 +47,9 @@ export default function Settings({ open, onClose, onThemeChange }: SettingsProps
   const [activeTab, setActiveTab] = useState('general');
   const [instructions, setInstructions] = useState<CustomInstructions>(loadInstructions);
   const [theme, setTheme] = useState<'dark' | 'light' | 'system'>('dark');
+  const [fontSize, setFontSize] = useState('medium');
+  const [enterToSend, setEnterToSend] = useState(true);
+  const [showThinking, setShowThinking] = useState(true);
   const [memoryEntries, setMemoryEntries] = useState<MemoryEntry[]>([]);
   const [newMemory, setNewMemory] = useState('');
   const [notificationEnabled, setNotificationEnabled] = useState(notificationService.isEnabled());
@@ -57,6 +60,12 @@ export default function Settings({ open, onClose, onThemeChange }: SettingsProps
     if (saved === 'light' || saved === 'dark' || saved === 'system') {
       setTheme(saved);
     }
+    const savedFontSize = localStorage.getItem('claude_font_size');
+    if (savedFontSize) setFontSize(savedFontSize);
+    const savedEnterToSend = localStorage.getItem('claude_enter_send');
+    if (savedEnterToSend !== null) setEnterToSend(savedEnterToSend !== 'false');
+    const savedShowThinking = localStorage.getItem('claude_show_thinking');
+    if (savedShowThinking !== null) setShowThinking(savedShowThinking !== 'false');
   }, [open]);
 
   useEffect(() => {
@@ -103,6 +112,14 @@ export default function Settings({ open, onClose, onThemeChange }: SettingsProps
       }
     });
     message.success('Theme changed');
+  };
+
+  const handleFontSizeChange = (size: string) => {
+    setFontSize(size);
+    localStorage.setItem('claude_font_size', size);
+    const fontSizeMap: Record<string, string> = { small: '13px', medium: '15px', large: '17px' };
+    document.documentElement.style.setProperty('--font-size-base', fontSizeMap[size] || '15px');
+    message.success('Font size changed');
   };
 
   const handleInstructionsChange = (field: keyof CustomInstructions, value: string) => {
@@ -171,9 +188,13 @@ export default function Settings({ open, onClose, onThemeChange }: SettingsProps
                   <div className="settings-item-label">Font size</div>
                   <div className="settings-item-desc">Adjust text size</div>
                 </div>
-                <select className="settings-select">
+                <select
+                  className="settings-select"
+                  value={fontSize}
+                  onChange={(e) => handleFontSizeChange(e.target.value)}
+                >
                   <option value="small">Small</option>
-                  <option value="medium" selected>Medium</option>
+                  <option value="medium">Medium</option>
                   <option value="large">Large</option>
                 </select>
               </div>
@@ -184,7 +205,15 @@ export default function Settings({ open, onClose, onThemeChange }: SettingsProps
                   <div className="settings-item-desc">Press Enter to send messages</div>
                 </div>
                 <label className="settings-toggle">
-                  <input type="checkbox" defaultChecked />
+                  <input
+                    type="checkbox"
+                    checked={enterToSend}
+                    onChange={(e) => {
+                      setEnterToSend(e.target.checked);
+                      localStorage.setItem('claude_enter_send', String(e.target.checked));
+                      message.success(e.target.checked ? 'Enter to send enabled' : 'Shift+Enter to send enabled');
+                    }}
+                  />
                   <span className="toggle-slider" />
                 </label>
               </div>
@@ -195,7 +224,15 @@ export default function Settings({ open, onClose, onThemeChange }: SettingsProps
                   <div className="settings-item-desc">Display Claude's thinking process</div>
                 </div>
                 <label className="settings-toggle">
-                  <input type="checkbox" defaultChecked />
+                  <input
+                    type="checkbox"
+                    checked={showThinking}
+                    onChange={(e) => {
+                      setShowThinking(e.target.checked);
+                      localStorage.setItem('claude_show_thinking', String(e.target.checked));
+                      message.success(e.target.checked ? 'Thinking shown' : 'Thinking hidden');
+                    }}
+                  />
                   <span className="toggle-slider" />
                 </label>
               </div>

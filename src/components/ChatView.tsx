@@ -51,13 +51,14 @@ interface ChatViewProps {
   model: string;
   onModelChange: (id: string) => void;
   onStop?: () => void;
-  onRetry?: (messageId: string) => void; // kept for reference but using onSend directly
+  onRetry?: (messageId: string) => void;
   onOpenSkills?: () => void;
   onOpenProjects?: () => void;
   onOpenStyle?: () => void;
   onOpenConnectors?: () => void;
   onInsertTemplate?: (content: string) => void;
   loggedIn?: boolean;
+  activeChat?: string | null;
 }
 
 interface Attachment {
@@ -81,6 +82,7 @@ export default function ChatView({
   onOpenConnectors,
   onInsertTemplate,
   loggedIn = true,
+  activeChat,
 }: ChatViewProps) {
   const [value, setValue] = useState('');
   const [images, setImages] = useState<string[]>([]);
@@ -98,6 +100,10 @@ export default function ChatView({
   const [inlineSearchOpen, setInlineSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [currentSearchIdx, setCurrentSearchIdx] = useState(0);
+  const [showThinking, setShowThinking] = useState(
+    localStorage.getItem('claude_show_thinking') !== 'false'
+  );
+  const [messageRatings, setMessageRatings] = useState<Record<string, 'up' | 'down'>>({});
   const messageRefs = useRef<Map<string, HTMLDivElement>>(new Map());
   const endRef = useRef<HTMLDivElement>(null);
   const recognitionRef = useRef<any>(null);
@@ -124,48 +130,29 @@ export default function ChatView({
     return () => window.removeEventListener('storage', handler);
   }, []);
 
-  // 重试逻辑：优先重试失败消息前的用户消息，否则重试最后一条用户消息
-  const handleRetry = () => {
-    console.log('[Retry] handleRetry called, messages count:', messages.length);
-    if (!onSend) {
-      console.log('[Retry] onSend is not defined');
-      return;
-    }
+  // Sync show_thinking from localStorage
+  useEffect(() => {
+    const handler = () => {
+      setShowThinking(localStorage.getItem('claude_show_thinking') !== 'false');
+    };
+    window.addEventListener('storage', handler);
+    return () => window.removeEventListener('storage', handler);
+  }, []);
 
-    // 先查找失败消息
-    let failedIdx = -1;
-    for (let i = messages.length - 1; i >= 0; i--) {
-      const m = messages[i];
-      if (m.role === 'assistant' && m.content?.startsWith('请求失败: ')) {
-        failedIdx = i;
-        break;
-      }
+  // Restore draft message on session switch
+  useEffect(() => {
+    if (activeChat) {
+      const draft = localStorage.getItem(`claude_draft_${activeChat}`);
+      if (draft) setValue(draft);
     }
+  }, [activeChat]);
 
-    let userMsg = null;
-    if (failedIdx > 0 && messages[failedIdx - 1].role === 'user') {
-      userMsg = messages[failedIdx - 1];
-    } else {
-      // 找不到失败消息，就重试最后一条用户消息
-      for (let i = messages.length - 1; i >= 0; i--) {
-        if (messages[i].role === 'user') {
-          userMsg = messages[i];
-          break;
-        }
-      }
+  // Save draft on every input change (throttled via immediate state update)
+  useEffect(() => {
+    if (activeChat && value) {
+      localStorage.setItem(`claude_draft_${activeChat}`, value);
     }
-
-    if (userMsg) {
-      console.log('[Retry] Retrying user message:', userMsg.content?.substring(0, 30));
-      onSend(
-        userMsg.content || '',
-        [],
-        userMsg.attachments?.map((a: any) => ({ name: a.name, type: a.type, content: a.content })) as any
-      );
-    } else {
-      console.log('[Retry] No user message found to retry');
-    }
-  };
+  }, [value, activeChat]);
 
   // Speech Recognition
   useEffect(() => {
@@ -316,6 +303,7 @@ export default function ChatView({
     setValue('');
     setImages([]);
     setAttachments([]);
+    if (activeChat) localStorage.removeItem(`claude_draft_${activeChat}`);
     if (isListening) {
       setIsListening(false);
       recognitionRef.current?.stop();
@@ -334,17 +322,21 @@ export default function ChatView({
         navigateSearch('next');
       }
     } else if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      handleSend();
-    } else if (e.key === 'ArrowUp' && !e.shiftKey) {
-      // Navigate to previous input in history
-      if (inputHistory.length > 0) {
-        const newIndex = historyIndex === -1 ? 0 : Math.min(historyIndex + 1, inputHistory.length - 1);
-        setHistoryIndex(newIndex);
-        setValue(inputHistory[newIndex]);
+      const enterToSend = localStorage.getItem('claude_enter_send') !== 'false';
+      if (enterToSend) {
+        e.preventDefault();
+        handleSend();
       }
+    } else if (e.key === 'Enter' && e.shiftKey) {
+      // Shift+Enter = newline (no-op, just allow default behavior)
+    } else if (e.ctrlKey && e.shiftKey && e.key === 'E') {
+      // Ctrl+Shift+E: edit last user message
       e.preventDefault();
-    } else if (e.key === 'ArrowDown' && !e.shiftKey) {
+      const lastUserMsg = [...messages].reverse().find(m => m.role === 'user');
+      if (lastUserMsg) {
+        startEditMessage(lastUserMsg.id, lastUserMsg.content);
+      }
+    } else if (e.key === 'ArrowUp' && !e.shiftKey) {
       // Navigate to next input in history
       if (historyIndex !== -1) {
         const newIndex = historyIndex - 1;
@@ -362,6 +354,19 @@ export default function ChatView({
 
   const handleCopy = (text: string) => {
     navigator.clipboard?.writeText(text);
+  };
+
+  const handleRateMessage = (messageId: string, rating: 'up' | 'down') => {
+    setMessageRatings(prev => {
+      const current = prev[messageId];
+      if (current === rating) {
+        // Toggle off
+        const next = { ...prev };
+        delete next[messageId];
+        return next;
+      }
+      return { ...prev, [messageId]: rating };
+    });
   };
 
   const handleImageUpload = (newImages: string[]) => {
@@ -861,7 +866,7 @@ export default function ChatView({
                     </div>
                   ) : m.role === 'assistant' ? (
                     <>
-                      {m.thinking && (
+                      {m.thinking && showThinking && (
                         <div className="thinking-block">
                           <div className="thinking-header">
                             <span className="thinking-icon"></span>
@@ -924,14 +929,34 @@ export default function ChatView({
                     <button
                       className="message-action-btn"
                       title="Retry"
-                      onClick={handleRetry}
+                      onClick={() => {
+                        const idx = messages.indexOf(m);
+                        const userMsg = idx > 0 ? messages[idx - 1] : null;
+                        if (userMsg && userMsg.role === 'user') {
+                          onSend(
+                            userMsg.content || '',
+                            [],
+                            (userMsg.attachments as any)?.map((a: any) => ({
+                              name: a.name, type: a.type, content: a.content
+                            }))
+                          );
+                        }
+                      }}
                     >
                       <RefreshIcon /> 重试
                     </button>
-                    <button className="message-action-btn" title="Good">
+                    <button
+                      className={`message-action-btn ${messageRatings[m.id] === 'up' ? 'active' : ''}`}
+                      title="Good"
+                      onClick={() => handleRateMessage(m.id, 'up')}
+                    >
                       <ThumbsUpIcon />
                     </button>
-                    <button className="message-action-btn" title="Bad">
+                    <button
+                      className={`message-action-btn ${messageRatings[m.id] === 'down' ? 'active' : ''}`}
+                      title="Bad"
+                      onClick={() => handleRateMessage(m.id, 'down')}
+                    >
                       <ThumbsDownIcon />
                     </button>
                   </div>

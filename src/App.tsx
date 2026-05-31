@@ -785,6 +785,7 @@ ${promptOrSystemPrompt ? `\n用户需求：${promptOrSystemPrompt}` : ''}
             onModelChange={setModel}
             onStop={handleStop}
             loggedIn={loggedIn}
+            activeChat={activeChat}
             onRetry={(messageId) => {
               console.log('[App] onRetry called with messageId:', messageId);
               console.log('[App] current messages:', messages.map((m, i) => ({i, role: m.role, content: m.content.substring(0, 30)})));

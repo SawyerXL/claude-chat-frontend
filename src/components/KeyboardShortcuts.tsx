@@ -14,6 +14,7 @@ const DEFAULT_SHORTCUTS: KeyboardShortcut[] = [
   { id: 'send', name: 'Send message', keys: ['Enter'], enabled: true, category: 'Chat' },
   { id: 'new_chat', name: 'New conversation', keys: ['Ctrl+Shift+N'], enabled: true, category: 'General' },
   { id: 'clear_chat', name: 'Clear conversation', keys: ['Ctrl+K'], enabled: true, category: 'Chat' },
+  { id: 'edit_last_message', name: 'Edit last message', keys: ['Ctrl+Shift+E'], enabled: true, category: 'Chat' },
   { id: 'copy_response', name: 'Copy last response', keys: ['Ctrl+Shift+C'], enabled: true, category: 'Chat' },
   { id: 'toggle_sidebar', name: 'Toggle sidebar', keys: ['Ctrl+B'], enabled: true, category: 'UI' },
   { id: 'toggle_theme', name: 'Toggle theme', keys: ['Ctrl+Shift+T'], enabled: true, category: 'UI' },
