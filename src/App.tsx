@@ -30,7 +30,7 @@ import { SKILLS_REGISTRY } from './skills/registry';
 import type { ChatMessage, ChatSession } from './types';
 import { MODELS } from './constants';
 import { sendChatMessageStream } from './services/api';
-import { getSessions, getSessionById, saveSession, deleteSession, startSessionSync, subscribeToSessionChanges } from './services/session';
+import { getSessions, getSessionById, saveSession, deleteSession, startSessionSync, subscribeToSessionChanges, startBackupTimer, stopBackupTimer } from './services/session';
 import { isAuthenticated } from './services/auth';
 import { initTheme, toggleTheme as toggleThemeService } from './services/theme';
 import { onSessionDeleted } from './services/collection';
@@ -222,6 +222,7 @@ export default function App() {
 
     console.log('[App] Starting session sync...');
     const stopSync = startSessionSync(refreshSessions);
+    startBackupTimer(); // Start periodic backup
 
     // Also subscribe to storage events from other tabs
     const unsubscribe = subscribeToSessionChanges(refreshSessions);
@@ -229,6 +230,7 @@ export default function App() {
     return () => {
       console.log('[App] Stopping session sync...');
       stopSync();
+      stopBackupTimer();
       unsubscribe();
     };
   }, [isReady, refreshSessions]);

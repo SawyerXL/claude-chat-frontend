@@ -6,6 +6,11 @@ export const SESSIONS_KEY = 'claude_sessions';
 // File cache configuration
 const FILE_CACHE_THRESHOLD = 10 * 1024; // 10KB - cache files larger than this
 
+// Backup configuration
+const BACKUP_KEY = 'claude_sessions_backup';
+const BACKUP_INTERVAL = 60000; // 1分钟备份一次
+const MAX_BACKUPS = 5; // 保留最近5个备份
+
 // Sync Manager - handles cross-device and cross-tab synchronization
 class SessionSyncManager {
   private syncInterval = 5000; // 5秒轮询
@@ -32,6 +37,61 @@ class SessionSyncManager {
   // Update local sessions cache
   updateLocalSessions(sessions: ChatSession[]): void {
     this.localSessions = sessions;
+  }
+
+  // Backup sessions to localStorage for recovery
+  backupSessions(sessions: ChatSession[]): void {
+    try {
+      const backups = this.getBackups();
+      const backup = {
+        timestamp: Date.now(),
+        sessions,
+        count: sessions.length,
+      };
+      backups.unshift(backup);
+      // Keep only MAX_BACKUPS most recent backups
+      const trimmed = backups.slice(0, MAX_BACKUPS);
+      localStorage.setItem(BACKUP_KEY, JSON.stringify(trimmed));
+      console.log(`[session] Backed up ${sessions.length} sessions`);
+    } catch (err) {
+      console.error('[session] Backup failed:', err);
+    }
+  }
+
+  // Get all backups
+  private getBackups(): Array<{ timestamp: number; sessions: ChatSession[]; count: number }> {
+    try {
+      const data = localStorage.getItem(BACKUP_KEY);
+      if (data) return JSON.parse(data);
+    } catch {}
+    return [];
+  }
+
+  // Get latest backup
+  getLatestBackup(): { timestamp: number; sessions: ChatSession[]; count: number } | null {
+    const backups = this.getBackups();
+    return backups[0] || null;
+  }
+
+  // Restore from backup
+  restoreFromBackup(backupTimestamp?: number): ChatSession[] | null {
+    const backups = this.getBackups();
+    let backup = backups[0];
+    
+    if (backupTimestamp) {
+      backup = backups.find(b => b.timestamp === backupTimestamp) || backups[0];
+    }
+    
+    if (backup) {
+      console.log(`[session] Restored ${backup.count} sessions from backup at ${new Date(backup.timestamp).toLocaleString()}`);
+      return backup.sessions;
+    }
+    return null;
+  }
+
+  // Get available backup timestamps
+  getBackupTimestamps(): Array<{ timestamp: number; count: number }> {
+    return this.getBackups().map(b => ({ timestamp: b.timestamp, count: b.count }));
   }
 
   private setupStorageListener(): void {
@@ -327,7 +387,33 @@ export async function getSessions(currentSessions?: ChatSession[]): Promise<Chat
 
 export async function saveSession(session: ChatSession): Promise<void> {
   await syncManager.saveSessionToServer(session);
+  // Backup after save
+  const sessions = await getSessions();
+  syncManager.backupSessions(sessions);
   window.dispatchEvent(new CustomEvent('sessions-updated'));
+}
+
+// Initialize backup timer
+let backupTimer: number | null = null;
+export function startBackupTimer(): void {
+  if (backupTimer) return;
+  backupTimer = window.setInterval(async () => {
+    try {
+      const sessions = await getSessions();
+      syncManager.backupSessions(sessions);
+    } catch (err) {
+      console.error('[session] Timer backup failed:', err);
+    }
+  }, BACKUP_INTERVAL);
+  console.log(`[session] Backup timer started (every ${BACKUP_INTERVAL / 1000}s)`);
+}
+
+export function stopBackupTimer(): void {
+  if (backupTimer) {
+    clearInterval(backupTimer);
+    backupTimer = null;
+    console.log('[session] Backup timer stopped');
+  }
 }
 
 export async function pinSession(sessionId: string): Promise<void> {
@@ -424,6 +510,19 @@ export function startSessionSync(callback: () => void): () => void {
 
 export function subscribeToSessionChanges(callback: () => void): () => void {
   return syncManager.subscribe(callback);
+}
+
+// Backup functions - export for use in UI
+export function getLatestBackup(): { timestamp: number; sessions: ChatSession[]; count: number } | null {
+  return syncManager.getLatestBackup();
+}
+
+export function getBackupTimestamps(): Array<{ timestamp: number; count: number }> {
+  return syncManager.getBackupTimestamps();
+}
+
+export function restoreFromBackup(backupTimestamp?: number): ChatSession[] | null {
+  return syncManager.restoreFromBackup(backupTimestamp);
 }
 
 // ============================================

@@ -162,6 +162,30 @@ export default function ChatView({
     }
   }, [value, activeChat]);
 
+  // Handle deep link to message (#msg-xxx)
+  useEffect(() => {
+    const hash = window.location.hash;
+    if (hash.startsWith('#msg-')) {
+      const msgId = hash.slice(5);
+      setTimeout(() => scrollToMessage(msgId), 500);
+      // Clear hash after scrolling
+      history.replaceState(null, '', window.location.pathname + window.location.search);
+    }
+  }, []);
+
+  // Listen for hash changes
+  useEffect(() => {
+    const handleHashChange = () => {
+      const hash = window.location.hash;
+      if (hash.startsWith('#msg-')) {
+        const msgId = hash.slice(5);
+        scrollToMessage(msgId);
+      }
+    };
+    window.addEventListener('hashchange', handleHashChange);
+    return () => window.removeEventListener('hashchange', handleHashChange);
+  }, []);
+
   // Speech Recognition
   useEffect(() => {
     const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
@@ -1018,6 +1042,18 @@ export default function ChatView({
                       }}
                     >
                       <LinkIcon />
+                    </button>
+                    <button
+                      className="message-action-btn"
+                      title="Share this message"
+                      onClick={() => {
+                        const msgUrl = `${window.location.origin}${window.location.pathname}#msg-${m.id}`;
+                        navigator.clipboard.writeText(msgUrl);
+                        message.success('链接已复制');
+                        scrollToMessage(m.id);
+                      }}
+                    >
+                      <ShareIcon />
                     </button>
                   </div>
                 )}
