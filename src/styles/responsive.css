@@ -729,14 +729,31 @@
     display: none;
   }
 
+  /* Quick actions - force horizontal scroll on landscape too */
   .quick-actions {
-    grid-template-columns: repeat(4, 1fr);
-    gap: 8px;
+    display: flex !important;
+    flex-wrap: nowrap !important;
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    gap: 8px !important;
+    justify-content: flex-start !important;
+    scrollbar-width: none !important;
+  }
+
+  .quick-actions::-webkit-scrollbar {
+    display: none !important;
+  }
+
+  .quick-action {
+    flex-shrink: 0 !important;
+    padding: 8px 12px !important;
+    font-size: 11px !important;
   }
 
   .quick-action-btn {
-    padding: 10px;
-    font-size: 12px;
+    flex-shrink: 0 !important;
+    padding: 8px 12px !important;
+    font-size: 11px !important;
   }
 
   .chat-messages-inner {
