@@ -200,14 +200,12 @@
 
 .sidebar-recents {
   flex: 1;
-  overflow-y: auto;
   padding: 0;
 }
 
 .sidebar-conversations {
   flex: 1;
-  overflow-y: auto;
-  padding: 0;
+  padding: 8px 12px;
 }
 
 .recent-item {
