@@ -73,8 +73,9 @@ function groupConversations(sessions: ChatSession[]) {
   const now = Date.now();
   const day = 24 * 60 * 60 * 1000;
 
-  // Separate pinned, archived, and regular sessions
+  // Separate pinned, starred, archived, and regular sessions
   const pinned: ChatSession[] = [];
+  const starred: ChatSession[] = [];
   const archived: ChatSession[] = [];
   const today: ChatSession[] = [];
   const yesterday: ChatSession[] = [];
@@ -86,6 +87,8 @@ function groupConversations(sessions: ChatSession[]) {
       archived.push(session);
     } else if (session.pinned) {
       pinned.push(session);
+    } else if (session.starred) {
+      starred.push(session);
     } else {
       const age = now - session.updatedAt;
       if (age < day) {
@@ -105,6 +108,7 @@ function groupConversations(sessions: ChatSession[]) {
 
   return {
     pinned: pinned.sort(sortByTime),
+    starred: starred.sort(sortByTime),
     archived: archived.sort(sortByTime),
     today: today.sort(sortByTime),
     yesterday: yesterday.sort(sortByTime),
@@ -234,7 +238,11 @@ export default function Sidebar({
 
     // Context menu items with icons
     const menuItems: MenuProps['items'] = [
-      { key: 'star', icon: <StarIcon />, label: '标星', onClick: () => console.log('Star:', session.id) },
+      { key: 'star', icon: <StarIcon />, label: session.starred ? '取消星标' : '星标会话', onClick: () => {
+        import('../services/session').then(m => {
+          session.starred ? m.unstarSession(session.id) : m.starSession(session.id);
+        });
+      }},
       { type: 'divider' as const },
       {
         key: 'add-to-collection',
@@ -481,6 +489,13 @@ export default function Sidebar({
                     <div className="sidebar-section">
                       <div className="sidebar-section-title">📌 置顶</div>
                       {groups.pinned.map(session => renderConvItem(session))}
+                    </div>
+                  )}
+
+                  {groups.starred.length > 0 && (
+                    <div className="sidebar-section">
+                      <div className="sidebar-section-title">⭐ 星标</div>
+                      {groups.starred.map(session => renderConvItem(session))}
                     </div>
                   )}
 

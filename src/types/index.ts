@@ -22,7 +22,8 @@ export interface ChatSession {
   updatedAt: number;
   projectId?: string;
   pinned?: boolean;      // 置顶会话
-  archived?: boolean;    // 归档会话
+  starred?: boolean;     // 星标会话
+  archived?: boolean;   // 归档会话
 }
 
 export interface ModelOption {

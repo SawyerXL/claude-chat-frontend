@@ -56,6 +56,47 @@
   font-size: 14px;
 }
 
+.code-block-btn.run {
+  width: auto;
+  padding: 0 10px;
+  gap: 4px;
+  color: #52c41a;
+}
+
+.code-block-btn.run:hover {
+  background: rgba(82, 196, 26, 0.2);
+}
+
+.code-block-btn.run.running {
+  color: #ff4d4f;
+}
+
+.code-block-output {
+  background: #1a1a1a;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.output-header {
+  padding: 6px 12px;
+  font-size: 11px;
+  color: #666;
+  background: #252526;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.output-content {
+  margin: 0;
+  padding: 12px;
+  font-family: 'Fira Code', 'Monaco', 'Consolas', monospace;
+  font-size: 12px;
+  line-height: 1.5;
+  color: #d4d4d4;
+  white-space: pre-wrap;
+  word-break: break-all;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
 .code-block-content {
   overflow-x: auto;
 }

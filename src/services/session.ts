@@ -247,8 +247,9 @@ class SessionSyncManager {
             messageCount: s.message_count,
             createdAt: s.created_at,
             updatedAt: s.updated_at,
-            // Preserve pinned/archived state from local cache
+            // Preserve pinned/starred/archived state from local cache
             pinned: existing?.pinned || s.pinned || false,
+            starred: existing?.starred || s.starred || false,
             archived: existing?.archived || s.archived || false,
           };
         });
@@ -455,6 +456,28 @@ export async function unarchiveSession(sessionId: string): Promise<void> {
   const session = sessions.find(s => s.id === sessionId);
   if (session) {
     session.archived = false;
+    session.updatedAt = Date.now();
+    await syncManager.saveSessionToServer(session);
+  }
+  window.dispatchEvent(new CustomEvent('sessions-updated'));
+}
+
+export async function starSession(sessionId: string): Promise<void> {
+  const sessions = await getSessions();
+  const session = sessions.find(s => s.id === sessionId);
+  if (session) {
+    session.starred = true;
+    session.updatedAt = Date.now();
+    await syncManager.saveSessionToServer(session);
+  }
+  window.dispatchEvent(new CustomEvent('sessions-updated'));
+}
+
+export async function unstarSession(sessionId: string): Promise<void> {
+  const sessions = await getSessions();
+  const session = sessions.find(s => s.id === sessionId);
+  if (session) {
+    session.starred = false;
     session.updatedAt = Date.now();
     await syncManager.saveSessionToServer(session);
   }
