@@ -1311,3 +1311,124 @@
     display: none !important;
   }
 }
+
+/* Edit History Modal */
+.edit-history-modal {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 500px;
+  max-width: 90vw;
+  max-height: 80vh;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  z-index: 1000;
+}
+
+.edit-history-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  background: var(--bg-tertiary);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.edit-history-header h3 {
+  margin: 0;
+  font-size: 16px;
+  color: var(--text-primary);
+}
+
+.edit-history-close {
+  background: none;
+  border: none;
+  font-size: 24px;
+  color: var(--text-tertiary);
+  cursor: pointer;
+  padding: 0;
+  line-height: 1;
+}
+
+.edit-history-close:hover {
+  color: var(--text-primary);
+}
+
+.edit-history-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 12px 16px;
+}
+
+.edit-history-entry {
+  padding: 12px;
+  margin-bottom: 8px;
+  background: var(--bg-tertiary);
+  border-radius: 8px;
+  border-left: 3px solid var(--border-color);
+}
+
+.edit-history-entry.current {
+  border-left-color: var(--accent-purple);
+  background: rgba(99, 102, 241, 0.1);
+}
+
+.edit-history-meta {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 8px;
+  font-size: 11px;
+}
+
+.edit-history-version {
+  font-weight: 600;
+  color: var(--accent-purple);
+}
+
+.edit-history-time {
+  color: var(--text-tertiary);
+}
+
+.edit-history-content {
+  font-size: 13px;
+  color: var(--text-primary);
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-height: 150px;
+  overflow-y: auto;
+}
+
+.edit-history-actions {
+  padding: 12px 16px;
+  border-top: 1px solid var(--border-color);
+  display: flex;
+  justify-content: flex-end;
+}
+
+.edit-history-restore {
+  padding: 8px 16px;
+  background: var(--accent-purple);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.edit-history-restore:hover {
+  opacity: 0.9;
+}
+
+/* History button in message actions */
+.history-btn {
+  font-size: 11px !important;
+  padding: 4px 8px !important;
+  color: var(--accent-purple) !important;
+}

@@ -133,6 +133,7 @@ export default function Settings({ open, onClose, onThemeChange }: SettingsProps
     { key: 'general', icon: <SettingsIcon />, label: 'General' },
     { key: 'apikey', icon: <ApiIcon />, label: 'API Key' },
     { key: 'instructions', icon: <MessageIcon />, label: 'Custom Instructions' },
+    { key: 'privacy', icon: <span>🔒</span>, label: 'Privacy' },
     { key: 'memory', icon: <LightbulbIcon />, label: 'Memory' },
     { key: 'import-export', icon: <span>📥</span>, label: 'Import/Export' },
     { key: 'mcp', icon: <span>🔌</span>, label: 'MCP Servers' },
@@ -350,6 +351,113 @@ export default function Settings({ open, onClose, onThemeChange }: SettingsProps
                   />
                   <span className="field-hint">Define how Claude should communicate with you</span>
                 </div>
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'privacy' && (
+            <div className="settings-section privacy-section">
+              <div className="privacy-header">
+                <h3>Privacy & Data</h3>
+                <p>Control how your data is collected and used. Your privacy settings affect all future conversations.</p>
+              </div>
+
+              <div className="privacy-item">
+                <div className="privacy-info">
+                  <div className="privacy-label">Collect usage analytics</div>
+                  <div className="privacy-desc">Help improve Claude by sending anonymous usage statistics</div>
+                </div>
+                <label className="privacy-toggle">
+                  <input
+                    type="checkbox"
+                    checked={localStorage.getItem('claude_analytics') !== 'false'}
+                    onChange={(e) => {
+                      localStorage.setItem('claude_analytics', e.target.checked ? 'true' : 'false');
+                      message.success(e.target.checked ? 'Analytics enabled' : 'Analytics disabled');
+                    }}
+                  />
+                  <span className="toggle-slider"></span>
+                </label>
+              </div>
+
+              <div className="privacy-item">
+                <div className="privacy-info">
+                  <div className="privacy-label">Allow training on conversations</div>
+                  <div className="privacy-desc">Let Anthropic use your conversations to improve AI models (requires opt-in)</div>
+                </div>
+                <label className="privacy-toggle">
+                  <input
+                    type="checkbox"
+                    checked={localStorage.getItem('claude_training_optin') === 'true'}
+                    onChange={(e) => {
+                      localStorage.setItem('claude_training_optin', e.target.checked ? 'true' : 'false');
+                      message.success(e.target.checked ? 'Training opt-in enabled' : 'Training opt-in disabled');
+                    }}
+                  />
+                  <span className="toggle-slider"></span>
+                </label>
+              </div>
+
+              <div className="privacy-item">
+                <div className="privacy-info">
+                  <div className="privacy-label">Share error reports</div>
+                  <div className="privacy-desc">Automatically send error reports when something breaks</div>
+                </div>
+                <label className="privacy-toggle">
+                  <input
+                    type="checkbox"
+                    checked={localStorage.getItem('claude_error_reports') !== 'false'}
+                    onChange={(e) => {
+                      localStorage.setItem('claude_error_reports', e.target.checked ? 'true' : 'false');
+                      message.success(e.target.checked ? 'Error reports enabled' : 'Error reports disabled');
+                    }}
+                  />
+                  <span className="toggle-slider"></span>
+                </label>
+              </div>
+
+              <div className="privacy-section-divider"></div>
+
+              <div className="privacy-danger">
+                <h4>Data Management</h4>
+                <button
+                  className="privacy-btn danger"
+                  onClick={() => {
+                    if (confirm('This will delete all your sessions, memories, and preferences. This action cannot be undone.')) {
+                      localStorage.removeItem('claude_sessions');
+                      localStorage.removeItem('claude_memory');
+                      localStorage.removeItem('claude_custom_instructions');
+                      message.success('All local data cleared');
+                    }
+                  }}
+                >
+                  <TrashIcon /> Clear all local data
+                </button>
+                <button
+                  className="privacy-btn"
+                  onClick={() => {
+                    const data = localStorage.getItem('claude_sessions_backup');
+                    if (data) {
+                      const backups = JSON.parse(data);
+                      const total = backups.reduce((acc: number, b: any) => acc + b.count, 0);
+                      alert(`Found ${backups.length} backups with ${total} total sessions.\nYou can restore from the backup in the Import/Export tab.`);
+                    } else {
+                      message.info('No backups found');
+                    }
+                  }}
+                >
+                  View backups
+                </button>
+              </div>
+
+              <div className="privacy-info-box">
+                <h4>Data Storage</h4>
+                <ul>
+                  <li>Conversations are stored locally in your browser</li>
+                  <li>API keys are never sent to our servers</li>
+                  <li>Custom instructions are stored locally only</li>
+                  <li>You can export all your data anytime from the Import/Export tab</li>
+                </ul>
               </div>
             </div>
           )}

@@ -151,6 +151,69 @@ export default function Sidebar({
   const [renamingSession, setRenamingSession] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState('');
   const [deleteTarget, setDeleteTarget] = useState<ChatSession | null>(null);
+  const [batchSelectMode, setBatchSelectMode] = useState(false);
+  const [selectedSessions, setSelectedSessions] = useState<Set<string>>(new Set());
+
+  // Toggle batch select mode
+  const toggleBatchSelectMode = () => {
+    setBatchSelectMode(!batchSelectMode);
+    setSelectedSessions(new Set());
+  };
+
+  // Toggle session selection
+  const toggleSessionSelection = (sessionId: string) => {
+    const newSelected = new Set(selectedSessions);
+    if (newSelected.has(sessionId)) {
+      newSelected.delete(sessionId);
+    } else {
+      newSelected.add(sessionId);
+    }
+    setSelectedSessions(newSelected);
+  };
+
+  // Select all visible sessions
+  const selectAllSessions = () => {
+    setSelectedSessions(new Set(filteredSessions.map(s => s.id)));
+  };
+
+  // Deselect all
+  const deselectAll = () => {
+    setSelectedSessions(new Set());
+  };
+
+  // Batch delete selected sessions
+  const batchDelete = async () => {
+    if (selectedSessions.size === 0) return;
+    const confirmed = confirm(`确定要删除选中的 ${selectedSessions.size} 个会话吗？`);
+    if (!confirmed) return;
+
+    const { deleteSession } = await import('../services/session');
+    for (const sessionId of selectedSessions) {
+      await deleteSession(sessionId);
+    }
+    setSelectedSessions(new Set());
+    setBatchSelectMode(false);
+  };
+
+  // Batch archive/unarchive selected sessions
+  const batchArchive = async (archive: boolean) => {
+    if (selectedSessions.size === 0) return;
+    const { archiveSession, unarchiveSession } = await import('../services/session');
+    for (const sessionId of selectedSessions) {
+      archive ? await archiveSession(sessionId) : await unarchiveSession(sessionId);
+    }
+    setSelectedSessions(new Set());
+  };
+
+  // Batch star/unstar selected sessions
+  const batchStar = async (star: boolean) => {
+    if (selectedSessions.size === 0) return;
+    const { starSession, unstarSession } = await import('../services/session');
+    for (const sessionId of selectedSessions) {
+      star ? await starSession(sessionId) : await unstarSession(sessionId);
+    }
+    setSelectedSessions(new Set());
+  };
 
   // Filter sessions by project and collection
   let filteredSessions = sessions;
@@ -288,13 +351,26 @@ export default function Sidebar({
     return (
       <>
         <Dropdown key={session.id} menu={{ items: menuItems }} trigger={['contextMenu']} placement="bottomLeft">
-          <div
-            className={`recent-item ${isActive ? 'active' : ''} ${isHovered ? 'hovered' : ''} ${session.pinned ? 'pinned' : ''} ${session.archived ? 'archived' : ''}`}
-            onClick={() => !isRenaming && onSelectChat(session.id)}
+          <div className={`recent-item ${isActive ? 'active' : ''} ${isHovered ? 'hovered' : ''} ${session.pinned ? 'pinned' : ''} ${session.archived ? 'archived' : ''} ${batchSelectMode ? 'batch-selectable' : ''} ${selectedSessions.has(session.id) ? 'batch-selected' : ''}`}
+            onClick={() => {
+              if (batchSelectMode) {
+                toggleSessionSelection(session.id);
+              } else if (!isRenaming) {
+                onSelectChat(session.id);
+              }
+            }}
             onMouseEnter={() => setHoveredSession(session.id)}
             onMouseLeave={() => setHoveredSession(null)}
           >
             <div className="recent-item-content">
+              {/* Checkbox for batch mode */}
+              {batchSelectMode && (
+                <div className={`batch-checkbox ${selectedSessions.has(session.id) ? 'checked' : ''}`}
+                  onClick={(e) => { e.stopPropagation(); toggleSessionSelection(session.id); }}
+                >
+                  {selectedSessions.has(session.id) ? '✓' : ''}
+                </div>
+              )}
               {isRenaming ? (
                 <Input
                   className="rename-input"
@@ -484,6 +560,29 @@ export default function Sidebar({
                 <div className="empty-conversations">暂无会话记录</div>
               ) : (
                 <>
+                  {/* Batch action bar */}
+                  {batchSelectMode ? (
+                    <div className="batch-actions-bar">
+                      <span className="batch-count">已选择 {selectedSessions.size} 个会话</span>
+                      <div className="batch-buttons">
+                        <button className="batch-btn" onClick={selectAllSessions}>全选</button>
+                        <button className="batch-btn" onClick={deselectAll}>取消</button>
+                        <button className="batch-btn" onClick={() => batchStar(true)}>⭐ 星标</button>
+                        <button className="batch-btn" onClick={() => batchStar(false)}>☆ 取消星标</button>
+                        <button className="batch-btn" onClick={() => batchArchive(true)}>📦 归档</button>
+                        <button className="batch-btn" onClick={() => batchArchive(false)}>📤 取消归档</button>
+                        <button className="batch-btn danger" onClick={batchDelete}>🗑️ 删除</button>
+                        <button className="batch-btn" onClick={toggleBatchSelectMode}>取消</button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="batch-mode-toggle">
+                      <button className="batch-toggle-btn" onClick={toggleBatchSelectMode}>
+                        ☑️ 批量选择
+                      </button>
+                    </div>
+                  )}
+
                   {/* Pinned sessions */}
                   {groups.pinned.length > 0 && (
                     <div className="sidebar-section">

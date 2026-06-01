@@ -112,6 +112,7 @@ export default function ChatView({
   const [messageRatings, setMessageRatings] = useState<Record<string, 'up' | 'down'>>({});
   const [messageReactions, setMessageReactions] = useState<Record<string, string[]>>({});
   const [showReactionPicker, setShowReactionPicker] = useState<string | null>(null);
+  const [showEditHistory, setShowEditHistory] = useState<string | null>(null);
   const [webSearchOpen, setWebSearchOpen] = useState(false);
   const [speakingMessageId, setSpeakingMessageId] = useState<string | null>(null);
   const messageRefs = useRef<Map<string, HTMLDivElement>>(new Map());
@@ -972,6 +973,15 @@ export default function ChatView({
                 </div>
                 {m.role === 'user' && !editingMessageId && (
                   <div className="message-actions">
+                    {m.editHistory && m.editHistory.length > 0 && (
+                      <button
+                        className="message-action-btn history-btn"
+                        title={`Edit history (${m.editHistory.length} versions)`}
+                        onClick={() => setShowEditHistory(m.id)}
+                      >
+                        📜 {m.editHistory.length}
+                      </button>
+                    )}
                     <button
                       className="message-action-btn"
                       title="Edit"
@@ -1304,6 +1314,62 @@ export default function ChatView({
           </div>
         </div>
       )}
+
+      {/* Edit History Modal */}
+      {showEditHistory && (() => {
+        const msg = messages.find(m => m.id === showEditHistory);
+        if (!msg || !msg.editHistory || msg.editHistory.length === 0) return null;
+        return (
+          <div className="modal-overlay" onClick={() => setShowEditHistory(null)}>
+            <div className="edit-history-modal" onClick={e => e.stopPropagation()}>
+              <div className="edit-history-header">
+                <h3>📜 编辑历史</h3>
+                <button className="edit-history-close" onClick={() => setShowEditHistory(null)}>×</button>
+              </div>
+              <div className="edit-history-list">
+                {msg.editHistory.map((entry, idx) => (
+                  <div key={idx} className="edit-history-entry">
+                    <div className="edit-history-meta">
+                      <span className="edit-history-version">版本 {msg.editHistory!.length - idx}</span>
+                      <span className="edit-history-time">
+                        {new Date(entry.timestamp).toLocaleString()}
+                      </span>
+                    </div>
+                    <div className="edit-history-content">
+                      {entry.content}
+                    </div>
+                  </div>
+                ))}
+                <div className="edit-history-entry current">
+                  <div className="edit-history-meta">
+                    <span className="edit-history-version">当前版本</span>
+                    <span className="edit-history-time">
+                      {new Date(msg.timestamp).toLocaleString()}
+                    </span>
+                  </div>
+                  <div className="edit-history-content">
+                    {msg.content}
+                  </div>
+                </div>
+              </div>
+              <div className="edit-history-actions">
+                <button
+                  className="edit-history-restore"
+                  onClick={() => {
+                    if (msg.editHistory && msg.editHistory.length > 0) {
+                      const latestEntry = msg.editHistory[msg.editHistory.length - 1];
+                      onEditMessage(showEditHistory, latestEntry.content);
+                    }
+                    setShowEditHistory(null);
+                  }}
+                >
+                  恢复上一版本
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 }

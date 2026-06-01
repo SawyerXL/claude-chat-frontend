@@ -793,9 +793,21 @@ ${promptOrSystemPrompt ? `\n用户需求：${promptOrSystemPrompt}` : ''}
             onSend={handleSend}
             onEditMessage={(messageId, newContent) => {
               setMessages((prev) =>
-                prev.map((m) =>
-                  m.id === messageId ? { ...m, content: newContent } : m
-                )
+                prev.map((m) => {
+                  if (m.id === messageId) {
+                    // Get old content for edit history
+                    const oldContent = m.content;
+                    // Create edit history entry
+                    const historyEntry = { content: oldContent, timestamp: m.timestamp };
+                    return {
+                      ...m,
+                      content: newContent,
+                      timestamp: Date.now(), // Update timestamp on edit
+                      editHistory: [...(m.editHistory || []), historyEntry],
+                    };
+                  }
+                  return m;
+                })
               );
             }}
             loading={loading}

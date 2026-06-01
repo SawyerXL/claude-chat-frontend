@@ -4,6 +4,11 @@ export interface Attachment {
   content: string;
 }
 
+export interface EditHistoryEntry {
+  content: string;
+  timestamp: number;
+}
+
 export interface ChatMessage {
   id: string;
   role: 'user' | 'assistant';
@@ -11,6 +16,7 @@ export interface ChatMessage {
   thinking?: string;
   timestamp: number;
   attachments?: Attachment[];
+  editHistory?: EditHistoryEntry[];  // 编辑历史
 }
 
 export interface ChatSession {
