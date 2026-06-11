@@ -30,29 +30,30 @@ export default function SearchPanel({ open, onClose, onSelectChat }: SearchPanel
     if (query.trim()) {
       const q = query.toLowerCase();
       const matched: Array<{ session: ChatSession; matchedMessage: string; matchedIndex: number }> = [];
-      
+
       for (const session of sessions) {
         // Search in title
         if (session.title.toLowerCase().includes(q)) {
           matched.push({ session, matchedMessage: session.title, matchedIndex: -1 });
           if (matched.length >= 20) break;
         }
-        
+
         // Search in messages
         for (let i = 0; i < session.messages.length; i++) {
           const msg = session.messages[i];
           if ((msg.content || '').toLowerCase().includes(q)) {
-            matched.push({ 
-              session, 
-              matchedMessage: msg.content.slice(0, 150) + (msg.content.length > 150 ? '...' : ''), 
-              matchedIndex: i 
+            const content = msg.content || '';
+            matched.push({
+              session,
+              matchedMessage: content.slice(0, 150) + (content.length > 150 ? '...' : ''),
+              matchedIndex: i
             });
             if (matched.length >= 20) break;
           }
         }
         if (matched.length >= 20) break;
       }
-      
+
       setResults(matched);
     } else {
       setResults([]);
@@ -62,8 +63,8 @@ export default function SearchPanel({ open, onClose, onSelectChat }: SearchPanel
   const highlightMatch = (text: string, query: string) => {
     if (!query) return text;
     const parts = text.split(new RegExp(`(${query})`, 'gi'));
-    return parts.map((part, i) => 
-      part.toLowerCase() === query.toLowerCase() 
+    return parts.map((part, i) =>
+      part.toLowerCase() === query.toLowerCase()
         ? <mark key={i} className="search-highlight">{part}</mark>
         : part
     );

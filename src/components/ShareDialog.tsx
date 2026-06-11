@@ -152,7 +152,7 @@ export default function ShareDialog({ open, onClose, conversationId: _conversati
       try {
         await navigator.share({
           title: session.title,
-          text: session.messages[0]?.content.slice(0, 100) || '',
+          text: session.messages[0]?.content?.slice(0, 100) || '',
           url: window.location.href,
         });
       } catch (e) {

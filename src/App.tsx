@@ -44,8 +44,8 @@ import './styles/responsive.css';
 const MODEL_ID_MAP: Record<string, string> = {
   // Claude Opus 4.8
   'claude-opus-4-8': 'claude-opus-4-8',
-  // Claude Sonnet 4.7
-  'claude-sonnet-4-7': 'claude-sonnet-4-7',
+  // Claude Sonnet 4.6
+  'claude-sonnet-4-6': 'claude-sonnet-4-6',
   // Claude Haiku 4.6
   'claude-haiku-4-6': 'claude-haiku-4-6',
   // Legacy models
@@ -64,7 +64,7 @@ function generateSessionId(): string {
 
 function deriveTitle(messages: ChatMessage[]): string {
   const firstUser = messages.find((m) => m.role === 'user');
-  if (!firstUser) return 'New chat';
+  if (!firstUser || !firstUser.content) return 'New chat';
   return firstUser.content.slice(0, 40);
 }
 
@@ -387,7 +387,7 @@ export default function App() {
     let fullThinking = '';
 
     try {
-      const apiModel = MODEL_ID_MAP[model] || 'claude-sonnet-4-7';
+      const apiModel = MODEL_ID_MAP[model] || 'claude-sonnet-4-6';
 
       // Stream the response with abort signal
       for await (const chunk of sendChatMessageStream(nextMessages, apiModel, abortControllerRef.current.signal)) {
@@ -451,7 +451,7 @@ export default function App() {
       }
       antMessage.error(`请求失败: ${msg}`);
       
-      // Update message with error and save session
+      // Update message with error but DON'T save to session (error will be cleared on retry)
       const errorMsg = `请求失败: ${msg}`;
       setMessages((prev) => {
         const updated = [...prev];
@@ -461,10 +461,7 @@ export default function App() {
         }
         return updated;
       });
-
-      // Save session even on error (with error message included)
-      const messagesWithError = [...nextMessages, { ...assistantMsg, content: errorMsg, thinking: fullThinking || undefined }];
-      await persistSession(sessionId, messagesWithError, model);
+      // Note: Not saving error message to session - user can retry without stale error
     } finally {
       setLoading(false);
       abortControllerRef.current = null;
@@ -503,8 +500,12 @@ export default function App() {
       console.log('[handleSelectChat] Session loaded:', session?.id, 'messages:', session?.messages?.length);
       if (session) {
         console.log('[handleSelectChat] Setting messages:', session.messages?.length);
+        // Filter out error messages when loading session
+        const cleanMessages = (session.messages || []).filter(
+          (m: ChatMessage) => !m.content?.startsWith('请求失败')
+        );
         setActiveChat(session.id);
-        setMessages(session.messages || []);
+        setMessages(cleanMessages);
         setModel(session.model || MODELS[1].id);
       } else {
         console.log('[handleSelectChat] Session not found for id:', id);

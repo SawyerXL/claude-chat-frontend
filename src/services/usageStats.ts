@@ -28,8 +28,8 @@ const MODEL_PRICING: Record<string, {
     cacheCreation: 1.875e-5,
     cacheRead: 1.5e-6,
   },
-  // Claude Sonnet 4.7
-  'claude-sonnet-4-7': {
+  // Claude Sonnet 4.6
+  'claude-sonnet-4-6': {
     input: 3e-6,
     output: 1.5e-5,
     cacheCreation: 3.75e-6,
@@ -111,8 +111,8 @@ function normalizeModelId(modelId: string): string {
   const lower = modelId.toLowerCase();
   // Claude Opus 4.8
   if (lower.includes('opus-4-8') || lower.includes('claude-opus-4-8')) return 'claude-opus-4-8';
-  // Claude Sonnet 4.7
-  if (lower.includes('sonnet-4-7') || lower.includes('claude-sonnet-4-7')) return 'claude-sonnet-4-7';
+  // Claude Sonnet 4.6
+  if (lower.includes('sonnet-4-6') || lower.includes('claude-sonnet-4-6')) return 'claude-sonnet-4-6';
   // Claude Haiku 4.6
   if (lower.includes('haiku-4-6') || lower.includes('claude-haiku-4-6')) return 'claude-haiku-4-6';
   // Legacy Claude 4 models
@@ -137,7 +137,7 @@ export function calculateCost(
   outputTokens: number,
   cacheCreationTokens = 0,
   cacheReadTokens = 0,
-  modelId = 'claude-sonnet-4-7'
+  modelId = 'claude-sonnet-4-6'
 ): number {
   const pricing = getModelPricing(modelId);
 

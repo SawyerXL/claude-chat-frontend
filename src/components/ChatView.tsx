@@ -79,7 +79,7 @@ export default function ChatView({
   model,
   onModelChange,
   onStop,
-  onRetry: _onRetry,
+  onRetry,
   onOpenSkills,
   onOpenProjects,
   onOpenStyle,
@@ -298,8 +298,9 @@ export default function ChatView({
   }, [messages, loading]);
 
   const handleQuoteMessage = (message: ChatMessage) => {
+    const content = message.content || '';
     setQuotedMessage(message);
-    setValue(prev => prev + `\n[引用: ${message.content.slice(0, 50)}...]\n`);
+    setValue(prev => prev + `\n[引用: ${content.slice(0, 50)}...]\n`);
   };
 
   const scrollToMessage = (messageId: string) => {
@@ -336,7 +337,7 @@ export default function ChatView({
 
     let finalText = text;
     if (quotedMessage) {
-      finalText = `在之前的对话中提到：\n\n"${quotedMessage.content.slice(0, 500)}"\n\n---\n\n${text}`;
+      finalText = `在之前的对话中提到：\n\n"${(quotedMessage.content || '').slice(0, 500)}"\n\n---\n\n${text}`;
       setQuotedMessage(null);
     }
 
@@ -1020,14 +1021,11 @@ export default function ChatView({
                       onClick={() => {
                         const idx = messages.indexOf(m);
                         const userMsg = idx > 0 ? messages[idx - 1] : null;
-                        if (userMsg && userMsg.role === 'user') {
-                          onSend(
-                            userMsg.content || '',
-                            [],
-                            (userMsg.attachments as any)?.map((a: any) => ({
-                              name: a.name, type: a.type, content: a.content
-                            }))
-                          );
+                        if (userMsg && userMsg.role === 'user' && onRetry) {
+                          onRetry(m.id);
+                        } else if (userMsg && userMsg.role === 'user') {
+                          // Fallback: use local handler
+                          handleRetryFailedMessage(m.id);
                         }
                       }}
                     >
@@ -1125,7 +1123,11 @@ export default function ChatView({
             className="retry-btn"
             onClick={() => {
               const failedMsg = messages.find(m => m.content?.startsWith('请求失败'));
-              if (failedMsg) handleRetryFailedMessage(failedMsg.id);
+              if (failedMsg && onRetry) {
+                onRetry(failedMsg.id);
+              } else if (failedMsg) {
+                handleRetryFailedMessage(failedMsg.id);
+              }
             }}
           >
             <RefreshIcon /> 重试
@@ -1171,7 +1173,7 @@ export default function ChatView({
                   </button>
                 </div>
                 <div className="quoted-content">
-                  {quotedMessage.content.slice(0, 150)}...
+                  {(quotedMessage.content || '').slice(0, 150)}...
                 </div>
               </div>
             )}

@@ -66,8 +66,11 @@ function toApiMessage(m: ChatMessage): ApiMessage {
   }
 
   for (const att of m.attachments) {
-    if (att.type.startsWith('image/')) {
-      const base64Data = att.content.split(',')[1] || att.content;
+    // Safety check for undefined/null content
+    const attContent = typeof att.content === 'string' ? att.content : '';
+
+    if (att.type.startsWith('image/') && attContent) {
+      const base64Data = attContent.split(',')[1] || attContent;
       content.push({
         type: 'image',
         source: {
@@ -76,11 +79,11 @@ function toApiMessage(m: ChatMessage): ApiMessage {
           data: base64Data,
         },
       });
-    } else {
-      // For non-image files, include as text block with content
+    } else if (attContent) {
+      // For non-image files or files without base64 prefix, include as text block
       content.push({
         type: 'text',
-        text: `[File: ${att.name}]\n\`\`\`\n${att.content}\n\`\`\``,
+        text: `[File: ${att.name}]\n\`\`\`\n${attContent}\n\`\`\``,
       });
     }
   }
@@ -162,19 +165,20 @@ export async function* sendChatMessageStream(
   const modelSettings: ModelSettings = settings || JSON.parse(localStorage.getItem('claude_model_settings') || '{"temperature":0.7,"topP":0.9,"topK":40,"maxTokens":4096}');
 
   // Claude 4 models (Opus 4.8, Sonnet 4.7, Haiku 4.6) don't support temperature parameter
-  const modelsNoTemp = ['claude-opus-4-8', 'claude-sonnet-4-7', 'claude-haiku-4-6', 'claude-opus-4', 'claude-sonnet-4', 'claude-haiku-4'];
+  const modelsNoTemp = ['claude-opus-4-8', 'claude-sonnet-4-6', 'claude-haiku-4-6', 'claude-opus-4', 'claude-sonnet-4', 'claude-haiku-4'];
   const useTempParams = !modelsNoTemp.includes(model);
 
   // Build request body - enable extended thinking
+  // Reduced budget_tokens to keep responses under Cloudflare's 100s proxy timeout
   const thinkingEnabled = model.includes('opus') ? {
     type: 'enabled' as const,
-    budget_tokens: 8000,
-  } : { type: 'enabled' as const, budget_tokens: 4000 };
+    budget_tokens: 4000,
+  } : { type: 'enabled' as const, budget_tokens: 2000 };
 
   const requestBody: ChatRequest & { stream?: boolean; thinking?: { type: string; budget_tokens?: number }; output_config?: { effort?: string } } = {
     model,
     messages: apiMessages,
-    max_tokens: Math.max(modelSettings.maxTokens || 16000, 10000),
+    max_tokens: Math.max(modelSettings.maxTokens || 8000, 8000),
     stream: true,
     thinking: thinkingEnabled,
   };
@@ -236,18 +240,38 @@ export async function* sendChatMessageStream(
   const reader = response.body.getReader();
   const decoder = new TextDecoder();
   let buffer = '';
+  // Cloudflare 100s proxy timeout workaround: abort if no chunk for STREAM_IDLE_MS
+  const STREAM_IDLE_MS = 90_000;
+  let lastReadTime = Date.now();
 
   try {
     while (true) {
-      const { done, value } = await reader.read();
-
+      // Check for client-side abort
       if (signal?.aborted) {
         reader.cancel();
         throw new DOMException('Aborted', 'AbortError');
       }
 
-      if (done) break;
+      // Idle timeout: if no data received for STREAM_IDLE_MS, abort gracefully
+      if (Date.now() - lastReadTime > STREAM_IDLE_MS) {
+        reader.cancel();
+        throw new Error('响应超时（90秒未收到新内容）。这通常是因为上下文过长或上游处理慢，建议：1) 重试；2) 开启新会话减少历史；3) 切换更短回复。');
+      }
 
+      const readPromise = reader.read();
+      const timeoutPromise = new Promise<{ done: boolean; value: undefined }>((resolve) => {
+        setTimeout(() => resolve({ done: false, value: undefined as any }), STREAM_IDLE_MS);
+      });
+      const { done, value } = await Promise.race([readPromise, timeoutPromise]);
+
+      if (done) break;
+      if (value === undefined) {
+        // Idle timeout fired while waiting for next chunk
+        reader.cancel();
+        throw new Error('响应超时（90秒未收到新内容）。这通常是因为上下文过长或上游处理慢，建议：1) 重试；2) 开启新会话减少历史；3) 切换更短回复。');
+      }
+
+      lastReadTime = Date.now();
       buffer += decoder.decode(value, { stream: true });
 
       while (buffer.includes('\nevent:') || buffer.includes('\ndata:')) {

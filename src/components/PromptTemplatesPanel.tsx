@@ -196,7 +196,7 @@ export default function PromptTemplatesPanel({ onUseTemplate }: PromptTemplatesP
                       <div className="pt-item-body">
                         <div className="pt-item-name">{template.name}</div>
                         <div className="pt-item-preview">
-                          {template.content.slice(0, 60)}{template.content.length > 60 ? '...' : ''}
+                          {(template.content || '').slice(0, 60)}{(template.content || '').length > 60 ? '...' : ''}
                         </div>
                       </div>
                       <div className="pt-item-actions">
