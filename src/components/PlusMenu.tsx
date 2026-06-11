@@ -179,7 +179,7 @@ export default function PlusMenu({ onImageUpload, onFileUpload, onTemplateSelect
       <input
         ref={fileInputRef}
         type="file"
-        accept="image/*,.pdf,.doc,.docx,.txt,.md,.csv,.json,.xml,.xls,.xlsx,.ppt,.pptx"
+        accept="*/*"
         multiple
         style={{ display: 'none' }}
         onChange={handleFileSelect}
