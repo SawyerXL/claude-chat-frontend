@@ -83,3 +83,54 @@
     transform: rotate(360deg);
   }
 }
+
+/* ================================================
+   FILE DROP OVERLAY (Drag & Drop)
+   ================================================ */
+.file-drop-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 3000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(22, 186, 170, 0.12);
+  border: 3px dashed #16baaa;
+  border-radius: 16px;
+  margin: 8px;
+  pointer-events: none;
+  animation: dropPulse 1.2s ease-in-out infinite;
+}
+
+.file-drop-overlay-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 32px 48px;
+  background: var(--bg-secondary);
+  border-radius: 16px;
+  box-shadow: 0 12px 48px rgba(0, 0, 0, 0.25);
+  color: var(--text-primary);
+  pointer-events: none;
+}
+
+.file-drop-title {
+  font-size: 20px;
+  font-weight: 600;
+  color: #16baaa;
+}
+
+.file-drop-hint {
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+@keyframes dropPulse {
+  0%, 100% {
+    background: rgba(22, 186, 170, 0.12);
+  }
+  50% {
+    background: rgba(22, 186, 170, 0.22);
+  }
+}

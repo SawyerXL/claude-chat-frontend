@@ -12,11 +12,13 @@ import {
   SpinnerIcon,
   SearchIcon,
   GlobeIcon,
+  CloudDownloadIcon,
 } from './icons/ClaudeIcons';
 import mammoth from 'mammoth';
 import ModelSelector from './ModelSelector';
 import PlusMenu from './PlusMenu';
 import type { User } from '../services/auth';
+import { useFileDrop } from '../hooks/useFileDrop';
 import '../styles/welcome.css';
 
 const { TextArea } = Input;
@@ -170,8 +172,22 @@ export default function WelcomePage({ onSend, model, onModelChange, user, onOpen
     return '晚上好';
   };
 
+  const { isDragging, handlers: dropHandlers } = useFileDrop({
+    onFiles: handleFileUpload,
+    onImages: handleImageUpload,
+  });
+
   return (
-    <div className="welcome-container">
+    <div className="welcome-container" {...dropHandlers}>
+      {isDragging && (
+        <div className="file-drop-overlay">
+          <div className="file-drop-overlay-content">
+            <CloudDownloadIcon style={{ fontSize: 48 }} />
+            <div className="file-drop-title">拖放文件到此处</div>
+            <div className="file-drop-hint">支持文档、图片、PDF 等</div>
+          </div>
+        </div>
+      )}
       <div className="welcome-inner">
         {/* User Greeting - Official Claude style */}
         <div className="welcome-greeting-main">

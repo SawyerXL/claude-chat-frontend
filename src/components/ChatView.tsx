@@ -3,6 +3,7 @@ import { Input, Button, message } from 'antd';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { getTrialInfo } from '../utils/trialManager';
+import { useFileDrop } from '../hooks/useFileDrop';
 import {
   CopyIcon,
   RefreshIcon,
@@ -482,6 +483,11 @@ export default function ChatView({
     setAttachments((prev) => prev.filter((_, i) => i !== index));
   };
 
+  const { isDragging, handlers: dropHandlers } = useFileDrop({
+    onFiles: handleFileUpload,
+    onImages: handleImageUpload,
+  });
+
   const handleExportMessage = (content: string) => {
     setExportingContent(content);
     setExportMenuOpen(true);
@@ -872,7 +878,16 @@ export default function ChatView({
   };
 
   return (
-    <div className="chat-container">
+    <div className="chat-container" {...dropHandlers}>
+      {isDragging && (
+        <div className="file-drop-overlay">
+          <div className="file-drop-overlay-content">
+            <CloudDownloadIcon style={{ fontSize: 48 }} />
+            <div className="file-drop-title">拖放文件到此处</div>
+            <div className="file-drop-hint">支持文档、图片、PDF 等</div>
+          </div>
+        </div>
+      )}
       {/* Inline search bar */}
       {inlineSearchOpen && (
         <div className="inline-search-bar">
