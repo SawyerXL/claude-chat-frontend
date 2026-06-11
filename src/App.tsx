@@ -44,6 +44,8 @@ import './styles/responsive.css';
 const MODEL_ID_MAP: Record<string, string> = {
   // Claude Opus 4.8
   'claude-opus-4-8': 'claude-opus-4-8',
+  // Claude Fable 5 (new in sub2api v0.1.136)
+  'claude-fable-5': 'claude-fable-5',
   // Claude Sonnet 4.6
   'claude-sonnet-4-6': 'claude-sonnet-4-6',
   // Claude Haiku 4.6
@@ -51,7 +53,7 @@ const MODEL_ID_MAP: Record<string, string> = {
   // Legacy models
   'claude-opus-4': 'claude-opus-4-20250514',
   'claude-sonnet-4': 'claude-sonnet-4-20250514',
-  'claude-haiku-4': 'claude-haiku-4-20250514',
+  'claude-haiku-4': 'claude-haiku-4-20251001',
   'claude-3-7-sonnet': 'claude-3-7-sonnet-20250219',
   'claude-3-5-haiku': 'claude-3-5-haiku-20241022',
   'claude-3-opus': 'claude-3-opus',

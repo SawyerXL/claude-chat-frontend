@@ -164,8 +164,8 @@ export async function* sendChatMessageStream(
   // Load settings from localStorage if not provided
   const modelSettings: ModelSettings = settings || JSON.parse(localStorage.getItem('claude_model_settings') || '{"temperature":0.7,"topP":0.9,"topK":40,"maxTokens":4096}');
 
-  // Claude 4 models (Opus 4.8, Sonnet 4.7, Haiku 4.6) don't support temperature parameter
-  const modelsNoTemp = ['claude-opus-4-8', 'claude-sonnet-4-6', 'claude-haiku-4-6', 'claude-opus-4', 'claude-sonnet-4', 'claude-haiku-4'];
+  // Claude 4 models (Opus 4.8, Sonnet 4.6, Haiku 4.5, Fable 5) don't support temperature parameter
+  const modelsNoTemp = ['claude-opus-4-8', 'claude-fable-5', 'claude-sonnet-4-6', 'claude-haiku-4-6', 'claude-opus-4', 'claude-sonnet-4', 'claude-haiku-4'];
   const useTempParams = !modelsNoTemp.includes(model);
 
   // Build request body - enable extended thinking
