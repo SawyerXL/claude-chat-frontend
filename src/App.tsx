@@ -844,9 +844,6 @@ ${promptOrSystemPrompt ? `\n用户需求：${promptOrSystemPrompt}` : ''}
             onOpenStyle={() => setStyleOpen(true)}
             onOpenConnectors={() => setConnectorsOpen(true)}
             onOpenWebSearch={() => setWebSearchOpen(true)}
-            onInsertTemplate={() => {
-              // Listen via storage event in ChatView
-            }}
           />
         ) : (
           <WelcomePage

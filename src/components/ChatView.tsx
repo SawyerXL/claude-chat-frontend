@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useDeferredValue } from 'react';
 import { Input, Button, message } from 'antd';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -59,7 +59,6 @@ interface ChatViewProps {
   onOpenProjects?: () => void;
   onOpenStyle?: () => void;
   onOpenConnectors?: () => void;
-  onInsertTemplate?: (content: string) => void;
   loggedIn?: boolean;
   activeChat?: string | null;
   onOpenWebSearch?: () => void;
@@ -85,13 +84,13 @@ export default function ChatView({
   onOpenProjects,
   onOpenStyle,
   onOpenConnectors,
-  onInsertTemplate,
   loggedIn = true,
   activeChat,
   onOpenWebSearch,
   setMessages,
 }: ChatViewProps) {
   const [value, setValue] = useState('');
+  const deferredValue = useDeferredValue(value);
   const [images, setImages] = useState<string[]>([]);
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [activeArtifact, setActiveArtifact] = useState<Artifact | null>(null);
@@ -119,13 +118,6 @@ export default function ChatView({
   const messageRefs = useRef<Map<string, HTMLDivElement>>(new Map());
   const endRef = useRef<HTMLDivElement>(null);
   const recognitionRef = useRef<any>(null);
-
-  // Listen for prompt template insertion from sidebar
-  useEffect(() => {
-    if (onInsertTemplate) {
-      onInsertTemplate('');
-    }
-  }, [onInsertTemplate]);
 
   // Listen for template via storage event (cross-component communication)
   useEffect(() => {
@@ -159,12 +151,19 @@ export default function ChatView({
     }
   }, [activeChat]);
 
-  // Save draft on every input change (throttled via immediate state update)
+  // Save draft on every input change (debounced 500ms to avoid localStorage write per keystroke)
   useEffect(() => {
-    if (activeChat && value) {
-      localStorage.setItem(`claude_draft_${activeChat}`, value);
-    }
-  }, [value, activeChat]);
+    if (!activeChat) return;
+    const handle = setTimeout(() => {
+      const key = `claude_draft_${activeChat}`;
+      if (deferredValue) {
+        localStorage.setItem(key, deferredValue);
+      } else {
+        localStorage.removeItem(key);
+      }
+    }, 500);
+    return () => clearTimeout(handle);
+  }, [deferredValue, activeChat]);
 
   // Handle deep link to message (#msg-xxx)
   useEffect(() => {

@@ -53,9 +53,62 @@ export default defineConfig({
     rollupOptions: {
       input: './src/main.tsx',
       output: {
-        manualChunks: undefined
-      }
-    }
+        manualChunks(id) {
+          if (!id.includes('node_modules')) return undefined
+          if (
+            id.includes('node_modules/react/') ||
+            id.includes('node_modules/react-dom/') ||
+            id.includes('node_modules/scheduler/')
+          ) {
+            return 'vendor-react'
+          }
+          if (
+            id.includes('node_modules/antd/') ||
+            id.includes('node_modules/@ant-design/') ||
+            id.includes('node_modules/rc-') ||
+            id.includes('node_modules/@rc-component/')
+          ) {
+            return 'vendor-antd'
+          }
+          if (
+            id.includes('node_modules/react-markdown') ||
+            id.includes('node_modules/remark-') ||
+            id.includes('node_modules/mdast-') ||
+            id.includes('node_modules/unified') ||
+            id.includes('node_modules/hast-') ||
+            id.includes('node_modules/micromark') ||
+            id.includes('node_modules/react-syntax-highlighter') ||
+            id.includes('node_modules/refractor') ||
+            id.includes('node_modules/lowlight') ||
+            id.includes('node_modules/hast-util-') ||
+            id.includes('node_modules/html2canvas')
+          ) {
+            return 'vendor-markdown'
+          }
+          if (
+            id.includes('node_modules/xlsx') ||
+            id.includes('node_modules/docx') ||
+            id.includes('node_modules/pptxgenjs') ||
+            id.includes('node_modules/mammoth') ||
+            id.includes('node_modules/html-docx-js') ||
+            id.includes('node_modules/jspdf')
+          ) {
+            return 'vendor-export'
+          }
+          if (
+            id.includes('node_modules/lucide-react') ||
+            id.includes('node_modules/qrcode') ||
+            id.includes('node_modules/ddg')
+          ) {
+            return 'vendor-misc'
+          }
+          if (id.includes('node_modules/pdfjs-dist')) {
+            return 'vendor-pdf'
+          }
+          return 'vendor'
+        },
+      },
+    },
   },
   esbuild: {
     jsxFactory: 'React.createElement',
