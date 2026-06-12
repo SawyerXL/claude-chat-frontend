@@ -486,33 +486,46 @@ export default function App() {
   const handleSelectChat = async (id: string | null) => {
     console.log('[handleSelectChat] id:', id, 'messages count:', messages.length, 'activeChat:', activeChat);
 
-    if (messages.length > 0 && activeChat) {
-      await persistSession(activeChat, messages, model);
-    }
-
     if (id === null) {
       console.log('[handleSelectChat] Creating new chat');
       setActiveChat(null);
       setMessages([]);
       setModel(MODELS[1].id);
-    } else {
-      // Fetch full session with messages from server
-      console.log('[handleSelectChat] Loading session from server:', id);
-      const session = await getSessionById(id);
-      console.log('[handleSelectChat] Session loaded:', session?.id, 'messages:', session?.messages?.length);
-      if (session) {
-        console.log('[handleSelectChat] Setting messages:', session.messages?.length);
-        // Filter out error messages when loading session
+      return;
+    }
+
+    const previousActiveChat = activeChat;
+    setActiveChat(id);
+    setMessages([]);
+    setLoading(true);
+
+    const tasks: Promise<unknown>[] = [];
+    if (messages.length > 0 && previousActiveChat) {
+      tasks.push(persistSession(previousActiveChat, messages, model).catch((err) => {
+        console.error('[handleSelectChat] persistSession failed:', err);
+      }));
+    }
+
+    const loadTask = getSessionById(id)
+      .then((session) => {
+        if (!session) {
+          console.log('[handleSelectChat] Session not found for id:', id);
+          return;
+        }
         const cleanMessages = (session.messages || []).filter(
           (m: ChatMessage) => !m.content?.startsWith('请求失败')
         );
         setActiveChat(session.id);
         setMessages(cleanMessages);
         setModel(session.model || MODELS[1].id);
-      } else {
-        console.log('[handleSelectChat] Session not found for id:', id);
-      }
-    }
+      })
+      .catch((err) => {
+        console.error('[handleSelectChat] getSessionById failed:', err);
+      });
+    tasks.push(loadTask);
+
+    await Promise.all(tasks);
+    setLoading(false);
   };
 
   const handleDeleteChat = async (id: string) => {
