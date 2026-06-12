@@ -70,17 +70,10 @@ const NAV_ITEMS = [
 
 // Group conversations by time, with pinned sessions on top
 function groupConversations(sessions: ChatSession[]) {
-  const now = Date.now();
-  const day = 24 * 60 * 60 * 1000;
-
-  // Separate pinned, starred, archived, and regular sessions
   const pinned: ChatSession[] = [];
   const starred: ChatSession[] = [];
   const archived: ChatSession[] = [];
-  const today: ChatSession[] = [];
-  const yesterday: ChatSession[] = [];
-  const prev7Days: ChatSession[] = [];
-  const older: ChatSession[] = [];
+  const regular: ChatSession[] = [];
 
   for (const session of sessions) {
     if (session.archived) {
@@ -90,30 +83,17 @@ function groupConversations(sessions: ChatSession[]) {
     } else if (session.starred) {
       starred.push(session);
     } else {
-      const age = now - session.updatedAt;
-      if (age < day) {
-        today.push(session);
-      } else if (age < 2 * day) {
-        yesterday.push(session);
-      } else if (age < 7 * day) {
-        prev7Days.push(session);
-      } else {
-        older.push(session);
-      }
+      regular.push(session);
     }
   }
 
-  // Sort each group by updatedAt descending
   const sortByTime = (a: ChatSession, b: ChatSession) => b.updatedAt - a.updatedAt;
 
   return {
     pinned: pinned.sort(sortByTime),
     starred: starred.sort(sortByTime),
     archived: archived.sort(sortByTime),
-    today: today.sort(sortByTime),
-    yesterday: yesterday.sort(sortByTime),
-    prev7Days: prev7Days.sort(sortByTime),
-    older: older.sort(sortByTime),
+    regular: regular.sort(sortByTime),
   };
 }
 
@@ -598,35 +578,10 @@ export default function Sidebar({
                     </div>
                   )}
 
-                  {/* Today's conversations */}
-                  {groups.today.length > 0 && (
+                  {/* All regular conversations, single list sorted by updatedAt */}
+                  {groups.regular.length > 0 && (
                     <div className="sidebar-section">
-                      <div className="sidebar-section-title">今天</div>
-                      {groups.today.map(session => renderConvItem(session))}
-                    </div>
-                  )}
-
-                  {/* Yesterday's conversations */}
-                  {groups.yesterday.length > 0 && (
-                    <div className="sidebar-section">
-                      <div className="sidebar-section-title">昨天</div>
-                      {groups.yesterday.map(session => renderConvItem(session))}
-                    </div>
-                  )}
-
-                  {/* Previous 7 days */}
-                  {groups.prev7Days.length > 0 && (
-                    <div className="sidebar-section">
-                      <div className="sidebar-section-title">近7天</div>
-                      {groups.prev7Days.map(session => renderConvItem(session))}
-                    </div>
-                  )}
-
-                  {/* Older conversations */}
-                  {groups.older.length > 0 && (
-                    <div className="sidebar-section">
-                      <div className="sidebar-section-title">更早</div>
-                      {groups.older.map(session => renderConvItem(session))}
+                      {groups.regular.map(session => renderConvItem(session))}
                     </div>
                   )}
 
