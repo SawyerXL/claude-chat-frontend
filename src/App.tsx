@@ -332,6 +332,26 @@ export default function App() {
     const sessionId = activeChat ?? generateSessionId();
     if (!activeChat) setActiveChat(sessionId);
 
+    // Move this session to the top of the sidebar list immediately
+    setSessions((prev) => {
+      const now = Date.now();
+      const existing = prev.find((s) => s.id === sessionId);
+      if (existing) {
+        return [{ ...existing, updatedAt: now }, ...prev.filter((s) => s.id !== sessionId)];
+      }
+      return [
+        {
+          id: sessionId,
+          title: text.slice(0, 40),
+          model: model,
+          updatedAt: now,
+          createdAt: now,
+          messages: [],
+        },
+        ...prev,
+      ];
+    });
+
     // Build attachments from images and uploaded files
     const allAttachments: Array<{ name: string; type: string; content: string }> = [];
 
