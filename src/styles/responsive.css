@@ -976,6 +976,37 @@ textarea,
   user-select: text;
 }
 
+/* Markdown content must remain selectable on iOS.
+   iOS 18 introduced "loose text selection" (short-tap then long-press);
+   we make this explicit so it works in all iOS versions. */
+.message-content,
+.markdown-body,
+.message-content *,
+.markdown-body * {
+  -webkit-user-select: text !important;
+  user-select: text !important;
+  -webkit-touch-callout: default !important;
+}
+
+.message-content pre,
+.message-content code,
+.message-content table,
+.message-content p,
+.message-content li,
+.message-content h1,
+.message-content h2,
+.message-content h3,
+.message-content h4 {
+  -webkit-user-select: text !important;
+  user-select: text !important;
+}
+
+/* Links inside messages: long-press menu (copy/open) but no text selection conflict */
+.message-content a {
+  -webkit-touch-callout: default !important;
+  pointer-events: auto;
+}
+
 /* ================================================
    iOS KEYBOARD OFFSET
    ================================================ */
