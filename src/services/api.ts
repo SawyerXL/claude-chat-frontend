@@ -52,6 +52,42 @@ export interface ChatResponse {
 }
 
 /**
+ * Detect image media type from base64 data by inspecting magic bytes.
+ * Required because the browser's File.type is sometimes wrong (e.g. clipboard
+ * paste / drag-drop reports image/png for a JPEG), and Anthropic upstream
+ * validates that media_type matches the actual bytes — mismatches return 400.
+ */
+function detectImageMediaType(base64: string): 'image/jpeg' | 'image/png' | 'image/gif' | 'image/webp' | null {
+  try {
+    const slice = base64.slice(0, 24);
+    const bytes = Uint8Array.from(atob(slice), (c) => c.charCodeAt(0));
+
+    // PNG: 89 50 4E 47 0D 0A 1A 0A
+    if (bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4e && bytes[3] === 0x47) {
+      return 'image/png';
+    }
+    // JPEG: FF D8 FF
+    if (bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff) {
+      return 'image/jpeg';
+    }
+    // GIF: 47 49 46 38
+    if (bytes[0] === 0x47 && bytes[1] === 0x49 && bytes[2] === 0x46 && bytes[3] === 0x38) {
+      return 'image/gif';
+    }
+    // WebP: 52 49 46 46 ?? ?? ?? ?? 57 45 42 50
+    if (
+      bytes[0] === 0x52 && bytes[1] === 0x49 && bytes[2] === 0x46 && bytes[3] === 0x46 &&
+      bytes[8] === 0x57 && bytes[9] === 0x45 && bytes[10] === 0x42 && bytes[11] === 0x50
+    ) {
+      return 'image/webp';
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+/**
  * Convert ChatMessage to API format with images/attachments
  */
 function toApiMessage(m: ChatMessage): ApiMessage {
@@ -71,16 +107,19 @@ function toApiMessage(m: ChatMessage): ApiMessage {
 
     if (att.type.startsWith('image/') && attContent) {
       const base64Data = attContent.split(',')[1] || attContent;
+      // Trust magic bytes over att.type (which may be wrong from clipboard / drag-drop)
+      const detected = detectImageMediaType(base64Data);
+      const mediaType = detected ?? (att.type as 'image/jpeg' | 'image/png' | 'image/gif' | 'image/webp');
       content.push({
         type: 'image',
         source: {
           type: 'base64',
-          media_type: att.type,
+          media_type: mediaType,
           data: base64Data,
         },
       });
     } else if (attContent) {
-      // For non-image files or files without base64 prefix, include as text block
+      // For non-image files or files without image MIME, include as text block
       content.push({
         type: 'text',
         text: `[File: ${att.name}]\n\`\`\`\n${attContent}\n\`\`\``,

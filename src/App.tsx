@@ -379,9 +379,24 @@ export default function App() {
 
     if (images && images.length > 0) {
       for (let i = 0; i < images.length; i++) {
+        // Detect actual image type from base64 magic bytes (ClipboardItem / drag-drop
+        // can hand us JPEG data labeled as image/png, which Anthropic upstream rejects).
+        const base64 = images[i].split(',')[1] || images[i];
+        const bytes = Uint8Array.from(atob(base64.slice(0, 8)), (c) => c.charCodeAt(0));
+        let type = 'image/png';
+        let ext = 'png';
+        if (bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff) {
+          type = 'image/jpeg'; ext = 'jpg';
+        } else if (bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4e && bytes[3] === 0x47) {
+          type = 'image/png'; ext = 'png';
+        } else if (bytes[0] === 0x47 && bytes[1] === 0x49 && bytes[2] === 0x46 && bytes[3] === 0x38) {
+          type = 'image/gif'; ext = 'gif';
+        } else if (bytes[0] === 0x52 && bytes[1] === 0x49 && bytes[2] === 0x46 && bytes[3] === 0x46) {
+          type = 'image/webp'; ext = 'webp';
+        }
         allAttachments.push({
-          name: `image_${i + 1}.png`,
-          type: 'image/png',
+          name: `image_${i + 1}.${ext}`,
+          type,
           content: images[i],
         });
       }
