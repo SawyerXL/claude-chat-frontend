@@ -1,18 +1,13 @@
 import type { ModelOption } from './types';
 
-// Updated Claude models (2026-06-11: added claude-fable-5 from sub2api v0.1.136)
+// Updated 2026-06-16: removed claude-fable-5 from picker — sub2api release notes
+// v0.1.136 listed it but Anthropic upstream rejects it (502). See validated_anthropic_models.
 export const MODELS: ModelOption[] = [
   {
     id: 'claude-opus-4-8',
     name: 'Claude Opus 4.8',
     description: 'Most intelligent model for complex tasks',
     badge: 'Max',
-  },
-  {
-    id: 'claude-fable-5',
-    name: 'Claude Fable 5',
-    description: 'Newest model with Bedrock & Antigravity support',
-    badge: 'New',
   },
   {
     id: 'claude-opus-4-7',

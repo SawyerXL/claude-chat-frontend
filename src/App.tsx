@@ -45,7 +45,7 @@ const MODEL_ID_MAP: Record<string, string> = {
   // Claude Opus 4.8
   'claude-opus-4-8': 'claude-opus-4-8',
   // Claude Fable 5 (new in sub2api v0.1.136)
-  'claude-fable-5': 'claude-fable-5',
+  'claude-fable-5': 'claude-sonnet-4-6',
   // Claude Sonnet 4.6
   'claude-sonnet-4-6': 'claude-sonnet-4-6',
   // Claude Haiku 4.6
