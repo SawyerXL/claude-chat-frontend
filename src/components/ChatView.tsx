@@ -886,7 +886,25 @@ export default function ChatView({
 
       <div className="chat-messages">
         <div className="chat-messages-inner">
-          {messages.map((m) => (
+          {messages.length === 0 && activeChat ? (
+            <div className="chat-skeleton" aria-busy="true" aria-label="正在加载会话">
+              <div className="skeleton-row user">
+                <div className="skeleton-bubble" style={{ width: '52%' }} />
+              </div>
+              <div className="skeleton-row assistant">
+                <div className="skeleton-bubble" style={{ width: '88%' }} />
+                <div className="skeleton-bubble" style={{ width: '74%' }} />
+                <div className="skeleton-bubble" style={{ width: '60%' }} />
+              </div>
+              <div className="skeleton-row user">
+                <div className="skeleton-bubble" style={{ width: '40%' }} />
+              </div>
+              <div className="skeleton-row assistant">
+                <div className="skeleton-bubble" style={{ width: '82%' }} />
+                <div className="skeleton-bubble" style={{ width: '50%' }} />
+              </div>
+            </div>
+          ) : messages.map((m) => (
             <div
               key={m.id}
               ref={(el) => {

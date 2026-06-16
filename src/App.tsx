@@ -157,6 +157,28 @@ export default function App() {
 
   useKeyboardShortcuts(shortcuts, isReady);
 
+  // iOS keyboard handling: keep chat input visible above the on-screen keyboard
+  // by tracking visualViewport height and exposing --keyboard-offset on :root.
+  useEffect(() => {
+    const root = document.documentElement;
+    const update = () => {
+      const vv = window.visualViewport;
+      if (!vv) return;
+      const offset = Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
+      root.style.setProperty('--keyboard-offset', `${offset}px`);
+    };
+    update();
+    const vv = window.visualViewport;
+    vv?.addEventListener('resize', update);
+    vv?.addEventListener('scroll', update);
+    window.addEventListener('orientationchange', update);
+    return () => {
+      vv?.removeEventListener('resize', update);
+      vv?.removeEventListener('scroll', update);
+      window.removeEventListener('orientationchange', update);
+    };
+  }, []);
+
   // Add demo sessions if none exist (for testing)
   useEffect(() => {
     const addDemoSessions = async () => {

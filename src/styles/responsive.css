@@ -951,3 +951,81 @@ html, body {
     height: 4px;
   }
 }
+
+/* ================================================
+   TAP HIGHLIGHT (kill iOS grey flash on tap)
+   ================================================ */
+button,
+a,
+[role="button"],
+.clickable,
+.tool-btn,
+.header-btn,
+.recent-item,
+.quick-action,
+.sidebar-toggle-mobile {
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+}
+
+input,
+textarea,
+[contenteditable="true"] {
+  -webkit-tap-highlight-color: transparent;
+  -webkit-user-select: text;
+  user-select: text;
+}
+
+/* ================================================
+   iOS KEYBOARD OFFSET
+   ================================================ */
+/* App.tsx sets --keyboard-offset = innerHeight - visualViewport.height */
+.chat-input-container {
+  bottom: var(--keyboard-offset, 0px);
+  transition: bottom 0.05s ease-out;
+}
+
+/* ================================================
+   CHAT SKELETON (session switch loading state)
+   ================================================ */
+.chat-skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 16px 0;
+}
+
+.skeleton-row {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-width: 80%;
+}
+
+.skeleton-row.user {
+  align-self: flex-end;
+  align-items: flex-end;
+}
+
+.skeleton-row.assistant {
+  align-self: flex-start;
+  align-items: flex-start;
+}
+
+.skeleton-bubble {
+  height: 14px;
+  border-radius: 8px;
+  background: linear-gradient(
+    90deg,
+    var(--bg-tertiary, rgba(255, 255, 255, 0.04)) 0%,
+    var(--bg-hover, rgba(255, 255, 255, 0.10)) 50%,
+    var(--bg-tertiary, rgba(255, 255, 255, 0.04)) 100%
+  );
+  background-size: 200% 100%;
+  animation: skeleton-pulse 1.4s ease-in-out infinite;
+}
+
+@keyframes skeleton-pulse {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
